@@ -1,0 +1,158 @@
+unit ENOtherObjectTypeController;
+
+interface
+
+uses InvokeRegistry, SOAPHTTPClient, Types, XSBuiltIns, EnergyProController, EnergyProController2 
+;
+
+type
+
+  // ************************************************************************ //
+  // The following types, referred to in the WSDL document are not being represented
+  // in this file. They are either aliases[@] of other types represented or were referred
+  // to but never[!] declared in the document. The types from the latter category
+  // typically map to predefined/known XML or Borland types; however, they could also 
+  // indicate incorrect WSDL documents that failed to declare or import a schema type.
+  // ************************************************************************ //
+  // !:int             - "http://www.w3.org/2001/XMLSchema"
+  // !:string          - "http://www.w3.org/2001/XMLSchema"
+  // !:decimal         - "http://www.w3.org/2001/XMLSchema"
+  // !:date            - "http://www.w3.org/2001/XMLSchema"
+  // !:long            - "http://www.w3.org/2001/XMLSchema"
+  // !:dateTime        - "http://www.w3.org/2001/XMLSchema"
+  // !:EPCalculatorShortList - "http://ksoe.org/EnergyproControllerService/type/"
+  // !:EPCalculatorFilter - "http://ksoe.org/EnergyproControllerService/type/"
+
+  ENOtherObjectType            = class;                 { "http://ksoe.org/EnergyproControllerService/type/" }
+
+
+
+  // ************************************************************************ //
+  // Namespace : http://ksoe.org/EnergyproControllerService/type/
+  // ************************************************************************ //
+  ENOtherObjectTypeRef = class(TRemotable)
+  private
+    Fcode: Integer;
+  published
+    property code: Integer read Fcode write Fcode;
+  end;
+
+
+  // ************************************************************************ //
+  // Namespace : http://ksoe.org/EnergyproControllerService/type/
+  // ************************************************************************ //
+  ENOtherObjectType = class(TRemotable)
+  private
+    Fcode : Integer; 
+    Fname : WideString;
+  published
+    property  code : Integer read Fcode write Fcode; 
+    property name : WideString read Fname write Fname;
+  end;
+  
+{
+  ENOtherObjectTypeFilter = class(TRemotable)
+  private
+    FconditionSQL: WideString;
+    ForderBySQL: WideString;
+    Fcode : Integer; 
+    Fname : WideString;
+  published
+    property conditionSQL: WideString read FconditionSQL write FconditionSQL;
+    property orderBySQL: WideString read ForderBySQL write ForderBySQL;
+    property  code : Integer read Fcode write Fcode; 
+    property name : WideString read Fname write Fname;
+  end;
+}
+
+  ENOtherObjectTypeFilter = class(ENOtherObjectType)
+  private
+    FconditionSQL: WideString;
+    ForderBySQL: WideString;
+  published
+    property conditionSQL: WideString read FconditionSQL write FconditionSQL;
+    property orderBySQL: WideString read ForderBySQL write ForderBySQL;
+  end;
+  
+  ENOtherObjectTypeShort = class(TRemotable)
+  private
+    Fcode : Integer; 
+    Fname : WideString;
+  published
+    property  code : Integer read Fcode write Fcode; 
+    property name : WideString read Fname write Fname;
+
+  end;
+
+  ArrayOfENOtherObjectTypeShort = array of ENOtherObjectTypeShort;  // { "http://ksoe.org/EnergyproControllerService/type/" }
+
+  ENOtherObjectTypeShortList = class(TRemotable)
+  private
+    FtotalCount: Integer;
+    Flist: ArrayOfENOtherObjectTypeShort;
+  public
+  destructor Destroy; override;
+  published
+    property totalCount: Integer read FtotalCount write FtotalCount;
+    property list: ArrayOfENOtherObjectTypeShort read Flist write Flist;
+  end;
+
+
+
+  // ************************************************************************ //
+  // Namespace : http://ksoe.org/ENOtherObjectTypeController/message/
+  // soapAction: http://ksoe.org/ENOtherObjectTypeController/action/ENOtherObjectTypeController.%operationName%
+  // transport : http://schemas.xmlsoap.org/soap/http
+  // style     : rpc
+  // binding   : ENOtherObjectTypeControllerSoapBinding
+  // service   : EnergyproControllerService
+  // port      : ENOtherObjectTypeController
+  // URL       : http://soap.ksoe.com.ua/energypro
+  // ************************************************************************ //
+
+
+  ENOtherObjectTypeControllerSoapPort = interface(IInvokable)
+  ['{c118c118-c118-c118-c118-c118c118c118}']
+    function  add(const aENOtherObjectType: ENOtherObjectType): Integer; stdcall;
+    procedure remove(const anObjectCode: Integer); stdcall;
+    procedure save(const aENOtherObjectType: ENOtherObjectType); stdcall;
+    function  getObject(const anObjectCode: Integer): ENOtherObjectType; stdcall;
+    function  getList: ENOtherObjectTypeShortList; stdcall;
+    function  getFilteredList(const aENOtherObjectTypeFilter: ENOtherObjectTypeFilter): ENOtherObjectTypeShortList; stdcall;
+    function  getScrollableList(const aFromPosition: Integer; const aQuantity: Integer): ENOtherObjectTypeShortList; stdcall;
+    function  getScrollableFilteredList(const aENOtherObjectTypeFilter: ENOtherObjectTypeFilter; const aFromPosition: Integer; const aQuantity: Integer): ENOtherObjectTypeShortList; stdcall;
+    function  getScrollableListByCondition(const aCondition: WideString; const aFromPosition: Integer; const aQuantity: Integer): ENOtherObjectTypeShortList; stdcall;
+  end; 
+
+
+implementation
+
+
+  
+  destructor ENOtherObjectTypeShortList.Destroy;
+  var
+    I: Integer;
+  begin
+    for I := 0 to Length(Flist)-1 do
+     if Assigned(Flist[I]) then
+       Flist[I].Free;
+     SetLength(Flist, 0);
+     inherited Destroy;
+  end;
+
+
+
+initialization
+
+  RemClassRegistry.RegisterXSClass(ENOtherObjectType, 'http://ksoe.org/EnergyproControllerService/type/', 'ENOtherObjectType');
+  RemClassRegistry.RegisterXSClass(ENOtherObjectTypeRef, 'http://ksoe.org/EnergyproControllerService/type/', 'ENOtherObjectTypeRef');
+  RemClassRegistry.RegisterXSClass(ENOtherObjectTypeFilter, 'http://ksoe.org/EnergyproControllerService/type/', 'ENOtherObjectTypeFilter');
+  RemClassRegistry.RegisterXSClass(ENOtherObjectTypeShort, 'http://ksoe.org/EnergyproControllerService/type/', 'ENOtherObjectTypeShort');
+  RemClassRegistry.RegisterXSClass(ENOtherObjectTypeShortList, 'http://ksoe.org/EnergyproControllerService/type/', 'ENOtherObjectTypeShortList');
+  RemClassRegistry.RegisterXSInfo(TypeInfo(ArrayOfENOtherObjectTypeShort), 'http://ksoe.org/EnergyproControllerService/type/', 'ArrayOfENOtherObjectTypeShort');
+
+  InvRegistry.RegisterInterface(TypeInfo(ENOtherObjectTypeControllerSoapPort), 'http://ksoe.org/ENOtherObjectTypeController/message/', 'UTF-8');
+  InvRegistry.RegisterDefaultSOAPAction(TypeInfo(ENOtherObjectTypeControllerSoapPort), 'http://ksoe.org/ENOtherObjectTypeController/action/ENOtherObjectTypeController.%operationName%');
+
+
+end.
