@@ -1,0 +1,447 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ax_dodat3_get_podr" pageWidth="2267" pageHeight="535" orientation="Landscape" columnWidth="2267" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.scriptlethandling" value="2"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String">
+		<defaultValueExpression><![CDATA["C:\\iReport-3.0.0\\tmp\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pdate1" class="java.lang.String"/>
+	<parameter name="rencode" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="netConnection" class="java.lang.Object" isForPrompting="false"/>
+	<parameter name="pdate2" class="java.lang.String"/>
+	<parameter name="plankind" class="java.lang.Integer"/>
+	<parameter name="show_rza_dtu_iz_ovb" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[0]]></defaultValueExpression>
+	</parameter>
+	<parameter name="hrmorganizationid" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[select
+DESCRIPTION +
+case when rate like '%RZA%'  then ' РЗйА'
+     when rate like '%DTU%'  then ' СДТУ'
+     when rate like '%IZ%'   then ' Ізоляція'
+     else '' end  as podr_nazv ,
+HRMORGANIZATIONID as podr_id ,
+PARENTORGANIZATIONID as main_podr_id ,
+PARENTDESCRIPTION as podr_nazv_main ,
+case when rate like '%RZA%' and $P{show_rza_dtu_iz_ovb} = 1 then 'RZA'
+     when rate like '%DTU%' and $P{show_rza_dtu_iz_ovb} = 1 then 'DTU'
+     when rate like '%IZ%'  and $P{show_rza_dtu_iz_ovb} = 1 then 'IZ'
+     else 'SHTAT' end as shortname ,
+count(name) as countpersonalinpodr
+
+,STREMPLID  --'string_agg табельных'
+/*если отпуск по приказам есть то показываем его , иначе показываем отпуск по плану-график */
+ , case when sum(counthoursotpusk) > 0 then sum(counthoursotpusk) else sum(counthoursotpusk_plan) end as counthoursotpusk
+from (
+    select
+    DESCRIPTION ,
+    HRMORGANIZATIONID ,
+    PARENTORGANIZATIONID ,
+    PARENTDESCRIPTION ,
+    /* мобилизированные на начало периода в кол-во фактических людей не учитываем */
+    case when (select  min(coalesce(r.RATEVALUE,0))
+                 from dbo.RPAYRATETRANS r
+                where upper(r.DATAAREAID) = 'KSOE'
+                  and upper(r.PAYRATE) = 'МОБИЛИЗАЦИЯ'
+                  and r.RATEDATE <= $P{pdate1}
+                  and r.RATETYPEAC = r_in.emplid ) > 0 then  null else NAME end as NAME ,
+    case when rate like '%НВЗ_РЗА_Д3%' then 'RZA'
+         when rate like '%НВЗ_ДТУ_Д3%' then 'DTU'
+         when rate like '%НВЗ_ІЗ_Д3%'  then 'IZ'
+         else 'SHTAT' end as rate
+, rate as mdaxrate
+/*<<<< часы отпуска */
+, /*кол-во  часов отпуска за период */
+	     coalesce((SELECT  coalesce(sum(cast(VACHOURSCNTINPERIOD as numeric(15,2) )),0) from  dbo.ENERGYNET_FN_EMPL_VACATION_TIME_PLAN(
+				   /* DATAAREAID */ 'KSOE',
+				   /* FROMDATE */ $P{pdate1},
+				   /* TODATE */ $P{pdate2},
+				   /* EMPLOYMENTLIST */ r_in.emplid  ,
+				   /* VACATIONTYPELIST */ '',
+				   /* TIMEGROUP_FACT */ 'ENET_FACT') ) ,0) as counthoursotpusk
+		 , /*( ЧАСЫ В МЕС рабочие / дни в мес календар ) * кол-во дней отпуска план = часы отпуска план  	 */
+		 COALESCE(ROUND(( (SELECT WORKHOURS FROM dbo.VSE_FN_WORKING_TIME_PLAN
+					('KSOE'
+					,$P{pdate1}
+				    ,$P{pdate2}
+					, AZT_PAYCALENDARID
+					,'ENET_FACT'))
+					/
+					(select DAY(DATEADD(s,-1,DATEADD(mm, DATEDIFF(m,0,Cast($P{pdate1} as date))+1,0)) ) )
+					*
+					(SELECT sum(/*VACDAYSCNT*/VACDAYSCNTINPERIOD) FROM dbo.ENERGYNET_FN_EMPL_VACATION
+					('KSOE'
+					,$P{pdate1}
+				    ,$P{pdate2}
+					,r_in.emplid)
+					)
+		  ),2),0) as counthoursotpusk_plan
+/*>>>> часы отпуска */
+
+     from dbo.ENERGYNET_FN_STAFFLIST_ALL (
+                      /*@DATAAREAID =*/ 'KSOE'
+                    , /*@ACTUALITYDATE =*/ $P{pdate2}
+                    , /*@ORGANIZATIONLIST =*/$P{hrmorganizationid}
+                    , /*@ORGCHILD = */ 1
+                    , /*@EMPLOYMENTLIST =*/ ''
+                    , /*@EMPLOYMENTNAMELIST =*/ ''
+                    , /*@STAFFPOSITIONLIST =*/ ''
+                    ,'НВЗ_Д3;НВЗ_ДТУ_Д3;НВЗ_ІЗ_Д3;НВЗ_РЗА_Д3'
+                    , /*@SHOWVACANCY*/ 1
+    ) as r_in
+ ) as r1
+OUTER APPLY
+    (SELECT STUFF(( SELECT ',' + a.EMPLID
+       FROM dbo.ENERGYNET_FN_STAFFLIST (
+				  /*@DATAAREAID =*/ 'KSOE'
+				, /*@ACTUALITYDATE =*/ $P{pdate2}
+				, /*@ORGANIZATIONLIST =*/ $P{hrmorganizationid}
+				, /*@ORGCHILD = */ 1
+				, /*@EMPLOYMENTLIST =*/ ''
+                , /*@EMPLOYMENTNAMELIST =*/ ''
+				, /*@STAFFPOSITIONLIST =*/ ''
+                , 'НВЗ_Д3;НВЗ_ДТУ_Д3;НВЗ_ІЗ_Д3;НВЗ_РЗА_Д3'
+) AS a
+      WHERE a.HRMORGANIZATIONID = r1.HRMORGANIZATIONID
+        and a.rate = r1.mdaxrate
+      ORDER BY a.EMPLID
+        FOR XML PATH('') ), 1,1,'') AS STREMPLID ) AS f
+where (  ($P{show_rza_dtu_iz_ovb} = 0
+            and rate not like '%RZA%'
+            and rate not like '%DTU%'
+            and rate not like '%IZ%')
+
+        or
+         ($P{show_rza_dtu_iz_ovb} <> 0  )
+      )
+
+  /* условие показывать или нет бригады ОВБ */
+and ( ( lower(DESCRIPTION) not like  'оперативно%ви%бригада'
+            and  lower(DESCRIPTION) not like  'опера%диспетч%гру%'
+            and $P{show_rza_dtu_iz_ovb} = 0  )
+           or $P{show_rza_dtu_iz_ovb} = 1
+        )
+group by DESCRIPTION,
+ HRMORGANIZATIONID,
+ PARENTORGANIZATIONID,
+ PARENTDESCRIPTION ,
+ RATE,
+ STREMPLID
+
+ order by HRMORGANIZATIONID]]>
+	</queryString>
+	<field name="podr_nazv" class="java.lang.String"/>
+	<field name="podr_id" class="java.lang.String"/>
+	<field name="main_podr_id" class="java.lang.String"/>
+	<field name="podr_nazv_main" class="java.lang.String"/>
+	<field name="shortname" class="java.lang.String"/>
+	<field name="countpersonalinpodr" class="java.lang.Integer"/>
+	<field name="stremplid" class="java.lang.String"/>
+	<field name="counthoursotpusk" class="java.math.BigDecimal"/>
+	<variable name="test" class="java.lang.String" incrementType="Group" incrementGroup="ee">
+		<variableExpression><![CDATA[$V{test}]]></variableExpression>
+		<initialValueExpression><![CDATA[$V{test}]]></initialValueExpression>
+	</variable>
+	<variable name="test2" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="Sum">
+		<variableExpression><![CDATA[$V{test2}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_5" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_5}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_6" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_6}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_7" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_7}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_8" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_8}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_9" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_9}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_10" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_10}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_11" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_11}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_12" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_12}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_13" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_13}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_14" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_14}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_15" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_15}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_16" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_16}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_17" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_17}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_18" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_18}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_19" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_19}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_20" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_20}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_21" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_21}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_22" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_22}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_23" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_23}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_24" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_24}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_25" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_25}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_26" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_26}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_27" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_27}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_28" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_28}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_29" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_29}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_30" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_30}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_31" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_31}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_32" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_32}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_33" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_33}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_34" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_34}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_35" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_35}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_36" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_36}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_37" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_37}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="vv_count_personal" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[new BigDecimal($F{countpersonalinpodr})]]></variableExpression>
+	</variable>
+	<variable name="sum_other" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_other}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_other_avr" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_other_avr}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="itogo_pripis" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{itogo_pripis}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_12_deliv_kr_pr_inv" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_12_deliv_kr_pr_inv}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_14_vneplan" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_14_vneplan}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_18_vneplan" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_18_vneplan}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_22_vneplan" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_22_vneplan}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_26_vneplan" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_26_vneplan}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_30_vneplan" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_30_vneplan}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_col_12_deliv_kr_vneplan" class="java.math.BigDecimal" incrementType="Group" incrementGroup="ee" calculation="System">
+		<variableExpression><![CDATA[$V{sum_col_12_deliv_kr_vneplan}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<group name="ee">
+		<groupExpression><![CDATA[$F{podr_nazv}]]></groupExpression>
+		<groupHeader>
+			<band splitType="Stretch"/>
+		</groupHeader>
+		<groupFooter>
+			<band splitType="Stretch"/>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" stretchType="RelativeToTallestObject" x="0" y="0" width="1855" height="20"/>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="pcountpers">
+					<subreportParameterExpression><![CDATA[$V{vv_count_personal}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pdate1">
+					<subreportParameterExpression><![CDATA[$P{pdate1}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="Ppodr_name">
+					<subreportParameterExpression><![CDATA[($V{vv_count_personal}.doubleValue() != 0.0 ) ? $F{podr_nazv_main} + " " + $F{podr_nazv} : $F{podr_nazv}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="stringEmplid">
+					<subreportParameterExpression><![CDATA[$F{stremplid}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pdate2">
+					<subreportParameterExpression><![CDATA[$P{pdate2}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="counthoursotpusk">
+					<subreportParameterExpression><![CDATA[$F{counthoursotpusk}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="Ppodrkod">
+					<subreportParameterExpression><![CDATA[/*($V{vv_count_personal}.doubleValue() != 0.0 ) ? $F{podr_id} : new Integer(0)*/
+$F{podr_id}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="plankind">
+					<subreportParameterExpression><![CDATA[$P{plankind}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="budgcode">
+					<subreportParameterExpression><![CDATA[$F{shortname}.equals("RZA") ? new String("75000012") :
+$F{shortname}.equals("DTU") ? new String("75000014") :
+$F{shortname}.equals("IZ") ? new String("75000023,75000001") : new String("select d.code from endepartment d where d.parentrefcode = 1002")]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="shortname">
+					<subreportParameterExpression><![CDATA[$F{shortname}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[(java.sql.Connection)$P{netConnection}]]></connectionExpression>
+				<returnValue subreportVariable="sum_col_5" toVariable="sum_col_5" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_6" toVariable="sum_col_6" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_7" toVariable="sum_col_7" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_8" toVariable="sum_col_8" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_9" toVariable="sum_col_9" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_10" toVariable="sum_col_10" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_11" toVariable="sum_col_11" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_12" toVariable="sum_col_12" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_13" toVariable="sum_col_13" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_14" toVariable="sum_col_14" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_15" toVariable="sum_col_15" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_16" toVariable="sum_col_16" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_17" toVariable="sum_col_17" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_18" toVariable="sum_col_18" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_19" toVariable="sum_col_19" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_20" toVariable="sum_col_20" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_21" toVariable="sum_col_21" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_22" toVariable="sum_col_22" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_23" toVariable="sum_col_23" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_24" toVariable="sum_col_24" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_25" toVariable="sum_col_25" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_26" toVariable="sum_col_26" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_27" toVariable="sum_col_27" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_28" toVariable="sum_col_28" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_29" toVariable="sum_col_29" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_30" toVariable="sum_col_30" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_31" toVariable="sum_col_31" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_32" toVariable="sum_col_32" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_33" toVariable="sum_col_33" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_34" toVariable="sum_col_34" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_35" toVariable="sum_col_35" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_36" toVariable="sum_col_36" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_37" toVariable="sum_col_37" calculation="Sum"/>
+				<returnValue subreportVariable="sum_other" toVariable="sum_other" calculation="Sum"/>
+				<returnValue subreportVariable="sum_other_avr" toVariable="sum_other_avr" calculation="Sum"/>
+				<returnValue subreportVariable="itogo_pripis" toVariable="itogo_pripis" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_12_deliv_kr_pr_inv" toVariable="sum_col_12_deliv_kr_pr_inv" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_14_vneplan" toVariable="sum_col_14_vneplan" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_18_vneplan" toVariable="sum_col_18_vneplan" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_22_vneplan" toVariable="sum_col_22_vneplan" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_26_vneplan" toVariable="sum_col_26_vneplan" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_30_vneplan" toVariable="sum_col_30_vneplan" calculation="Sum"/>
+				<returnValue subreportVariable="sum_col_12_deliv_kr_vneplan" toVariable="sum_col_12_deliv_kr_vneplan" calculation="Sum"/>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/NPZ_dodat3_var2_norms_year/ax_dodat3_get_report_str.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.9.0.final using JasperReports Library version 4.5.0  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="CalendarPlanSub" pageWidth="2370" pageHeight="1000" orientation="Landscape" whenNoDataType="BlankPage" columnWidth="2370" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="2"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.4641000000000006"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\Projects\\EnergyServerEclipse\\EnergyNet\\reports\\src\\com\\ksoe\\energynet\\reports\\Services\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="techcondservrefcode" class="java.lang.Integer"/>
+	<parameter name="month" class="java.lang.Integer"/>
+	<parameter name="year" class="java.lang.Integer"/>
+	<parameter name="ActTypeCode" class="java.lang.Integer" isForPrompting="false"/>
+	<parameter name="DetailingPlanTask" class="java.lang.Integer"/>
+	<parameter name="dateStart" class="java.util.Date">
+		<defaultValueExpression><![CDATA[new Date()]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateFinal" class="java.util.Date">
+		<defaultValueExpression><![CDATA[new Date()]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dtvl" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[select pp.code as ppcode ,
+ (select  coalesce(eld.ename,'') || ' Инв.№'|| coalesce(eld.invnumber,'' )  as objname from enelementdata eld where eld.ecode = pp.elementrefcode ) as objname
+ , ps.shortname as  enplanworkstatename
+ , ps.code as  enplanworkstatecode
+ /*комплектация материалами . по мес планам если все материалі в статусе в наличии, тогда  Так иначе Ні и перечень материалов с кол-вом  */
+ , (
+    case when
+     (select count(ei.code) from enestimateitem ei where ei.planrefcode = pp.code and ei.countfact > 0 and ei.kindrefcode = 1 and ei.accountingtyperefcode = 1 and (ei.statusrefcode not in (3 , 5 ) ) ) > 0
+    then
+     (select 'Ні   ' || string_agg(m.name || ' кільк. =  '  || (ei.countfact)::numeric(15,6)::text  , ' ; ')
+          from enestimateitem ei, tkmaterials m where ei.materialrefcode = m.code and  ei.planrefcode = pp.code and ei.countfact > 0 and ei.kindrefcode = 1 and ei.accountingtyperefcode = 1
+  and (ei.statusrefcode not in (3 , 5 ) ) )
+    else
+    'Так'
+    end
+   ) as complectMaterial
+   , dep.name as depname
+   ,( select fx."name" from finexecutor fx where fx.code = pp.finexecutorcode ) as finexecutor
+from enplanwork pp , enplanworkstate ps  , endepartment dep
+where pp.staterefcode=ps.code
+and pp.typerefcode not in (19,20) -- SUPP-73342
+and pp.departmentrefcode = dep.code
+--- месячный план ИЛИ задания план ИЛИ факт в выбранном периоде
+and( ( select count(plannewrefcode) from ( select eh1.plannewrefcode from enplancorrecthistory eh1 , enplanwork ppp
+        where eh1.reasoncode =  4
+          and eh1.planoldrefcode = pp.code
+          and eh1.plannewrefcode = ppp.code
+          and ppp.datestart between $P{dateStart} and $P{dateFinal}
+       union
+       select eh2.plannewrefcode from enplancorrecthistory eh1 , enplancorrecthistory eh2  , enplanwork ppp
+        where eh1.reasoncode =  4
+          and eh1.planoldrefcode = pp.code
+          and eh1.plannewrefcode = eh2.planoldrefcode
+          and eh2.reasoncode = 5
+          and eh2.plannewrefcode = ppp.code
+          and ppp.datestart between $P{dateStart} and $P{dateFinal}
+       ) as ssh
+    ) > 0
+  or ( pp.datestart between $P{dateStart} and $P{dateFinal} )
+    )
+and pp.code in
+(
+select p.code  from entechcond2planwork t2p  , enplanwork p
+	    where t2p.planrefcode = p.code
+	      and p.kindcode = 2
+	      and (p.staterefcode = $P{ActTypeCode} or ( $P{ActTypeCode} = 0 and p.staterefcode in (2 , 3, 4 ) )    ) -- планы брать только РМ,КБ,ТО или один из них  + SUPP-81710
+	      and t2p.techconservicesrefcode = $P{techcondservrefcode}
+	      and p.typerefcode not in (19,20) -- SUPP-73342
+union
+select p.code from enservicesobject2techcondtnsservices so2tc  , enservicesobject so  , enplanwork p
+	    where  so2tc.servicesobjectrefcode = so.code
+	      and so.elementcode = p.elementrefcode
+	      and p.kindcode = 2
+	      and (p.staterefcode = $P{ActTypeCode} or ( $P{ActTypeCode} = 0 and p.staterefcode in (2 , 3, 4 ) )    ) -- планы брать только РМ,КБ,ТО или один из них  + SUPP-81710
+	      and so2tc.techcondservrefcode = $P{techcondservrefcode}
+	      and p.typerefcode not in (19,20) -- SUPP-73342
+)]]>
+	</queryString>
+	<field name="ppcode" class="java.lang.Integer"/>
+	<field name="objname" class="java.lang.String"/>
+	<field name="enplanworkstatename" class="java.lang.String"/>
+	<field name="complectmaterial" class="java.lang.String"/>
+	<field name="depname" class="java.lang.String">
+		<fieldDescription><![CDATA[Назва підрозділу]]></fieldDescription>
+	</field>
+	<field name="finexecutor" class="java.lang.String"/>
+	<field name="enplanworkstatecode" class="java.lang.Integer"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<subreport>
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="510" height="20" isPrintInFirstWholeBand="true"/>
+				<subreportParameter name="finexecutor">
+					<subreportParameterExpression><![CDATA[$F{finexecutor}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="enplanworkstatecode">
+					<subreportParameterExpression><![CDATA[$F{enplanworkstatecode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="month">
+					<subreportParameterExpression><![CDATA[$P{month}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="enplanworkstatename">
+					<subreportParameterExpression><![CDATA[$F{enplanworkstatename}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="codeMonthPlan">
+					<subreportParameterExpression><![CDATA[$F{ppcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="year">
+					<subreportParameterExpression><![CDATA[$P{year}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="objname">
+					<subreportParameterExpression><![CDATA[$F{objname}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="complectmaterial">
+					<subreportParameterExpression><![CDATA[$F{complectmaterial}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="depname">
+					<subreportParameterExpression><![CDATA[$F{depname}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DetailingPlanTask">
+					<subreportParameterExpression><![CDATA[$P{DetailingPlanTask}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="dateStart">
+					<subreportParameterExpression><![CDATA[$P{dateStart}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="dateFinal">
+					<subreportParameterExpression><![CDATA[$P{dateFinal}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="dtvl">
+					<subreportParameterExpression><![CDATA[$P{dtvl}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/TechConditions/CalendarPlan/CalendarPlanSubDay.jasper")
+/*"c:/Projects/EnergyServerEclipse/EnergyNet/reports/src/com/ksoe/energynet/reports/TechConditions/CalendarPlan/CalendarPlanSubDay.jasper"*/]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<lastPageFooter>
+		<band splitType="Stretch"/>
+	</lastPageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

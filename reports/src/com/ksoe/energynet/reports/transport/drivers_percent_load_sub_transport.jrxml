@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 4.5.0-->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="drivers_percent_load_sub_transport" pageWidth="802" pageHeight="555" orientation="Landscape" columnWidth="802" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="0.75"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="fin_code_string" class="java.lang.String"/>
+	<parameter name="yearGen" class="java.lang.String"/>
+	<parameter name="monthGen" class="java.lang.String"/>
+	<parameter name="worked_time_in_month" class="java.math.BigDecimal"/>
+	<queryString language="SQL">
+		<![CDATA[select base_query.transportname, sum(base_query.km) as km,
+sum(case when base_query.classification in (5,7)
+     then base_query.mh + base_query.mh_brigade
+     else base_query.mh end) as mh,
+    sum((base_query.km/30 +
+    (case when base_query.classification in (5,7)
+     then base_query.mh + base_query.mh_brigade
+     else base_query.mh end )
+     ) / case when norm_time = 0 then 0.00000001 else norm_time end  * 100) as percent_load, base_query.classificationname
+      from
+(
+select   tr.buhname || '('  || tr.gosnumber || ', ' || dep.name ||')'  as transportname,
+
+    coalesce((case when coalesce(sum(ts.speedometerfinal-ts.speedometerstart),0) = 0
+     then sum((select sum(entravelsheetitem.sumdistances)
+   from entravelsheetitem
+  where entravelsheetitem.travelsheetrefcode = ts.code
+    and entravelsheetitem.kindrefcode = 2))
+     else sum(ts.speedometerfinal-ts.speedometerstart) end),0)
+     as km,
+
+COALESCE(sum((select sum(entravelsheetitem.summachinehours)
+   from entravelsheetitem
+  where entravelsheetitem.travelsheetrefcode = ts.code
+    and entravelsheetitem.kindrefcode = 2)),0) as mh,
+
+COALESCE(sum((select    sum(pwi.timegen) / count(hi.code)
+from  entravelsheetitem tsi, enplanworkitem pwi, enhumenitem hi
+where tsi.planrefcode = pwi.planrefcode
+and tsi.kindrefcode = 2
+and tsi.travelsheetrefcode = ts.code
+and pwi.code = hi.planitemrefcode
+and pwi.timegen > 0
+and pwi.countgen > 0)),0) as mh_brigade,
+ $P{worked_time_in_month} as norm_time, tcl.code as classification , tcl.name as classificationname
+
+from entravelsheet ts,  tktransportreal tr, tktransport tk, tktransportclassifictn tcl, entransportdepartment dep
+where  ts.datestart between to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy')
+and last_day(to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy'))
+and ts.finworkercode in ($P!{fin_code_string})
+and ts.transportrealcode = tr.code
+and tr.transportcode = tk.code
+and tk.transportclassifictncd = tcl.code
+and tr.transportdepartmntrfcd = dep.code
+group by  tr.buhname, tr.gosnumber, dep.name, tr.transportcode,tcl.code, tcl.name
+order by tr.buhname
+) as base_query
+group by base_query.transportname, base_query.classificationname]]>
+	</queryString>
+	<field name="transportname" class="java.lang.String"/>
+	<field name="km" class="java.lang.Double"/>
+	<field name="mh" class="java.lang.Double"/>
+	<field name="percent_load" class="java.lang.Double"/>
+	<field name="classificationname" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="28">
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="300" height="28" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{transportname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="300" y="0" width="50" height="28" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{km}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="350" y="0" width="50" height="28" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{mh}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="400" y="0" width="50" height="28" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{percent_load}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="450" y="0" width="90" height="28" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{classificationname}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

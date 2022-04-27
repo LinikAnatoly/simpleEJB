@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="rep_order_full_oplata" pageWidth="250" pageHeight="40" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="250" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<style name="orderpreviousopl" mode="Opaque">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[new Boolean($P{statussymbol}.equals("П"))]]></conditionExpression>
+			<style mode="Opaque" backcolor="#C9C8C9"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="oicode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(500071115)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="strestimateitem" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("501836161")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="startDate" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("31.12.2011")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="statussymbol" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="ShowPayOnlyCurPeriod" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select to_char(w.dategen,'dd.mm.yyyy') as datepay ,
+sum(w.summagen_new)::numeric(15,2) as summagen
+, sbill.numberdocbill
+, pricewithoutnds
+, (select sum(bi2oi.countfact) from rqbillitem2orderitem bi2oi where bi2oi.orderitemrefcode = $P{oicode} ) as countfact
+, '' as numberbill
+from (
+select rbi.pricewithoutnds , b.numberdoc as numberdocbill ,  p2b.billitemcode as billitemrefcode, p.numbergen,
+p.dategen,
+(
+  bi2oi.countfact  /* 06.09.2013 вроде связку привели в порядок поєтому количество берем с нее */
+*
+(rbi.pricewithoutnds*pi.summagen/rbi.sumwithoutnds  )) as summagen
+
+--- summagen_new
+,p2b.summagen/rbi.countfact*bi2oi.countfact as summagen_new
+
+from net.rqpaydoc p, net.rqpaydocitem pi, net.rqpaydocitem2billitem p2b
+, net.rqbillitem2orderitem bi2oi, net.rqbillitem rbi  , rqorderitem oi , rqbill b
+where pi.paydocrefcode = p.code
+and p2b.paydocitemcode = pi.code
+and p2b.billitemcode = bi2oi.billitemrefcode
+and bi2oi.orderitemrefcode = $P{oicode}
+and bi2oi.billitemrefcode = rbi.code
+and bi2oi.orderitemrefcode = oi.code
+and rbi.billrefcode = b.code
+and (
+         ( ( p.dategen <= to_date($P{startDate},'dd.mm.yyyy') ) and ($P{ShowPayOnlyCurPeriod} = 0) )
+        or
+         ( ( p.dategen between first_day(to_date($P{startDate},'dd.mm.yyyy')) and  to_date($P{startDate},'dd.mm.yyyy')) and ($P{ShowPayOnlyCurPeriod} = 1) )
+       )
+) w
+   /* клеим просто счета */
+ full join
+ ( select distinct bi.code as billitem , b.numberdoc as numberdocbill
+                        from rqorderitem2enestimttm oe,  rqbillitem2enestimattm be,
+                             rqbill b, rqbillitem bi   left join rqpaydocitem2billitem pi2bi on (bi.code = pi2bi.billitemcode )
+                                                       left join rqpaydocitem pi on (pi.code = pi2bi.paydocitemcode )
+                                                       left join rqpaydoc p on
+       (pi.paydocrefcode = p.code
+       and (
+         ( ( p.dategen <= to_date($P{startDate},'dd.mm.yyyy') ) and ($P{ShowPayOnlyCurPeriod} = 0) )
+        or
+         ( ( p.dategen between first_day(to_date($P{startDate},'dd.mm.yyyy')) and  to_date($P{startDate},'dd.mm.yyyy')) and ($P{ShowPayOnlyCurPeriod} = 1) )
+       )
+      )
+                       , rqbillitem2orderitem bo
+                        where be.estimateitemcode = oe.estimateitemcode
+                         and be.billitemcode = bo.billitemrefcode
+                         and bo.orderitemrefcode = oe.orderitemcode
+                         and bi.code = bo.billitemrefcode
+                         and b.code = bi.billrefcode
+                         and bo.orderitemrefcode = $P{oicode}
+
+ ) sBill on w.billitemrefcode = sBill.billitem
+group by w.numbergen, w.dategen , w.numberdocbill , w.pricewithoutnds  , sbill.numberdocbill
+
+/*старый запрос*/
+
+/*select to_char( dategen , 'dd.mm.yyyy') as datepay , pricewithoutnds::numeric(15,3) as pricewithoutnds,
+        Case When COALESCE(sum(sum22)::numeric(15,3),0) <> 0 Then sum(coalesce(sum22,0))::numeric(15,3)  Else  sum(coalesce(summagen,0))::numeric(10,2) End As summagen,
+        ' '||sBill.numberdocbill as numberbill , sum(countfact)::numeric(15,3) as countfact  , ' '||sBill.numberdocbill as numberdocbill
+       from
+(
+Select -- 04.02.2013 нада было как то отделить суммы относящиеся к строке заявки
+case when {oicode} in (500157639 , 500157638)
+       then
+       sum(be.countgen) * (bii.pricewithoutnds + coalesce((bii.pricewithoutnds * r.vat  /100)) )
+       else
+ --вычисляем сумму оплаты
+(p2b.summagen / bii.countfact*sum(be.countgen))::numeric(15,2)
++ -- разница
+p2b.summagen / bii.countfact*(bii.countfact-(
+select sum(rqbillitem2enestimattm.countgen)
+from rqbillitem2enestimattm
+where rqbillitem2enestimattm.billitemcode = bii.code ))
+end  as summagen
+     , pd.dategen
+     , bii.code as billitemrefcode
+     , bii.pricewithoutnds
+     , sum(be.countgen) as countfact
+     , o2e.orderitemcode
+     , pdi.code
+     , coalesce((select coalesce(p2b2o.summagen,0) from rqpitem2bitem2oitem p2b2o
+         where p2b2o.billitemcode = bii.code
+           and p2b2o.orderitemcode = o2e.orderitemcode
+           and p2b2o.paydocitemcode = pdi.code  ),0) as sum22
+From rqbillitem2enestimattm be , rqbillitem bii , rqpaydocitem2billitem p2b , rqbill r, rqpaydocitem pdi, rqpaydoc pd ,
+     rqorderitem2enestimttm o2e
+ where  be.billitemcode = bii.code
+   and p2b.billitemcode = bii.code
+   and r.code = bii.billrefcode
+   and o2e.estimateitemcode = be.estimateitemcode
+   and o2e.orderitemcode = {oicode}
+   and be.billitemcode in ( Select distinct bi.code as billitem
+						From rqorderitem2enestimttm oe,  rqbillitem2enestimattm be,
+							 rqbill b, rqbillitem bi, rqbillitem2orderitem bo
+						where be.estimateitemcode = oe.estimateitemcode
+						 and be.billitemcode = bo.billitemrefcode
+						 and bo.orderitemrefcode = oe.orderitemcode
+						 and bi.code = bo.billitemrefcode
+						 and b.code = bi.billrefcode
+						 and bo.orderitemrefcode = {oicode}
+
+                        )
+   and pdi.code = p2b.paydocitemcode
+   and pdi.paydocrefcode = pd.code
+   and (
+         ( ( pd.dategen <= to_date({startDate},'dd.mm.yyyy') ) and ({ShowPayOnlyCurPeriod} = 0) )
+        or
+         ( (pd.dategen between first_day(to_date({startDate},'dd.mm.yyyy')) and  to_date({startDate},'dd.mm.yyyy')) and ({ShowPayOnlyCurPeriod} = 1) )
+       )
+
+   group by  p2b.summagen , pd.dategen , bii.code , bii.pricewithoutnds   , o2e.orderitemcode  , pdi.code , r.vat
+   ) selpay
+   -- клеим просто счета
+ full join
+ ( select distinct bi.code as billitem , b.numberdoc as numberdocbill
+                        from rqorderitem2enestimttm oe,  rqbillitem2enestimattm be,
+                             rqbill b, rqbillitem bi   left join rqpaydocitem2billitem pi2bi on (bi.code = pi2bi.billitemcode )
+                                                       left join rqpaydocitem pi on (pi.code = pi2bi.paydocitemcode )
+                                                       left join rqpaydoc p on
+       (pi.paydocrefcode = p.code
+       and (
+         ( ( p.dategen <= to_date({startDate},'dd.mm.yyyy') ) and ({ShowPayOnlyCurPeriod} = 0) )
+        or
+         ( ( p.dategen between first_day(to_date({startDate},'dd.mm.yyyy')) and  to_date({startDate},'dd.mm.yyyy')) and ({ShowPayOnlyCurPeriod} = 1) )
+       )
+      )
+                       , rqbillitem2orderitem bo
+                        where be.estimateitemcode = oe.estimateitemcode
+                         and be.billitemcode = bo.billitemrefcode
+                         and bo.orderitemrefcode = oe.orderitemcode
+                         and bi.code = bo.billitemrefcode
+                         and b.code = bi.billrefcode
+                         and bo.orderitemrefcode = {oicode}
+
+
+ ) sBill on selpay.billitemrefcode = sBill.billitem
+
+   group by dategen , pricewithoutnds , sBill.numberdocbill*/]]>
+	</queryString>
+	<field name="pricewithoutnds" class="java.math.BigDecimal"/>
+	<field name="summagen" class="java.math.BigDecimal"/>
+	<field name="countfact" class="java.math.BigDecimal"/>
+	<field name="datepay" class="java.lang.String"/>
+	<field name="numberbill" class="java.lang.String"/>
+	<field name="numberdocbill" class="java.lang.String"/>
+	<variable name="sum_oplata_fact" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{summagen}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_oplata_fact_parent_material" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{summagen}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_oplata_fact_budjet" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{summagen}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="40" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-2" style="orderpreviousopl" stretchType="RelativeToTallestObject" mode="Opaque" x="100" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{summagen}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-5" style="orderpreviousopl" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{datepay}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="##0.000" isBlankWhenNull="true">
+				<reportElement key="textField-12" style="orderpreviousopl" stretchType="RelativeToTallestObject" mode="Opaque" x="200" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{numberdocbill}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-2" style="orderpreviousopl" stretchType="RelativeToTallestObject" mode="Opaque" x="50" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{pricewithoutnds}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-2" style="orderpreviousopl" stretchType="RelativeToTallestObject" mode="Opaque" x="150" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countfact}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<lastPageFooter>
+		<band height="40" splitType="Stretch">
+			<printWhenExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue() == 0 )]]></printWhenExpression>
+			<textField isStretchWithOverflow="true" pattern="##0.00" isBlankWhenNull="true">
+				<reportElement key="textField-6" style="orderpreviousopl" stretchType="RelativeToTallestObject" mode="Opaque" x="50" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="##0.00" isBlankWhenNull="true">
+				<reportElement key="textField-7" style="orderpreviousopl" stretchType="RelativeToTallestObject" mode="Opaque" x="100" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="##0.00" isBlankWhenNull="true">
+				<reportElement key="textField-8" style="orderpreviousopl" stretchType="RelativeToTallestObject" mode="Opaque" x="150" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-10" style="orderpreviousopl" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-11" style="orderpreviousopl" stretchType="RelativeToTallestObject" mode="Opaque" x="200" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+		</band>
+	</lastPageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

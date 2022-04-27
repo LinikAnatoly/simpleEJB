@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="transport_percent_load" pageWidth="1190" pageHeight="842" orientation="Landscape" whenNoDataType="NoDataSection" columnWidth="1150" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.6934217901613318"/>
+	<property name="ireport.x" value="21"/>
+	<property name="Print Order" value="Vertical"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="yearGen" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("2013")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="monthGen" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("03")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="transportdepartment" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new String("10000")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="transportdepartmentname" class="java.lang.String">
+		<defaultValueExpression><![CDATA["fff"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="transportClassification" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[5]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select base_query.code,
+base_query.transportname,
+base_query.invnumber,
+base_query.km,
+case when base_query.classification in (5,7) then
+base_query.mh+base_query.mh_brigade else base_query.mh end as mh,
+base_query.hours_in_expl ,
+base_query.koef,
+base_query.classificationname,
+base_query.depname, base_query.status
+ from
+
+(select tr.code::varchar, tr.name || '('  || tr.gosnumber || ')' as transportname,
+tr.invnumber,
+coalesce((case when coalesce(sum(ts.speedometerfinal-ts.speedometerstart),0) = 0
+     then sum((select sum(entravelsheetitem.sumdistances)
+   from entravelsheetitem
+  where entravelsheetitem.travelsheetrefcode = ts.code
+    and entravelsheetitem.kindrefcode = 2))
+     else sum(ts.speedometerfinal-ts.speedometerstart) end),0)
+     as km,
+COALESCE(sum((select sum(entravelsheetitem.summachinehours)
+   from entravelsheetitem
+  where entravelsheetitem.travelsheetrefcode = ts.code
+    and entravelsheetitem.kindrefcode = 2)),0) as mh,
+
+COALESCE(sum((select    sum(pwi.timegen) / count(hi.code)
+from  entravelsheetitem tsi, enplanworkitem pwi, enhumenitem hi
+where tsi.planrefcode = pwi.planrefcode
+and tsi.kindrefcode = 2
+and tsi.travelsheetrefcode = ts.code
+and pwi.code = hi.planitemrefcode
+and pwi.timegen > 0
+and pwi.countgen > 0)),0) as mh_brigade,
+
+coalesce(sum(EXTRACT(EPOCH FROM ts.timefinal-ts.timestart)/3600::int) ,0) as hours_in_expl,
+
+    (select tktransportclassifictn.name
+   from tktransportclassifictn
+  where tktransportclassifictn.code =
+  (
+  select tktransport.transportclassifictncd
+    from tktransport
+   where tktransport.code = tr.transportcode
+   )
+) as classificationname,
+
+(select tktransportclassifictn.koef
+   from tktransportclassifictn
+  where tktransportclassifictn.code =
+  (
+  select tktransport.transportclassifictncd
+    from tktransport
+   where tktransport.code = tr.transportcode
+   )
+) as koef,
+
+(select tktransportclassifictn.code
+   from tktransportclassifictn
+  where tktransportclassifictn.code =
+  (
+  select tktransport.transportclassifictncd
+    from tktransport
+   where tktransport.code = tr.transportcode
+   )
+) as classification,
+
+(select d.name
+   from entransportdepartment d
+  where d.code = tr.transportdepartmntrfcd
+) as depname,
+
+
+(select ts.name
+from tktransportstatus ts
+where ts.code in(select tktransportrealhistory.transportstatuscode from tktransportrealhistory
+where tktransportrealhistory.transportrealrefcode = tr.code
+and tktransportrealhistory.datestart = (select max(datestart) from tktransportrealhistory
+ where tktransportrealhistory.transportrealrefcode = tr.code
+ and (tktransportrealhistory.datestart <= last_day(to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy') )
+ or tktransportrealhistory.datefinal = NULL)
+
+ ))
+) as status
+
+from tktransportreal tr left join
+     entravelsheet ts on
+     (tr.code = ts.transportrealcode
+     and ts.datestart between to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy')
+     and last_day(to_date('01.' || $P{monthGen}|| '.' || $P{yearGen},'dd.MM.yyyy')))
+where (tr.transportdepartmntrfcd = $P{transportdepartment} or $P{transportdepartment} = 0 )
+
+group by tr.code, tr.name, tr.gosnumber, tr.invnumber,
+(select tktransportclassifictn.name
+   from tktransportclassifictn
+  where tktransportclassifictn.code =
+  (
+  select tktransport.transportclassifictncd
+    from tktransport
+   where tktransport.code = tr.transportcode
+   )
+)
+
+order by classificationname, depname ,tr.buhname
+) as base_query
+where (base_query.classification = $P{transportClassification} or $P{transportClassification} = 0)
+and (base_query.status = 'Робочий' or base_query.km > 0)]]>
+	</queryString>
+	<field name="code" class="java.lang.String"/>
+	<field name="transportname" class="java.lang.String">
+		<fieldDescription><![CDATA[Назва машини (механізму)]]></fieldDescription>
+	</field>
+	<field name="km" class="java.lang.Double"/>
+	<field name="mh" class="java.lang.Double"/>
+	<field name="classificationname" class="java.lang.String"/>
+	<field name="hours_in_expl" class="java.lang.Double"/>
+	<field name="koef" class="java.math.BigDecimal"/>
+	<field name="depname" class="java.lang.String"/>
+	<field name="status" class="java.lang.String"/>
+	<field name="invnumber" class="java.lang.String">
+		<fieldDescription><![CDATA[інв.номер (механізму)]]></fieldDescription>
+	</field>
+	<group name="classificationname">
+		<groupExpression><![CDATA[$F{classificationname}]]></groupExpression>
+		<groupHeader>
+			<band height="20">
+				<textField>
+					<reportElement x="0" y="0" width="421" height="20"/>
+					<textElement>
+						<font fontName="Arial" size="14" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{classificationname}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="27" splitType="Stretch">
+			<textField>
+				<reportElement x="78" y="0" width="945" height="20"/>
+				<textElement>
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Відсоток завантаження транспорту за " + $P{monthGen} + " місяць " + $P{yearGen} + " року, підрозділу: " + $P{transportdepartmentname}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="40" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="300" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<text><![CDATA[Назва машини (механізму)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="455" y="0" width="80" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<text><![CDATA[Кількість годин використання транспорту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="691" y="0" width="300" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<text><![CDATA[ФІО Водія]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="535" y="0" width="50" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<text><![CDATA[Пробіг, км]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="585" y="0" width="50" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<text><![CDATA[Машиногодини, ч]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="362" y="0" width="93" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<text><![CDATA[Підрозділ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="635" y="0" width="56" height="40"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<text><![CDATA[Статус]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="1091" y="0" width="50" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement markup="none"/>
+				<textFieldExpression><![CDATA["Години завантаження"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="991" y="0" width="50" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<text><![CDATA[Пробіг, км]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1041" y="0" width="50" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<text><![CDATA[Машиногодини, ч]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="300" y="0" width="62" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<text><![CDATA[Інв.№]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="691" y="0" width="300" height="20" isPrintWhenDetailOverflows="true">
+					<printWhenExpression><![CDATA[$F{hours_in_expl}.doubleValue() == 0.0]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement markup="none"/>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="300" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{transportname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="455" y="0" width="80" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{hours_in_expl}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="535" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{km}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="585" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{mh}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="362" y="0" width="93" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{depname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="635" y="0" width="56" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{status}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="991" y="0" width="50" height="20" isPrintWhenDetailOverflows="true">
+					<printWhenExpression><![CDATA[$F{hours_in_expl}.doubleValue() == 0.0]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement markup="none"/>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1091" y="0" width="50" height="20" isPrintWhenDetailOverflows="true">
+					<printWhenExpression><![CDATA[$F{hours_in_expl}.doubleValue() == 0.0]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement markup="none"/>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1041" y="0" width="50" height="20" isPrintWhenDetailOverflows="true">
+					<printWhenExpression><![CDATA[$F{hours_in_expl}.doubleValue() == 0.0]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement markup="none"/>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="300" y="0" width="62" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{invnumber}]]></textFieldExpression>
+			</textField>
+			<subreport>
+				<reportElement x="691" y="0" width="450" height="20">
+					<printWhenExpression><![CDATA[$F{hours_in_expl}.doubleValue() > 0.0]]></printWhenExpression>
+				</reportElement>
+				<subreportParameter name="transportrealcode">
+					<subreportParameterExpression><![CDATA[$F{code}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="monthGen">
+					<subreportParameterExpression><![CDATA[$P{monthGen}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="yearGen">
+					<subreportParameterExpression><![CDATA[$P{yearGen}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/transport/transport_percent_load_sub_drivers.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<summary>
+		<band height="24" splitType="Stretch"/>
+	</summary>
+</jasperReport>

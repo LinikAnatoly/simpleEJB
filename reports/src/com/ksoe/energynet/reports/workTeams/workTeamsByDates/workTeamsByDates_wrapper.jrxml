@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="workTeamsByDates_wrapper" pageWidth="1630" pageHeight="595" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="1630" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" scriptletClass="com.ksoe.energynet.reports.workTeams.workTeamsByDates.WorkTeamsByDatesScriptlet" isIgnorePagination="true">
+	<property name="ireport.zoom" value="0.7513148009015781"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="com.ksoe.energynet.logic.ENConsts"/>
+	<parameter name="PLAN_KIND_NPZ" class="java.lang.Integer" isForPrompting="false">
+		<defaultValueExpression><![CDATA[com.ksoe.energynet.valueobject.ENPlanWorkKind.NPW]]></defaultValueExpression>
+	</parameter>
+	<parameter name="PLAN_CORRECT_REASON_NPZ" class="java.lang.Integer" isForPrompting="false">
+		<defaultValueExpression><![CDATA[com.ksoe.energynet.valueobject.ENPlanCorrectReason.MOVE_TO_NPW]]></defaultValueExpression>
+	</parameter>
+	<parameter name="budgetsCodesString" class="java.lang.String">
+		<defaultValueExpression><![CDATA["-1"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateStart" class="java.util.Date">
+		<parameterDescription><![CDATA[Дата начала периода отчета]]></parameterDescription>
+	</parameter>
+	<parameter name="dateFinish" class="java.util.Date">
+		<parameterDescription><![CDATA[Дата конца периода отчета]]></parameterDescription>
+	</parameter>
+	<parameter name="departmentCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Код подразделения]]></parameterDescription>
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="data" class="java.util.List" isForPrompting="false">
+		<defaultValueExpression><![CDATA[new ArrayList()]]></defaultValueExpression>
+	</parameter>
+	<parameter name="callCenterOrders" class="java.util.List" isForPrompting="false">
+		<parameterDescription><![CDATA[Лист с кодами планов, которые связаны с заявками CallCenter]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new ArrayList()]]></defaultValueExpression>
+	</parameter>
+	<parameter name="callCenterConnection" class="java.sql.Connection"/>
+	<parameter name="userProfile" class="com.ksoe.lla.security.UserProfile"/>
+	<parameter name="budgetNames" class="java.util.Collection" isForPrompting="false">
+		<defaultValueExpression><![CDATA[new java.util.HashSet()]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT
+pw.code AS plan_code
+, pch.planoldrefcode AS month_plan_code
+, pw.datestart
+, de.name AS department
+, fex.name AS finexecutor
+, element.invnumber||' '||element.ename AS object
+, state.name AS state
+, ptype.shortname as ptype
+, (SELECT sum(pi1.timegen) FROM enplanworkitem AS pi1 WHERE pi1.planrefcode = pw.code) AS totaltimehours
+, (SELECT string_agg(DISTINCT re1.name, ';') FROM tktransportreal AS re1
+	INNER JOIN entransportitem AS ti1 ON re1.code = ti1.transportrealcode
+	WHERE ti1.planrefcode = pw.code) AS vehicles
+, budg.shortname AS budget_name
+, check_point_time_info.departure_info AS departure_time
+, check_point_time_info.arrival_info AS arrival_time
+FROM
+enplanwork AS pw
+INNER JOIN endepartment AS de ON pw.departmentrefcode = de.code
+INNER JOIN endepartment AS budg ON pw.budgetrefcode = budg.code
+INNER JOIN enplanworkstate AS state ON pw.staterefcode = state.code
+INNER JOIN enplanworktype AS ptype ON pw.typerefcode = ptype.code
+INNER JOIN enelementdata AS element ON pw.elementrefcode = element.ecode
+INNER JOIN finexecutor AS fex ON pw.finexecutorcode = fex.code
+INNER JOIN enplancorrecthistory AS pch ON pw.code = pch.plannewrefcode
+LEFT JOIN (
+SELECT planrefcode
+	, string_agg(CASE count_vehicles WHEN 1 THEN '' ELSE gosnumber||' - ' END||to_char(departure, 'hh24:mi'), ';'||chr(10)) AS departure_info
+	, string_agg(CASE count_vehicles WHEN 1 THEN '' ELSE gosnumber||' - ' END||to_char(arrival, 'hh24:mi'), ';'||chr(10)) AS arrival_info
+FROM (
+SELECT ti1.planrefcode, tr1.code, tr1.gosnumber
+	, min(CASE item1.eventtyperefcode WHEN 1 THEN item1.dateevent ELSE NULL END) AS departure
+	, max(CASE item1.eventtyperefcode WHEN 2 THEN item1.dateevent ELSE NULL END) AS arrival
+	, count(tr1.gosnumber) over (PARTITION BY ti1.planrefcode) AS count_vehicles
+	FROM encheckpointpasslisttm AS item1
+	INNER JOIN tktransportreal AS tr1 ON item1.transportrealrefcode = tr1.code
+	INNER JOIN entravelsheet AS tv1 ON
+		((item1.travelsheetrefcode IS NOT NULL AND item1.travelsheetrefcode = tv1.code)
+			OR (item1.travelsheetrefcode IS NULL AND item1.dateevent
+				BETWEEN tv1.timestart AND coalesce(tv1.timefinal, tv1.timestart)
+				AND tv1.transportrealcode = item1.transportrealrefcode))
+	INNER JOIN entravelsheetitem AS tvi1 ON tv1.code = tvi1.travelsheetrefcode
+	INNER JOIN entravlshttm2trnsprttm AS tviti1 ON tvi1.code = tviti1.travelsheetitemrefcode
+	INNER JOIN entransportitem AS ti1 ON tviti1.transportitemrefcode = ti1.code
+	INNER JOIN enplanwork AS pw1 ON ti1.planrefcode = pw1.code
+	WHERE pw1.datestart BETWEEN $P{dateStart} AND $P{dateFinish}
+	AND pw1.kindcode = $P{PLAN_KIND_NPZ}
+	AND (pw1.departmentrefcode = $P{departmentCode} OR $P{departmentCode} IS NULL)
+	AND pw1.budgetrefcode IN ($P!{budgetsCodesString})
+	GROUP BY ti1.planrefcode, tr1.code, tr1.gosnumber) AS check_point_time_info1
+GROUP BY planrefcode) AS check_point_time_info ON pw.code = check_point_time_info.planrefcode
+WHERE
+pw.datestart BETWEEN $P{dateStart} AND $P{dateFinish}
+AND pw.kindcode = $P{PLAN_KIND_NPZ}
+AND (pw.departmentrefcode = $P{departmentCode} OR $P{departmentCode} IS NULL)
+AND pch.reasoncode = $P{PLAN_CORRECT_REASON_NPZ}
+AND pw.budgetrefcode IN ($P!{budgetsCodesString})
+ORDER BY
+pw.datestart ASC
+, de.name ASC
+, fex.name ASC
+, element.invnumber ASC]]>
+	</queryString>
+	<field name="plan_code" class="java.lang.Integer">
+		<fieldDescription><![CDATA[Код плана]]></fieldDescription>
+	</field>
+	<field name="datestart" class="java.util.Date"/>
+	<field name="department" class="java.lang.String"/>
+	<field name="finexecutor" class="java.lang.String"/>
+	<field name="object" class="java.lang.String"/>
+	<field name="state" class="java.lang.String"/>
+	<field name="totaltimehours" class="java.math.BigDecimal"/>
+	<field name="vehicles" class="java.lang.String"/>
+	<field name="month_plan_code" class="java.lang.Integer">
+		<fieldDescription><![CDATA[Код месячного плана]]></fieldDescription>
+	</field>
+	<field name="budget_name" class="java.lang.String"/>
+	<field name="departure_time" class="java.lang.String">
+		<fieldDescription><![CDATA[Время выезда]]></fieldDescription>
+	</field>
+	<field name="arrival_time" class="java.lang.String">
+		<fieldDescription><![CDATA[Время заезда]]></fieldDescription>
+	</field>
+	<field name="ptype" class="java.lang.String"/>
+	<variable name="tempData" class="java.lang.Boolean">
+		<variableExpression><![CDATA[((com.ksoe.energynet.reports.workTeams.workTeamsByDates.WorkTeamsByDatesScriptlet)$P{REPORT_SCRIPTLET}).addToData($F{plan_code}
+, $F{datestart}, $F{department}, $F{finexecutor}, $F{object}, $F{state}
+, $F{totaltimehours}, $F{vehicles}, $F{month_plan_code}, $F{departure_time}, $F{arrival_time} , $F{ptype} )
+    && $P{budgetNames}.add($F{budget_name})]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band>
+			<textField>
+				<reportElement x="0" y="0" width="100" height="0"/>
+				<textFieldExpression><![CDATA["" + $V{tempData}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="50">
+			<subreport>
+				<reportElement x="0" y="0" width="1630" height="50"/>
+				<subreportParameter name="callCenterOrders">
+					<subreportParameterExpression><![CDATA[$P{callCenterOrders}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="dateFinish">
+					<subreportParameterExpression><![CDATA[$P{dateFinish}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="budgetNames">
+					<subreportParameterExpression><![CDATA[$P{budgetNames}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="operativeJournalAdmittances">
+					<subreportParameterExpression><![CDATA[((com.ksoe.energynet.reports.workTeams.workTeamsByDates.WorkTeamsByDatesScriptlet)$P{REPORT_SCRIPTLET}).makeMapOfPlanCodesWithStartFinish()]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="departmentCode">
+					<subreportParameterExpression><![CDATA[$P{departmentCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="dateStart">
+					<subreportParameterExpression><![CDATA[$P{dateStart}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="departmentName">
+					<subreportParameterExpression><![CDATA[$F{department}]]></subreportParameterExpression>
+				</subreportParameter>
+				<dataSourceExpression><![CDATA[new net.sf.jasperreports.engine.data.JRMapCollectionDataSource($P{data})]]></dataSourceExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/workTeams/workTeamsByDates/workTeamsByDates.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</summary>
+</jasperReport>

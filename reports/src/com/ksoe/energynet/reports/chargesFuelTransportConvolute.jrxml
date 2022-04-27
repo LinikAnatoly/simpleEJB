@@ -1,0 +1,718 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="chargesFuelTransportConvolute" pageWidth="1692" pageHeight="595" orientation="Landscape" columnWidth="1632" leftMargin="30" rightMargin="30" topMargin="20" bottomMargin="20" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="pnumberlist" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pcoderealtransport" class="java.lang.String"/>
+	<parameter name="prencode" class="java.lang.Integer"/>
+	<parameter name="pdatestart" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("01.12.2010")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pdatefinal" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("31.12.2010")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="prenname" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="is_act" class="java.lang.Integer">
+		<parameterDescription><![CDATA[0 - c актами и без актов
+1- без актов
+2- c актами]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select
+ wwww.gosnumber ,
+      wwww.nameandinv ,
+      wwww.invnumber ,
+      wwww.vid ,
+      sum(coalesce(wwww.fact, 0)) as fact ,
+      sum(coalesce(wwww.fact_act ,0)) as fact_act ,
+      wwww.act_status
+ from (
+/*Факт + акт */
+select trr.gosnumber as gosnumber,
+      trr.name || ' Інв.№ '|| trr.invnumber as nameandinv,
+      trr.invnumber ,
+      enw.dategen as datezadan ,
+      enw.workordernumber ,        trit.numberlist ,
+      (select sum(entransportitem.countworkfact) from entransportitem where code = trit.code ) as mhours ,
+      (select sum(coalesce(dist.distance,0)) from endistance dist where dist.transportitemrefcode = trit.code ) as distance,
+
+        ffff.mat_name as vid
+        ,
+        ens.countfact as litrofnorm
+        ,
+           ffff.quantity as fact
+        , ( select sum(fff.quantity) from finmaterials fff , enact act ,  enplanwork pp , enact2enplanwork act2plan
+                                            , enestimateitem enii
+                               where
+                                        fff.code = ffff.code
+                                        and fff.statusrefcode = 1
+                                        and act.code = act2plan.actrefcode
+                                        and pp.code = act2plan.plancode
+                                        and enii.planrefcode = pp.code
+                                        and fff.estimateitemrefcode = enii.code
+                                        and enii.code = ens.code
+                                         ) as fact_act
+     ,
+       act.numbergen as  numberact
+    ,
+   to_char(act.dategen,'dd.mm.yyyy') as  dateact
+    ,  enactst.name as  act_status
+      , ens.code
+     , ffff.code as fincode
+
+from tktransport tr ,  tktransportreal trr  , entransportdepartment trdep  ,
+     enworkorder enw ,  enworkorder2enplanwork enw2enp
+     , entransportitem trit , enestimateitem ens ,  finmaterials ffff
+     , entransport2enestimate tr2ens
+     , enplanworkitem enpwi , enplanwork enp  , enact2enplanwork act2plan
+     , enact act , enactstatus enactst
+where tr.code = trr.transportcode
+  and  trr.transportdepartmntrfcd = trdep.code
+  and ens.countfact <> 0
+    and tr.transporttypecode <> 7
+    and enw.code = enw2enp.workordercode
+    and enp.code = enw2enp.plancode
+    and enpwi.planrefcode = enp.code
+    and enpwi.countgen <> 0
+    and act2plan.actrefcode = act.code
+    and act.statusrefcode = enactst.code
+    and  ffff.estimateitemrefcode = ens.code
+    and  ffff.statusrefcode = 1
+    and  enp.code = act2plan.plancode
+
+  /*период по наряд заданиям*/    and enw.dategen between to_date($P{pdatestart},'dd.mm.yyyy') and to_date($P{pdatefinal},'dd.mm.yyyy')
+  /*номер путевого листа */
+  and coalesce(trit.numberlist,'') like trim(('%'||$P{pnumberlist}||'%'))
+  /*реальная машина*/
+  and ( trr.code = $P!{pcoderealtransport} or $P!{pcoderealtransport} = 0 )
+  /*подразделение к которому относится транспорт */
+  and ( trdep.code = $P!{prencode} or $P!{prencode} = 0)
+  and enp.kindcode = 4
+  and trit.planrefcode = enp.code
+  and trit.planitemrefcode = enpwi.code
+  and trit.code = tr2ens.transportrefcode
+  and ens.code = tr2ens.estimaterefcode
+  and trit.transportrealcode = trr.code
+  and enp.statuscode not in (2,6)
+
+/*приклеиваем План без Факта */
+UNION ALL
+select trr.gosnumber as gosnumber,
+      trr.name || ' Інв.№ '|| trr.invnumber as nameandinv,
+      trr.invnumber ,
+      enw.dategen as datezadan ,
+      enw.workordernumber ,        trit.numberlist ,
+      (select sum(entransportitem.countworkfact) from entransportitem where code = trit.code ) as mhours ,
+      (select sum(coalesce(dist.distance,0)) from endistance dist where dist.transportitemrefcode = trit.code ) as distance,
+        ffff.mat_name as vid , ens.countfact as litrofnorm ,  ffff.quantity as fact
+        , 0 as fact_act , cast('Без акту' as varchar) as  numberact ,  cast('Без акту' as varchar) as  dateact  ,
+      'Без акту' as  act_status      , ens.code      , ffff.code as fincode
+
+from tktransport tr ,  tktransportreal trr  , entransportdepartment trdep  ,
+     enworkorder enw ,  enworkorder2enplanwork enw2enp
+     , entransportitem trit , enestimateitem ens ,  finmaterials ffff
+     , entransport2enestimate tr2ens
+     , enplanworkitem enpwi , enplanwork enp
+ where tr.code = trr.transportcode
+   and trr.transportdepartmntrfcd = trdep.code
+   and ens.countfact <> 0
+   and tr.transporttypecode <> 7
+   and enw.code = enw2enp.workordercode
+   and enp.code = enw2enp.plancode
+   and enpwi.planrefcode = enp.code
+   and enpwi.countgen <> 0
+   and ffff.estimateitemrefcode = ens.code
+   and ffff.statusrefcode = 1
+
+  /*период по наряд заданиям*/
+  and enw.dategen between to_date($P{pdatestart},'dd.mm.yyyy') and to_date($P{pdatefinal},'dd.mm.yyyy')
+  /*номер путевого листа */
+  and coalesce(trit.numberlist,'') like trim(('%'||$P{pnumberlist}||'%'))
+  /*реальная машина*/
+  and ( trr.code = $P!{pcoderealtransport} or $P!{pcoderealtransport} = 0 )
+  /*подразделение к которому относится транспорт */
+   and ( trdep.code = $P!{prencode} or $P!{prencode} = 0)
+  and enp.kindcode = 3
+  and enp.code not in (select hist.planoldrefcode from enplancorrecthistory hist
+                                                   where hist.planoldrefcode = enp.code
+                                                     and hist.reasoncode = 5 /* только пернос у факт*/  )
+  and trit.planrefcode = enp.code
+  and trit.planitemrefcode = enpwi.code
+  and trit.code = tr2ens.transportrefcode
+  and ens.code = tr2ens.estimaterefcode
+  and trit.transportrealcode = trr.code
+  and enp.statuscode not in (2,6)
+
+/*ПРИКЛЕИВАЕМ  ФАКТ без АКТА  */
+UNION ALL
+select trr.gosnumber as gosnumber,
+      trr.name || ' Інв.№ '|| trr.invnumber as nameandinv,
+      trr.invnumber ,
+      enw.dategen as datezadan ,
+      enw.workordernumber ,        trit.numberlist ,
+      (select sum(entransportitem.countworkfact) from entransportitem where code = trit.code ) as mhours ,
+      (select sum(coalesce(dist.distance,0)) from endistance dist where dist.transportitemrefcode = trit.code ) as distance,
+        ffff.mat_name as vid , ens.countfact as litrofnorm ,  ffff.quantity as fact
+        , 0 as fact_act , cast('Без акту' as varchar) as  numberact ,  cast('Без акту' as varchar) as  dateact  ,
+      'Без акту' as  act_status      , ens.code      , ffff.code as fincode
+
+from tktransport tr ,  tktransportreal trr  , entransportdepartment trdep  ,
+     enworkorder enw ,  enworkorder2enplanwork enw2enp
+     , entransportitem trit , enestimateitem ens ,  finmaterials ffff
+     , entransport2enestimate tr2ens
+     , enplanworkitem enpwi , enplanwork enp
+ where tr.code = trr.transportcode
+   and trr.transportdepartmntrfcd = trdep.code
+   and ens.countfact <> 0
+   and tr.transporttypecode <> 7
+   and enw.code = enw2enp.workordercode
+   and enp.code = enw2enp.plancode
+   and enpwi.planrefcode = enp.code
+   and enpwi.countgen <> 0
+   and ffff.estimateitemrefcode = ens.code
+   and ffff.statusrefcode = 1
+
+  /*период по наряд заданиям*/
+  and enw.dategen between to_date($P{pdatestart},'dd.mm.yyyy') and to_date($P{pdatefinal},'dd.mm.yyyy')
+  /*номер путевого листа */
+  and coalesce(trit.numberlist,'') like trim(('%'||$P{pnumberlist}||'%'))
+  /*реальная машина*/
+  and ( trr.code = $P!{pcoderealtransport} or $P!{pcoderealtransport} = 0 )
+  /*подразделение к которому относится транспорт */
+   and ( trdep.code = $P!{prencode} or $P!{prencode} = 0)
+  and enp.kindcode = 4
+  and enp.code not in (select act2plan.plancode from enact2enplanwork act2plan where act2plan.plancode = enp.code  )
+  and trit.planrefcode = enp.code
+  and trit.planitemrefcode = enpwi.code
+  and trit.code = tr2ens.transportrefcode
+  and ens.code = tr2ens.estimaterefcode
+  and trit.transportrealcode = trr.code
+  and enp.statuscode not in (2,6)
+
+) wwww
+where ( (  $P{is_act} = 0 )
+        or
+        ( act_status = trim('Без акту') and $P{is_act} = 1 )
+        or
+        ( act_status <> trim('Без акту') and $P{is_act} = 2 )
+       )
+group by
+gosnumber ,
+      nameandinv ,
+      invnumber ,
+       vid ,
+      act_status
+          order by nameandinv]]>
+	</queryString>
+	<field name="gosnumber" class="java.lang.String"/>
+	<field name="nameandinv" class="java.lang.String"/>
+	<field name="vid" class="java.lang.String"/>
+	<field name="fact" class="java.lang.Double"/>
+	<field name="fact_act" class="java.lang.Double"/>
+	<field name="act_status" class="java.lang.String"/>
+	<field name="invnumber" class="java.lang.String"/>
+	<variable name="sum_avto" class="java.lang.Double" resetType="Group" resetGroup="avto" calculation="Sum">
+		<variableExpression><![CDATA[$F{fact_act}]]></variableExpression>
+	</variable>
+	<variable name="sum_fact_avto" class="java.lang.Double" resetType="Group" resetGroup="avto" calculation="Sum">
+		<variableExpression><![CDATA[$F{fact}]]></variableExpression>
+		<initialValueExpression><![CDATA[new Double(0.0)]]></initialValueExpression>
+	</variable>
+	<variable name="itog_sum_fact" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{fact}]]></variableExpression>
+	</variable>
+	<variable name="itog_sum_act" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{fact_act}]]></variableExpression>
+	</variable>
+	<variable name="viddt" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[($F{vid}.equals( "ДИЗПАЛИВО" )) ? $F{fact}:0]]></variableExpression>
+	</variable>
+	<variable name="viddt_act" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[($F{vid}.equals( "ДИЗПАЛИВО" )) ? $F{fact_act}:0]]></variableExpression>
+	</variable>
+	<variable name="vid92" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[($F{vid}.equals( "БЕНЗИН А-92" )) ? $F{fact}:0]]></variableExpression>
+	</variable>
+	<variable name="vid92_act" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[($F{vid}.equals( "БЕНЗИН А-92" )) ? $F{fact_act}:0]]></variableExpression>
+	</variable>
+	<variable name="vid95" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[($F{vid}.equals( "БЕНЗИН А-95" )) ? $F{fact}:0]]></variableExpression>
+	</variable>
+	<variable name="vid95_act" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[($F{vid}.equals( "БЕНЗИН А-95" )) ? $F{fact}:0]]></variableExpression>
+	</variable>
+	<group name="avto">
+		<groupExpression><![CDATA[$F{nameandinv}]]></groupExpression>
+		<groupHeader>
+			<band splitType="Stretch"/>
+		</groupHeader>
+		<groupFooter>
+			<band height="15" splitType="Stretch">
+				<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+					<reportElement key="textField-3" stretchType="RelativeToTallestObject" mode="Opaque" x="520" y="0" width="100" height="15" backcolor="#E2E1E1"/>
+					<box>
+						<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+						<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+						<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+						<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{sum_avto}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+					<reportElement key="textField-6" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="420" height="15" backcolor="#E2E1E1"/>
+					<box>
+						<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+						<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+						<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+						<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman" size="8" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Ітого по : " + $F{nameandinv}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+					<reportElement key="textField-10" stretchType="RelativeToTallestObject" mode="Opaque" x="620" y="0" width="100" height="15" backcolor="#E2E1E1"/>
+					<box>
+						<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+						<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+						<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+						<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+					<reportElement key="textField-14" stretchType="RelativeToTallestObject" mode="Opaque" x="420" y="0" width="100" height="15" backcolor="#E2E1E1"/>
+					<box>
+						<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+						<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+						<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+						<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{sum_fact_avto}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="50" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="staticText" stretchType="RelativeToTallestObject" x="0" y="5" width="720" height="40"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="18" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" Звіт по витратам палива у розрізі НПЗ (згорнутий) " +
+new String( $P{prenname}.length()!= 0 ? new String( " по " + $P{prenname} )  : "" )]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="45" splitType="Stretch">
+			<staticText>
+				<reportElement key="staticText" x="0" y="0" width="100" height="45"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Номерний знак]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText" x="100" y="0" width="160" height="45"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Найменування транспортного засобу]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText" x="320" y="0" width="100" height="45"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Вид палива]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText" x="420" y="0" width="100" height="45"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Фактично списано(л.)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText" x="520" y="0" width="100" height="45"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Списано у акті(л.)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText" x="620" y="0" width="100" height="45"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Статус акта]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-1" x="260" y="0" width="60" height="45"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Інвентарний]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="0" y="0" width="100" height="15"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{gosnumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="100" y="0" width="160" height="15"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nameandinv}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="320" y="0" width="100" height="15"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{vid}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="420" y="0" width="100" height="15"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="520" y="0" width="100" height="15"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fact_act}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="620" y="0" width="100" height="15"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_status}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-5" stretchType="RelativeToTallestObject" x="260" y="0" width="60" height="15"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA["№"+$F{invnumber}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="75" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-17" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="420" height="15" backcolor="#E2E1E1"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Всього: "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-18" stretchType="RelativeToTallestObject" mode="Opaque" x="520" y="0" width="100" height="15" backcolor="#E2E1E1"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{itog_sum_act}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-19" stretchType="RelativeToTallestObject" mode="Opaque" x="620" y="0" width="100" height="15" backcolor="#E2E1E1"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-22" stretchType="RelativeToTallestObject" mode="Opaque" x="420" y="0" width="100" height="15" backcolor="#E2E1E1"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{itog_sum_fact}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="30" width="420" height="15" backcolor="#E2E1E1"/>
+				<box>
+					<topPen lineWidth="1.25" lineStyle="Solid"/>
+					<leftPen lineWidth="1.25" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.25" lineStyle="Solid"/>
+					<rightPen lineWidth="1.25" lineStyle="Solid"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="true" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Всього 95]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="15" width="420" height="15" backcolor="#E2E1E1"/>
+				<box>
+					<topPen lineWidth="1.25" lineStyle="Solid"/>
+					<leftPen lineWidth="1.25" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.25" lineStyle="Solid"/>
+					<rightPen lineWidth="1.25" lineStyle="Solid"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="true" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Всього 92]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="45" width="420" height="15" backcolor="#E2E1E1"/>
+				<box>
+					<topPen lineWidth="1.25" lineStyle="Solid"/>
+					<leftPen lineWidth="1.25" lineStyle="Solid"/>
+					<bottomPen lineWidth="1.25" lineStyle="Solid"/>
+					<rightPen lineWidth="1.25" lineStyle="Solid"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="true" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Всього ДТ]]></text>
+			</staticText>
+			<textField pattern="###0.00;-###0.00">
+				<reportElement mode="Opaque" x="420" y="15" width="100" height="15" backcolor="#E2E1E1"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{vid92}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00;-###0.00">
+				<reportElement mode="Opaque" x="420" y="30" width="100" height="15" backcolor="#E2E1E1"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{vid95}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00;-###0.00">
+				<reportElement mode="Opaque" x="420" y="45" width="100" height="15" backcolor="#E2E1E1"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{viddt}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00;-###0.00">
+				<reportElement mode="Opaque" x="520" y="15" width="100" height="15" backcolor="#E2E1E1"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{vid92_act}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00;-###0.00">
+				<reportElement mode="Opaque" x="520" y="30" width="100" height="15" backcolor="#E2E1E1"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{vid95_act}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00;-###0.00">
+				<reportElement mode="Opaque" x="520" y="45" width="100" height="15" backcolor="#E2E1E1"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{viddt_act}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

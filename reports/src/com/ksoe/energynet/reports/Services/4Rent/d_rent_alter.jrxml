@@ -1,0 +1,984 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="d_rent_alter" pageWidth="595" pageHeight="827" whenNoDataType="AllSectionsNoDetail" columnWidth="539" leftMargin="28" rightMargin="28" topMargin="28" bottomMargin="28" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet" >
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="0.9090909090909095"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="soCode" class="java.lang.String">
+		<defaultValueExpression><![CDATA["500146221"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select *
+, trunc(scheduled_payment_value_total ) as summaGRN_month
+, textgrivna(cast (scheduled_payment_value_total as numeric)) as summaGRNKOPtxt_month
+, (scheduled_payment_value_total - trunc(scheduled_payment_value_total ))::numeric(15,2) * 100   as summaKOP_month
+, trunc(scheduled_payment_value_vat) as ndsGRN_month
+, (scheduled_payment_value_vat -   trunc(scheduled_payment_value_vat))::numeric(15,2) * 100 as ndsKOP_month
+, textgrivna(cast (scheduled_payment_value_vat as numeric)) as summaNDStxt_month
+
+from
+(
+
+Select so.code  ,
+       so.contractnumber ,
+  so.contractdate ,
+  so.name ,
+  so.partnercode ,
+  so.findoccode ,
+  so.findocid ,
+  so.commentgen ,
+  so.usergen ,
+  so.dateedit ,
+  so.domain_info ,
+  so.modify_time ,
+  so.departmentcode ,
+  so.elementcode ,
+  so.contractnumberservices ,
+  so.contragentname ,
+  so.contragentaddress ,
+  so.contragentokpo ,
+  so.contragentbankaccount ,
+  so.contragentbankname ,
+  so.contragentbankmfo ,
+  so.contragentbossname ,
+  so.contragentpassport ,
+  so.contractstatusrefcode ,
+  so.contracttyperefcode ,
+  so.contragenttyperefcode ,
+  so.billstatusrefcode ,
+  so.contractdateservices ,
+  so.contractservicessumma ,
+  so.contractservicespower ,
+  so.commentservicesgen ,
+  so.contractservicesdistnc,
+  so.contractservicesday ,
+  so.warrantrefcode ,
+       dep.name as depname
+        ,    group_concat(tcl.name ,';  ') as workname
+        , trunc(cct.totalcost ) as summaGRN
+        , textgrivna(cast (cct.totalcost as numeric)) as summaGRNKOPtxt
+        , (cct.totalcost - trunc(cct.totalcost ))::numeric(15,2) * 100   as summaKOP
+        , trunc(cct.costvat) as ndsGRN
+        , (cct.costvat -   trunc(cct.costvat))::numeric(15,2) * 100 as ndsKOP
+        , textgrivna(cast (cct.costvat as numeric)) as summaNDStxt
+
+        , enw.warrantfio , enw.numbergen, to_char(enw.datestart, 'dd.MM.yyyy') as datestart, enw.warrantposition, dep.code as depcode
+ , to_char(so.warrantdate,'dd.mm.yyyy') as cntrwarrantdate
+ , so.warrantnumber as cntrwarrantnumber
+ , so.warrantfio as cntrwarrantfio
+ , enw.warrantshortfio
+ , coalesce(so.basistype,0) as basistype, bd.bankname
+ , bd.bankokpo
+ , bd.bankmfo
+ , bd.bankaccount
+ , case when coalesce(tcl.isnotlicensedactivity,0) = 1 then 1 else 0 end as isnotlicensedactivity
+ , enw.genitivefio
+ , enw.genitiveposition
+ , coalesce(so.isnopay,0) as isnopay
+ --///--
+ , COALESCE((select  count(so2ps.code) from enservcsbjct2pmntschdl so2ps
+  where so2ps.servicesobjectrefcode = so.code ),1)::text as scheduled_payments_count
+ , round(cct.totalcost::numeric(15,2) / COALESCE((select  count(so2ps.code) from enservcsbjct2pmntschdl so2ps
+  where so2ps.servicesobjectrefcode = so.code ),1),2) as scheduled_payment_value_total
+ , round(cct.costvat::numeric(15,2) / COALESCE((select  count(so2ps.code) from enservcsbjct2pmntschdl so2ps
+  where so2ps.servicesobjectrefcode = so.code ),1),2) as scheduled_payment_value_vat
+ --///--
+, so.citieslist
+, so.linelength
+, so.projectcode
+, so.contragentposition
+ From enservicesobject so left join enwarrant enw on (so.warrantrefcode = enw.code )
+     , enplanwork pw,
+      enelement e,
+      endepartment dep ,
+      enplanwork2classfctntp p2c ,
+      tkclassificationtype tcl ,
+      encalccontracttotal cct ,
+      enbankingdetails bd
+Where pw.elementrefcode = e.code
+and so.departmentcode = bd.departmentrefcode
+and so.elementcode = e.code
+and so.code = $P!{soCode}
+and pw.kindcode = 5
+and dep.code = so.departmentcode
+and pw.code = p2c.planrefcode
+and p2c.classificationtyperfcd = tcl.code
+and cct.planrefcode = pw.code
+group by so.code  ,
+  so.warrantdate  , so.warrantnumber , so.warrantfio , cct.totalcost ,  cct.costvat ,
+  so.contractnumber ,
+  so.contractdate ,
+  so.name ,
+  so.partnercode ,
+  so.findoccode ,
+  so.findocid ,
+  so.commentgen ,
+  so.usergen ,
+  so.dateedit ,
+  so.domain_info ,
+  so.modify_time ,
+  so.departmentcode ,
+  so.elementcode ,
+  so.contractnumberservices ,
+  so.contragentname ,
+  so.contragentaddress ,
+  so.contragentokpo ,
+  so.contragentbankaccount ,
+  so.contragentbankname ,
+  so.contragentbankmfo ,
+  so.contragentbossname ,
+  so.contragentpassport ,
+  so.contractstatusrefcode ,
+  so.contracttyperefcode ,
+  so.contragenttyperefcode ,
+  so.billstatusrefcode ,
+  so.contractdateservices ,
+  so.contractservicessumma ,
+  so.contractservicespower ,
+  so.commentservicesgen ,
+  so.contractservicesdistnc,
+  so.contractservicesday ,
+  so.warrantrefcode ,
+  dep.name , dep.code,
+  enw.warrantfio, enw.numbergen, to_char(enw.datestart, 'dd.MM.yyyy'),
+  enw.warrantposition
+  , enw.warrantshortfio
+  , so.basistype,
+   bd.bankname
+ , bd.bankokpo
+ , bd.bankmfo
+ , bd.bankaccount
+ , case when coalesce(tcl.isnotlicensedactivity,0) = 1 then 1 else 0 end
+ , enw.genitivefio
+ , enw.genitiveposition
+ , so.isnopay
+ , so.contragentposition
+
+ ) as f_q]]>
+	</queryString>
+	<field name="code" class="java.lang.Double"/>
+	<field name="contractnumber" class="java.lang.String">
+		<fieldDescription><![CDATA[Номер договору]]></fieldDescription>
+	</field>
+	<field name="contractdate" class="java.sql.Date">
+		<fieldDescription><![CDATA[Дата договору]]></fieldDescription>
+	</field>
+	<field name="name" class="java.lang.String"/>
+	<field name="partnercode" class="java.lang.String">
+		<fieldDescription><![CDATA[код організації]]></fieldDescription>
+	</field>
+	<field name="findoccode" class="java.lang.String"/>
+	<field name="findocid" class="java.lang.Double">
+		<fieldDescription><![CDATA[PK договору у фін.кол.]]></fieldDescription>
+	</field>
+	<field name="commentgen" class="java.lang.String"/>
+	<field name="usergen" class="java.lang.String"/>
+	<field name="dateedit" class="java.sql.Date"/>
+	<field name="domain_info" class="java.lang.String"/>
+	<field name="modify_time" class="java.lang.Double"/>
+	<field name="departmentcode" class="java.lang.Double">
+		<fieldDescription><![CDATA[Підрозділи]]></fieldDescription>
+	</field>
+	<field name="elementcode" class="java.lang.Double"/>
+	<field name="contractnumberservices" class="java.lang.String">
+		<fieldDescription><![CDATA[Номер договору по послугам на сторону]]></fieldDescription>
+	</field>
+	<field name="contragentname" class="java.lang.String">
+		<fieldDescription><![CDATA[Замовник]]></fieldDescription>
+	</field>
+	<field name="contragentaddress" class="java.lang.String">
+		<fieldDescription><![CDATA[Адреса замовника]]></fieldDescription>
+	</field>
+	<field name="contragentokpo" class="java.lang.String">
+		<fieldDescription><![CDATA[ОКПО(ІПН) замовника]]></fieldDescription>
+	</field>
+	<field name="contragentbankaccount" class="java.lang.String">
+		<fieldDescription><![CDATA[Розрахунковий рахунок замовника]]></fieldDescription>
+	</field>
+	<field name="contragentbankname" class="java.lang.String">
+		<fieldDescription><![CDATA[Найменування банку замовника]]></fieldDescription>
+	</field>
+	<field name="contragentbankmfo" class="java.lang.String">
+		<fieldDescription><![CDATA[МФО банку замовника]]></fieldDescription>
+	</field>
+	<field name="contragentbossname" class="java.lang.String">
+		<fieldDescription><![CDATA[Керівник]]></fieldDescription>
+	</field>
+	<field name="contragentpassport" class="java.lang.String">
+		<fieldDescription><![CDATA[Паспортні дані замовника]]></fieldDescription>
+	</field>
+	<field name="contractstatusrefcode" class="java.lang.Double">
+		<fieldDescription><![CDATA[Статус договора по услугам на сторону]]></fieldDescription>
+	</field>
+	<field name="contracttyperefcode" class="java.lang.Double">
+		<fieldDescription><![CDATA[Вид договора по услугам на сторону]]></fieldDescription>
+	</field>
+	<field name="contragenttyperefcode" class="java.lang.Double">
+		<fieldDescription><![CDATA[Тип контрагента]]></fieldDescription>
+	</field>
+	<field name="billstatusrefcode" class="java.lang.Double">
+		<fieldDescription><![CDATA[Статус счета по услугам на сторону]]></fieldDescription>
+	</field>
+	<field name="contractdateservices" class="java.sql.Date">
+		<fieldDescription><![CDATA[Дата договору]]></fieldDescription>
+	</field>
+	<field name="contractservicessumma" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Сумма по договору]]></fieldDescription>
+	</field>
+	<field name="contractservicespower" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Мощность по договору]]></fieldDescription>
+	</field>
+	<field name="commentservicesgen" class="java.lang.String">
+		<fieldDescription><![CDATA[Примітка для договору по роботам на сторону]]></fieldDescription>
+	</field>
+	<field name="contractservicesdistnc" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Расстояние до объекта по договору]]></fieldDescription>
+	</field>
+	<field name="contractservicesday" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Количество дней в течении которого обязуемся выполнить работы]]></fieldDescription>
+	</field>
+	<field name="warrantrefcode" class="java.lang.Double">
+		<fieldDescription><![CDATA[Довіреності]]></fieldDescription>
+	</field>
+	<field name="depname" class="java.lang.String">
+		<fieldDescription><![CDATA[Назва підрозділу]]></fieldDescription>
+	</field>
+	<field name="workname" class="java.lang.String"/>
+	<field name="summagrn" class="java.lang.Integer"/>
+	<field name="summagrnkoptxt" class="java.lang.String"/>
+	<field name="summakop" class="java.lang.Integer"/>
+	<field name="ndsgrn" class="java.lang.Integer"/>
+	<field name="ndskop" class="java.lang.Integer"/>
+	<field name="summandstxt" class="java.lang.String"/>
+	<field name="warrantfio" class="java.lang.String">
+		<fieldDescription><![CDATA[П.І.Б довіреної особи замовника]]></fieldDescription>
+	</field>
+	<field name="numbergen" class="java.lang.String"/>
+	<field name="datestart" class="java.lang.String"/>
+	<field name="warrantposition" class="java.lang.String">
+		<fieldDescription><![CDATA[Должность доверенного лица]]></fieldDescription>
+	</field>
+	<field name="depcode" class="java.lang.Double">
+		<fieldDescription><![CDATA[Код підрозділу (ФК)]]></fieldDescription>
+	</field>
+	<field name="cntrwarrantdate" class="java.lang.String"/>
+	<field name="cntrwarrantnumber" class="java.lang.String"/>
+	<field name="cntrwarrantfio" class="java.lang.String"/>
+	<field name="warrantshortfio" class="java.lang.String"/>
+	<field name="basistype" class="java.lang.Double">
+		<fieldDescription><![CDATA[Тип основания для контрагента]]></fieldDescription>
+	</field>
+	<field name="bankname" class="java.lang.String">
+		<fieldDescription><![CDATA[наименование банка]]></fieldDescription>
+	</field>
+	<field name="bankokpo" class="java.lang.String">
+		<fieldDescription><![CDATA[окпо банка]]></fieldDescription>
+	</field>
+	<field name="bankmfo" class="java.lang.String">
+		<fieldDescription><![CDATA[МФО банка]]></fieldDescription>
+	</field>
+	<field name="bankaccount" class="java.lang.String">
+		<fieldDescription><![CDATA[Расчетный счет в банке]]></fieldDescription>
+	</field>
+	<field name="isnotlicensedactivity" class="java.lang.Integer">
+		<fieldDescription><![CDATA[признак нелицензированной деятельности компании]]></fieldDescription>
+	</field>
+	<field name="genitivefio" class="java.lang.String">
+		<fieldDescription><![CDATA[П.І.Б довіреної особи(Падеж)]]></fieldDescription>
+	</field>
+	<field name="genitiveposition" class="java.lang.String">
+		<fieldDescription><![CDATA[Посада довіреної особи (Падеж)]]></fieldDescription>
+	</field>
+	<field name="isnopay" class="java.lang.Double">
+		<fieldDescription><![CDATA[Оплатный/безоплатный договор]]></fieldDescription>
+	</field>
+	<field name="scheduled_payments_count" class="java.lang.String"/>
+	<field name="scheduled_payment_value_total" class="java.math.BigDecimal"/>
+	<field name="scheduled_payment_value_vat" class="java.math.BigDecimal"/>
+	<field name="summagrn_month" class="java.lang.Integer"/>
+	<field name="summagrnkoptxt_month" class="java.lang.String"/>
+	<field name="summakop_month" class="java.lang.Integer"/>
+	<field name="ndsgrn_month" class="java.lang.Integer"/>
+	<field name="ndskop_month" class="java.lang.Integer"/>
+	<field name="summandstxt_month" class="java.lang.String"/>
+	<field name="projectcode" class="java.lang.String"/>
+	<field name="citieslist" class="java.lang.String"/>
+	<field name="linelength" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[]]></fieldDescription>
+	</field>
+	<field name="contragentposition" class="java.lang.String"/>
+	<variable name="companyShortName" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyShortName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("company.shortname")]]></initialValueExpression>
+	</variable>
+	<variable name="departmentAddress" class="java.lang.String">
+		<variableExpression><![CDATA[$V{departmentAddress}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getContactValue($F{departmentcode}.intValue(), com.ksoe.rqorder.valueobject.RQContactType.ADDRESS, $F{contractdateservices})]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="58" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" mode="Transparent" x="0" y="43" width="271" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["______________________ "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="dd.MM.yyyy" isBlankWhenNull="true">
+				<reportElement key="textField-30" stretchType="RelativeToTallestObject" mode="Transparent" x="271" y="43" width="268" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["”___”"  + "____________________20___р."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" mode="Transparent" x="0" y="0" width="541" height="43" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Договір № " + "__________________" + "\n" +
+" про використання опор повітряних ліній напругою 0,4/10 кВ для сумісного підвішування волоконно-оптичних ліній зв’язку "]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="567" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-22" positionType="Float" mode="Transparent" x="0" y="0" width="540" height="30" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{depcode}.intValue() != 500000019 ?  $F{depname} +  "  " + $V{companyShortName} + ", що надалі іменується \"Власник мереж\", в особі " : "  " + $V{companyShortName} + " що надалі іменується \"Власник мереж\", в особі "  )
++ new String(($F{warrantrefcode}.intValue() == 500000023 || $F{warrantrefcode}.intValue() == 1017000140 ) ? " Голови правління " : $F{genitiveposition} )
++ " " +
+( ($F{genitivefio} != "") ? $F{genitivefio}  : "______________________________" )
++ ", що  діє на підставі "
++ ( ($F{warrantrefcode}.intValue() == 500000023 || $F{warrantrefcode}.intValue() == 1017000140 ) ? "статуту" :
+"довіреності " + $F{numbergen} + " від " + $F{datestart} ) +
+", з однієї сторони, та " + new String(
+( $F{contragentbossname} != null || $F{basistype}.intValue() == 3)  ?
+new String($F{contragentname} + ", " + $F{contragentaddress} + " в особі " ) : $F{contragentname} +  ", " + $F{contragentaddress}
+)
++
+/*если есть довереное лицо заказчика то подставляем его иначе самого боса заказчика*/
+($F{cntrwarrantfio} != null ? $F{cntrwarrantfio} : (($F{contragentposition} != null ? $F{contragentposition} + " " : "") + ($F{contragentbossname} != null ? $F{contragentbossname} : "")  ))
++  ($F{basistype}.intValue() != 0 ? ", що  діє на підставі" : "") +
+($F{basistype}.intValue() == 1 ? " Статуту " :
+ $F{basistype}.intValue() == 2 ? " Положення " :
+ $F{basistype}.intValue() == 3 ? (" Довіреності №" + $F{cntrwarrantnumber} + " від " + $F{cntrwarrantdate} + " " ) :
+ $F{basistype}.intValue() == 4 ? " Закона України про місцеве самоврядування " :
+ $F{basistype}.intValue() == 5 ? " Свідоцтва про державну реєстрацію " :
+ $F{basistype}.intValue() == 6 ? " Паспорта " + $F{contragentpassport} :
+ $F{basistype}.intValue() == 7 ? " Закона України про місцеві державні адміністрації " :
+ $F{basistype}.intValue() == 8 ? " Закона України про державну прикордонну службу " :
+ $F{basistype}.intValue() == 9 ? " Закона України про СБУ " :
+ $F{basistype}.intValue() == 10 ? " Закона України про Прокуратуру " :
+  $F{basistype}.intValue() == 11 ? " Виписки з єдиного Державного реєстру юридичних осіб та фізичних осіб-підприємців " : " " ) +
+", з іншої сторони, а в подальшому разом іменуються  «Сторони», уклали цей Договір про наступне: "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="45" width="540" height="20" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 1.1. Замовник замовляє та оплачує, а Власник мереж надає право використовувати на території " + $F{citieslist} + "  Херсонської області місця на опорах ліній електропередач 0,4/10 кВ для сумісного підвішування ліній волоконно-оптичного кабелю зв'язку, з необхідним комутаційним та іншим обладнанням (ВОЛЗ), у відповідності з умовами даного Договору. " + "\n" +
+" 1.2. Кількість опор ліній електропередач 0,4/10кВ, місця на яких використовуються для сумісного підвішування волоконно-оптичного кабелю зв'язку, визначається проектною документацією. Фактична кількість опор на яках буде реалізовано право на використання визначається на підставі актів введення в експлуатацію реконструйованих (переобладнаних) об'єктів електричних мереж та встановлюєеться шляхом підписання Сторонами додаткової угоди до даного договору." + "\n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="80" width="539" height="21" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 2.1. Вартість використання Замовником однієї опори повітряних ліній електропередач 0,4/10 кВ становить – _______ грн. в т.ч. ПДВ – _______ грн. за місяць користування. Загальна вартість Договору встановлюється шляхом підписання Сторонами додаткової угоди в якій визначається фактична кількість використовуємих опор для сумісного  підвісу. Формування додаткової угоди ініціюється Власником на підставі актів введення в експлуатацію реконструйованих (переобладнаних) об'єктів електричних мереж.\n" +
+" 2.2. Оплата за користування опорами ліній електропередач 0,4/10 кВ за поточний по даті укладення Договору місяць і наступні два місяці вноситься Замовником в поточному місяці на умовах  попередньої оплати, на основі авансового рахунку, сформованого Власником мереж. В подальшому оплата за користування опорами ліній електропередач здійснюється Замовником  за наступний неоплачений місяць  на умовах 100%  попередньої оплати, на основі авансового рахунку, сформованого Власником мереж до 10-го числа місяця. \n" +
+" 2.3. Оплата здійснюється у національній валюті України, шляхом безготівкового перерахування грошових коштів  на розрахунковий рахунок Власника мереж, зазначений в рахунку. Замовник сплачує рахунок до 20-го числа місяця, в якому рахунок був сформований Власником мереж. \n" +
+" 2.4. Сторони щомісячно засвідчують факт надання послуг документом «Акт здачі-прийняття робіт (надання послуг)». \n"  +
+" 2.5. На початку кожного наступного місяця  Власник мереж надає Замовнику комплект документів: \n" +
+"      - акт здачі-прийняття робіт (надання послуг) (2 примірника, по одному для кожної Сторони); \n" +
+"      - електронну податкову накладну.\n" +
+" 2.6. Один екземпляр підписаного «Акту здачі-прийняття робіт (надання послуг)» Замовник повинен підписати та повернути Власнику мереж не пізніше 10-го числа місяця, наступного за звітним. По закінченню кожного календарного року в межах терміну дії даного Договору Сторони проводять звіряння взаєморозрахунків по всіх оплатах.  \n" +
+" 2.7. Вартість послуг за використання опор, вказаних у п. 1.2. даного договору, може бути переглянуто «Власником» у одностороньому порядку, про що останній має письмово повідомити «Користувача» за 10 днів до зміни вартості послуг. \n  У разі якщо Корстувач відмовиться від зазначеної у даному пункті зміни вартості послуг або якщо не надасть відповіді про свою згоду на протязі 10 днів з момену отримання письмового повідомлення Власника, договір вважається припиненним з насупного дня після спливу зазначеного десятиденного строку.  \n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="116" width="539" height="26" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 3.1. Власник мереж має право: \n" +
+" 3.1.1. На отримання інформації, в тому числі оперативної, щодо технічного стану волоконно-оптичного кабелю зв'язку, що підвішений до повітряної лінії електропередач. \n" +
+" 3.1.2. На доступ та огляд волоконно-оптичного кабелю зв'язку. \n" +
+" 3.1.3. На вчасне отримання грошових коштів згідно даного Договору. \n" +
+" 3.1.4. Вимагати здійснення Замовником демонтажу волоконно-оптичного кабелю зв'язку, що підвішений на опорах повітряної лінії електропередач, у разі невиконання Замовником умов даного Договору та/або вимог законодавства чи законних вимог контролюючих органів стосовно такого демонтажу. \n" +
+" 3.1.5. Самостійно або із залученням третіх осіб демонтувати ВОЛЗ Замовника у разі: а) невиконання останнім у встановлений строк вимоги, передбаченої п.3.1.4 цього Договору; б) невиконання Змовником умов цього Договору, дострокового розірвання Договору або закінчення строку дії Договору; в) проведення капітального ремонту чи реконструкції повітряної лінії електропередач. \n" +
+" 3.1.6. На компенсацію усіх затрат, понесених у зв’язку із необхідністю проведення демонтажу ВОЛЗ та іншого обладнання Замовника у разі неналежного виконання чи невиконання ним умов Договору, розірвання Договору, закінчення строку дії Договору."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="183" width="539" height="41" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 3.4. Замовник зобов’язаний: \n" +
+" 3.4.1. Належним чином виконувати умови даного Договору. \n" +
+" 3.4.2. Протягом 20-ти днів після підписання даного Договору надати Власнику мереж на погодження списки осіб, відповідальних за експлуатацію волоконно-оптичного кабелю зв'язку, що  підвішується до повітряної лінії електропередач. \n"+
+" 3.4.3. Власними силами, з використанням власних засобів та матеріалів (при умові обов’язкового попереднього повідомлення та отримання згоди від Власника мереж) проводити технічне обслуговування волоконно-оптичного кабелю зв'язку, установчої арматури і пристроїв, що належать до цього волоконно-оптичного кабелю зв'язку із дотриманням вимог щодо охорони праці та техніки безпеки. \n"+
+" 3.4.4. Роботи на волоконно-оптичному кабелі зв'язку, які вимагають відключення повітряних ліній і обмеження в подачі електроенергії споживачам,  виконувати у терміни планових відключень конкретних повітряних ліній, що регламентуються відповідними нормативними документами, за попереднім погодженням Власника мереж. \n" +
+" 3.4.5. Здійснювати весь комплекс заходів, що передбачені чинними нормативними актами, який необхідний при капітальному ремонті чи реконструкції повітряних ліній електропередач. В такий комплекс заходів Сторони включають відключення, заземлення, демонтаж волоконно-оптичного кабелю зв'язку, відновлення демонтованого волоконно-оптичного кабелю зв'язку. \n" +
+" 3.4.6. Негайно проводити за власний рахунок аварійно-відновлювальні роботи на пошкоджених чи зруйнованих елементах волоконно-оптичного кабелю зв'язку. \n" +
+" 3.4.7. Письмово повідомляти Власника мереж про виявлені дефекти на арматурі та волоконно-оптичному кабелі зв'язку, недопустимі зближення проводів повітряної лінії електропередач та волоконно-оптичного кабелю зв'язку між собою чи з будь-якими об’єктами або поверхнею ґрунту і вживати заходів до їх усунення після виконання обов’язкових організаційно-технічних заходів. \n" +
+" 3.4.8. На вимогу Власника мереж здійснювати демонтаж волоконно-оптичного кабелю зв'язку, що підвішений на опорах повітряної лінії електропередач, у разі невиконання Замовником умов даного Договору, розірвання Договору або закінчення строку його дії. У разі відмови Замовника виконати вимоги Власника мереж, Замовник зобов’язаний здійснити компенсацію усіх затрат, понесених Власником мереж у зв’язку із необхідністю проведення демонтажу обладнання Замовника та оплатити за весь час користування опорами ПЛ (ПЛІ, ПЛЗ) 0,4/10 кВ до дати проведення такого демонтажу Власником мереж. \n" +
+" 3.4.9. Не допускати позадоговірного користування опорами ПЛ (ПЛІ,ПЛЗ) 0,4/10 кВ, що належать Власнику мереж, а у разі виявлення такого використання компенсувати Власнику мереж майнову шкоду (збитки) в повному обсязі, включаючи вартість демонтажу неправомірно розміщених ВОЛЗ. "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="1" y="142" width="539" height="41" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 3.2. Власник мереж зобов’язаний: \n" +
+" 3.2.1. Надавати Замовнику право користування опорами ліній електропередач 0,4/10 кВ для сумісного підвішування ліній волоконно-оптичного кабелю зв'язку, в порядку та в строки, визначені умовами даного Договору. \n" +
+" 3.2.2. Належним чином виконувати умови даного Договору. \n" +
+" 3.2.3. Повідомляти Замовника про проведення капітального ремонту чи реконструкції повітряної лінії електропередач із підвішеним волоконно-оптичним кабелем зв'язку не пізніше ніж за десять календарних днів до проведення ремонту чи реконструкції. \n " +
+" 3.2.4. Повідомляти Замовника про виявлені дефекти чи пошкодження на об’єктах повітряної лінії чи на лініях волоконно-оптичного кабелю зв'язку. \n " +
+" 3.3. Замовник має право: \n " +
+" 3.3.1. На отримання інформації щодо технічного стану опор повітряних ліній електропередач, що використовуються для сумісного підвішування ліній волоконно-оптичного кабелю зв'язку. \n" +
+" 3.3.2. При повідомленні Власника мереж, а у відповідних випадках із дозволу Власника мереж, на доступ, демонтаж, ремонт чи огляд волоконно-оптичного кабелю зв'язку, що підвішений до  повітряної лінії електропередач. У даному пункті під словосполученням «відповідні  випадки» Сторони розуміють ремонт, демонтаж, усунення пошкоджень, інше технічне обслуговування волоконно-оптичного кабелю зв'язку, при якому для виконання вимог техніки  безпеки для Замовника  необхідно отримати дозвіл Власника мереж. \n" +
+" 3.3.3. Вимагати від Власника мереж належного виконання умов даного Договору. "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="224" width="539" height="41" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 3.5. Сторони зобов’язуються у своїх правовідносинах, що виникають з умов даного Договору, за винятком правовідносин, пов’язаних з визначенням вартості послуг, дотримуватись діючих нормативних актів, що регулюють правила техніки безпеки та охорону праці. \n" +
+" 3.6. Сторони зобов’язуються дотримуватися норм охорони праці та охорони навколишнього середовища. \n " +
+" 3.7. Всі роботи на діючих повітряних лініях 0,4/10 кВ повинні виконуватися  із задіянням технічного персоналу Власника мереж для технічного нагляду і контролю за проведенням робіт (окрім обходів і оглядів). \n " +
+" 3.8. Допуск персоналу будівельно-монтажних організацій і організацій, що експлуатують волоконно-оптичні кабелі зв'язку до робіт в охоронній зоні ліній електропередач здійснюється відповідно до «Правил безпечної експлуатації електроустановок». \n " +
+" 3.9. Механізми, пристосування та інструменти, що використовуються при роботах на повітряних лініях (ПЛІ, ПЛЗ) з ОКСН, повинні  бути справні і застосовуватися відповідно до вимог Правил безпечної роботи з інструментом та пристроями, вимог інструкцій з охорони праці та інструкцій з експлуатації цих механізмів та  пристроїв. "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="265" width="539" height="41" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 3.10. У випадку виявлення Власником мереж позадоговірного використання Замовником опор ПЛ (ПЛІ,ПЛЗ) 0,4/10 кВ, Власник мереж в письмовому або усному порядку повідомляє про це Замовника та за участю уповноваженого представника Замовника складає двосторонній Акт про порушення правил охорони електричних мереж. У разі відмови представника Замовника від прийняття участі в його складанні та/або його підписанні, про що вказується в такому Акті, він є дійсним за умови його підписання не менш як трьома представниками Власника мереж. Вказаний Акт є підставою для відшкодування майнової шкоди (збитків) Замовником Власнику мереж, що спричинені виявленим порушенням, зокрема вартості користування опорами ПЛ (ПЛІ,ПЛЗ) 0,4/10 кВ Замовником за весь період з моменту останнього огляду таких ПЛ (ПЛІ,ПЛЗ) 0,4/10 кВ Власником мереж та вартості робіт з демонтажу неправомірно розміщених ВОЛЗ. "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="321" width="539" height="41" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 4.1. У разі недотримання строків оплати рахунків зазначених в п.2.2 та п. 2.3 даного Договору, Замовник сплачує Власнику мереж пеню у розмірі подвійної облікової ставки НБУ за кожний день прострочення платежу включно до дати фактичної повної оплати такої заборгованості.\n"+
+" 4.2. Відповідальність за технічний стан та експлуатацію волоконно-оптичного кабелю,                установчої арматури і пристроїв, що належать до цього кабелю, несе Замовник. \n"+
+" 4.3. Замовник несе відповідальність за збереження волоконно-оптичного  кабелю зв'язку чи пошкодження таких проводів третіми особами. \n" +
+" 4.4. Замовник несе відповідальність за невиконання чи неналежне виконання зобов’язань, що передбачені пунктами  3.4. - 3.9. цього Договору у вигляді  штрафу у  десятикратному розмірі суми наданих послуг в місяці, що передує місяцю, в якому виявлені порушення. \n " +
+" 4.5. На об’єктах, що використовуються для сумісного підвішування ВОЛЗ та обумовлені в даному Договорі, пошкодження, спричинені стихійними   явищами та іншими обставинами непереборної сили, усуваються відповідними власниками повітряних ліній та волоконно-оптичного кабелю зв'язку кожним у своєму господарстві, власними силами з використанням власних матеріалів. \n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="362" width="539" height="41" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 4.6. Власник мереж не несе відповідальності перед Замовником за демонтаж волоконно-оптичного кабелю зв'язку власними силами чи за власний рахунок, якщо це сталось внаслідок невиконання  умов даного Договору зі сторони Замовника, розірвання даного Договору або у разі закінчення строку дії Договору. Внаслідок цього, Власник мереж не несе відповідальності перед Замовником та/або перед третіми особами (абонентами, споживачами телекомунікаційних послуг Замовника) за припинення надання телекомунікаційних послуг та/або інші, пов’язані з демонтажем наслідки, у разі такого демонтажу ВОЛЗ. \n"  +
+" 4.7. Власник мереж не несе відповідальності за збереження волоконно-оптичного  кабелю зв'язку, іншого обладнання Замовника чи його пошкодження третіми особами. \n" +
+" 4.8. У випадку виявлення Власником мереж нецільового використання Замовником опор ліній електропередач 0,4/10 кВ, Замовник сплачує штраф у розмірі 10000,00 (десять тисяч) грн. \n " +
+" 4.9. У випадку завдання Власнику мереж збитків внаслідок дій або бездіяльності Замовника,  Замовник зобов’язується в повному розмірі компенсувати Власнику мереж всі витрати, в тому числі і понесені на відновлення ліній електропередач. \n" +
+" 4.10. У випадку передачі  Замовником права користування опорами ліній електропередач 0,4/10 кВ третім особам без письмової попередньої згоди Власника мереж, Замовник сплачує неустойку у вигляді штрафу в розмірі 5000,00 (п’яти тисяч) грн. \n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="418" width="539" height="24" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 5.1. Реорганізація (перетворення) однієї із Сторін не є підставою для розірвання цього Договору, або змін його, без попереднього узгодження. \n" +
+" 5.2. Власник мереж є резидентом України та платником податку на прибуток і сплачує цей податок на  загальних підставах за базовою (основною) ставкою, зазначеною у підпункті 136.1 статті 136 розділу ІІІ «Податок на прибуток підприємств» Податкового кодексу України. \n " +
+" 5.3. Замовник є резидентом України та платником податку на прибуток і сплачує цей податок на  загальних підставах за базовою (основною) ставкою, зазначеною у підпункті 136.1 статті 136 розділу ІІІ «Податок на прибуток підприємств» Податкового кодексу України. \n " +
+" 5.4. У випадку зміни статусу платника податку, свого місце знаходження, банківських та інших реквізитів, про початок процедури реорганізації або ліквідації однією із Сторін, ця Сторона зобов’язується повідомити іншу Сторону про зміни протягом 10 (десяти) календарних днів з моменту настання відповідної події. \n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="457" width="539" height="27" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 6.1. Всі спори між Сторонами вирішуються шляхом переговорів.  Спори між Сторонами з  питань, щодо яких не було досягнуто згоди, вирішуються відповідно до законодавства України Господарським судом.\n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="499" width="539" height="21" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 7.1. Даний Договір набуває чинності з  «____» __________ 20 ___ р. та діє впродовж 1 (одного) року. \n" +
+" 7.2. Договір може бути розірваний Власником мереж в односторонньому порядку у разі несплати Замовником послуг згідно п. 2.2 та п.2.3 Договору до 20-го числа місяця, в якому рахунок був сформований Власником мереж, шляхом направлення Замовнику повідомлення  про розірвання договору не пізніше, ніж за 10 календарних днів до дати розірвання Договору. Сторони дійшли згоди, що Договір вважатиметься  розірваним з дати, що вказана Власником мереж в листі про дострокове розірвання Договору, у випадку дотримання зазначених в цьому пункті строків. \n" +
+" 7.3. Дія Договору припиняється: \n" +
+" -	за згодою Сторін; \n " +
+" -	у зв’язку із закінченням строку дії Договору;\n" +
+" -	у разі порушення Замовником правил техніки безпеки, охорони праці та пожежної безпеки при проведенні робіт, a також правил та норм щодо охорони навколишнього середовища викладених у додатку 4 до Договору; \n" +
+" -	у разі невиконання та/або порушення  Замовником умов Договору; \n" +
+" -	за рішенням суду. \n" +
+" 7.4. Жодна із Сторін не має права передавати свої права та обов’язки за цим Договором третій стороні.\n" +
+" 7.5. Договір складений у двох оригінальних примірниках, які мають однакову юридичну силу, по одному примірнику для кожної із Сторін. \n" +
+" 7.6. Всі зміни та доповнення до цього Договору вважаються дійсними, якщо вони здійснені в письмовому вигляді та підписані уповноваженими на це представниками Сторін. \n " +
+" 7.7. Сторони домовились, що даний Договір, додатки та додаткові угоди до даного Договору, а також первинні та інші документи, які будуть оформлятися Сторонами у відповідності до умов даного Договору, мають бути підписані уповноваженими особами обох Сторін та скріпленні печатками (при наявності). "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="535" width="539" height="32" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 8.1. Сторона звільняється від визначеної цим Договором та/або чинним в Україні законодавством відповідальності за повне чи часткове порушення Договору, якщо вона доведе, що таке порушення сталося внаслідок дії обставин непереборної сили /форс-мажору, визначених у цьому Договорі, за умови, що їх настання було засвідчене у визначеному цим Договором порядку.\n" +
+" 8.2. Під обставинами непереборної сили у цьому Договорі розуміються будь-які надзвичайні події зовнішнього щодо Сторін характеру, які виникають без вини Сторін, поза їх волею або всупереч волі чи бажанню Сторін, і які не можна за умови вжиття звичайних для цього заходів передбачити та не можна при всій турботливості та обачності відвернути (уникнути), включаючи (але не обмежуючись) стихійні явища природного характеру (землетруси, повені, урагани, руйнування в результаті блискавки тощо), лиха біологічного, техногенного та антропогенного походження (вибухи, пожежі, вихід з ладу машин й обладнання, масові епідемії, епізоотії, епіфітотії тощо), обставини суспільного життя (війна, воєнні дії, блокади, громадські хвилювання, прояви тероризму, масові страйки та локаути, бойкоти тощо), а також видання заборонних або обмежуючих нормативних актів органів державної влади чи місцевого самоврядування, інші законні або незаконні заборонні чи обмежуючі заходи названих органів, які унеможливлюють виконання Сторонами цього Договору або тимчасово перешкоджають такому виконанню.\n " +
+" 8.3. Настання обставин непереборної сили має бути засвідчено довідкою компетентного державного органу, що визначений чинним в Україні законодавством, або ТПП України.\n" +
+" 8.4. Сторона, що має намір послатися на обставини непереборної сили, зобов'язана невідкладно з урахуванням можливостей технічних засобів миттєвого зв'язку та характеру існуючих перешкод, але не пізніше ніж протягом п’яти календарних днів письмово повідомити іншу Сторону про наявність обставин непереборної сили та їх вплив на виконання цього Договору, підтверджуючи таке документом, передбаченим п 8.3. цього Договору. В протилежному випадку Сторона позбавляється права посилатися на дію обставин непереборної сили як на причину невиконання/неналежного виконання своїх обов’язків за цим Договором. \n" +
+" 8.5. Якщо обставини непереборної сили та/бо їх наслідки тимчасово перешкоджають виконанню цього Договору, то виконання цього Договору зупиняється на строк, протягом якого воно є неможливим. При цьому строк виконання зобов'язань по цьому Договору відповідно продовжується на термін дії відповідної обставини непереборної сили, але не більше ніж на 3 місяці. Якщо вказані обставини чи їх наслідки тривають більше, ніж 3 місяці, то жодна з Сторін не має права вимагати від іншої Сторони відшкодування збитків за можливі втрати. \n" +
+" 8.6. У разі, якщо обставини форс - мажор (або їхні наслідки) продовжуються більше, ніж 6 (шість) місяців, Сторони за взаємною згодою можуть розірвати даний Договір. \n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="30" width="541" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA["1. Предмет договору"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="1" y="65" width="540" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 2. Вартість послуг та порядок розрахунків"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="101" width="540" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA["3. Права та обов’язки сторін"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="306" width="540" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 4. Відповідальність сторін"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="403" width="540" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA["5.  Особливі умови "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="442" width="540" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA["6.  Порядок вирішення спорів"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="484" width="540" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA["7. Строк дії та умови зміни, розірвання договору "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="520" width="540" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA["8. Форс – мажорні обставини "]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="151" splitType="Prevent">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-27" positionType="Float" mode="Transparent" x="0" y="29" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Юридичні адреси, банківські реквізити і підписи сторін"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-29" positionType="Float" mode="Transparent" x="270" y="59" width="269" height="50" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{contragentname} + "\n" +
+$F{contragentaddress} + "\n" +
+$F{contragentpassport} + "\n" +
+"р/р " + $F{contragentbankaccount} + "\n" +
+"банк " + $F{contragentbankname} + "\n" +
+"МФО " + $F{contragentbankmfo}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-31" positionType="Float" mode="Transparent" x="270" y="44" width="269" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ЗАМОВНИК"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-32" positionType="Float" mode="Transparent" x="0" y="44" width="270" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ВИКОНАВЕЦЬ"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" mode="Transparent" x="0" y="59" width="270" height="50" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{depname} +   "\n" +
+$V{departmentAddress} + "\n" +
+"р/р " + $F{bankaccount} + "\n" +
+"банк " + $F{bankname} + "\n" +
+"МФО " + $F{bankmfo}+ " ЗКПО " + $F{bankokpo}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-35" positionType="Float" mode="Transparent" x="0" y="109" width="270" height="22" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["М.П." + "\n" + "\n" + "\n" +
+$F{warrantposition}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-36" positionType="Float" mode="Transparent" x="0" y="141" width="270" height="10" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["(посада)                                           "       +            " (підпис П.І.Б.) "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-37" positionType="Float" mode="Transparent" x="270" y="109" width="269" height="22" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["\n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-38" positionType="Float" mode="Transparent" x="270" y="141" width="269" height="10" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["(посада)                                           "         +            " (підпис П.І.Б.) "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-39" positionType="Float" mode="Transparent" x="0" y="131" width="270" height="10" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="true" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["                                                            "       +   $F{warrantshortfio}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-40" positionType="Float" mode="Transparent" x="0" y="15" width="539" height="14" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 9.1. До цього Договору додаються: \n" +
+" 9.1.1. Додаток №1 - Акт фактичного стану ПЛ (ПЛІ, ПЛЗ) 10/0,4кВ із сумісним підвісом волоконно-оптичної лінії зв'язку (ВОЛЗ). \n" +
+" 9.1.2. Додаток №2 – Протокол узгодження договірної ціни. \n" +
+" 9.2. Усі додатки до Договору є його невід’ємними частинами. \n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-39" positionType="Float" mode="Transparent" x="270" y="131" width="270" height="10" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="true" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["                                                            "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="0" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="15"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 9. Додатки до договору  "]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

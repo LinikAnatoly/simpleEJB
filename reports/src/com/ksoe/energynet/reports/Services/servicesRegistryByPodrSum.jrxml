@@ -1,0 +1,1738 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="servicesRegistryByPodrSum" pageWidth="3000" pageHeight="842" orientation="Landscape" columnWidth="2960" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" scriptletClass="com.ksoe.energynet.reports.common.netScriptlet" isIgnorePagination="true">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="New Data Adapter 1"/>
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="2542"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="datestart" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="datefinal" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="renCode" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="renName" class="java.lang.String"/>
+	<parameter name="tkclassificationtypecodes" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("0")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="datestart_repperiod" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="datefinal_repperiod" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[/*рабочий запрос для сводной ведомости по услугам на сторону*/
+select
+   string_agg(contractnumberservices,',') as string_contractnumberservices
+ , case when to_char(to_date($P{datefinal},'dd.mm.yyyy'),'mm') = '01' then 'Січень'
+              when to_char(to_date($P{datefinal} ,'dd.mm.yyyy'),'mm') = '02' then 'Лютий'
+              when to_char(to_date($P{datefinal} ,'dd.mm.yyyy'),'mm') = '03' then 'Березень'
+              when to_char(to_date($P{datefinal} ,'dd.mm.yyyy'),'mm') = '04' then 'Квітень'
+              when to_char(to_date($P{datefinal} ,'dd.mm.yyyy'),'mm') = '05' then 'Травень'
+              when to_char(to_date($P{datefinal} ,'dd.mm.yyyy'),'mm') = '06' then 'Червень'
+              when to_char(to_date($P{datefinal} ,'dd.mm.yyyy'),'mm') = '07' then 'Липень'
+              when to_char(to_date($P{datefinal} ,'dd.mm.yyyy'),'mm') = '08' then 'Серпень'
+              when to_char(to_date($P{datefinal} ,'dd.mm.yyyy'),'mm') = '09' then 'Вересень'
+              when to_char(to_date($P{datefinal} ,'dd.mm.yyyy'),'mm') = '10' then 'Жовтень'
+              when to_char(to_date($P{datefinal} ,'dd.mm.yyyy'),'mm') = '11' then 'Листопад'
+              when to_char(to_date($P{datefinal} ,'dd.mm.yyyy'),'mm') = '12' then 'Грудень'
+            end|| ' ' || to_char(to_date($P{datefinal},'dd.mm.yyyy'),'yyyy')   as cur_mm_year
+   , $P{datestart} ||' - '|| to_char(to_date($P{datefinal},'dd.mm.yyyy'),'dd.mm.yyyy') as fullPeriod
+   , $P{datestart_repperiod} ||' - '|| to_char(to_date($P{datefinal_repperiod},'dd.mm.yyyy'),'dd.mm.yyyy') as repPeriod ,
+--contractnumberservices
+depname	,
+depcode ,
+sum(neprovedeniy) as neprovedeniy,
+sum(prosrocheniy) as prosrocheniy,
+sum(nevikoplnobudgfullperiod_platn) as nevikoplnobudgfullperiod_platn,
+sum(nevikoplnobudgfullperiod_notplatn) as nevikoplnobudgfullperiod_notplatn,
+sum(nevikoplbudgfullperiod_platn) as nevikoplbudgfullperiod_platn,
+sum(nevikoplbudgfullperiod_notplatn) as nevikoplbudgfullperiod_notplatn,
+sum(neviknotoplnobudgfullperiod_platn) as neviknotoplnobudgfullperiod_platn,
+sum(neviknotoplnobudgfullperiod_notplatn) as neviknotoplnobudgfullperiod_notplatn,
+sum(neviknotoplbudgfullperiod_platn) as neviknotoplbudgfullperiod_platn,
+sum(neviknotoplbudgfullperiod_notplatn) as neviknotoplbudgfullperiod_notplatn,
+sum(vikoplnobudgfullperiod_platn) as vikoplnobudgfullperiod_platn,
+sum(vikoplnobudgfullperiod_notplatn) as vikoplnobudgfullperiod_notplatn,
+sum(vikoplbudgfullperiod_platn) as vikoplbudgfullperiod_platn,
+sum(vikoplbudgfullperiod_notplatn) as vikoplbudgfullperiod_notplatn,
+sum(viknotoplnobudgfullperiod_platn) as viknotoplnobudgfullperiod_platn,
+sum(viknotoplnobudgfullperiod_notplatn) as viknotoplnobudgfullperiod_notplatn,
+sum(viknotoplbudgfullperiod_platn) as viknotoplbudgfullperiod_platn,
+sum(viknotoplbudgfullperiod_notplatn) as viknotoplbudgfullperiod_notplatn,
+sum(count_contract_expired_counters) as count_contract_expired_counters  ,
+string_agg(string_codes_contract_expired_counters , ',') as string_codes_contract_expired_counters ,
+--/supp-42754 -- всего договоров за период по ресу
+  ( select count(soo.code)
+    from enservicesobject soo left join enservicesobject2prov qqq on (qqq.servicesobjectrefcode = soo.code  )
+    where soo.contractdateservices between to_date($P{datestart},'dd.MM.yyyy') and to_date($P{datefinal},'dd.MM.yyyy')
+          and soo.departmentcode = depcode
+          and soo.contracttyperefcode in (1,2) -- что б не брались приэднання всякие и продажи .
+          and soo.contractstatusrefcode not in (2,10,8) -- не берем договора которые в статусе "отказ от услуги" , отмененные и скасованые
+        -- только лиценнз работы
+          and soo.elementcode in (
+                                 select p.elementrefcode from enplanwork p , enplanwork2classfctntp pc, tkclassificationtype cl , enelement el
+                                 where p.code = pc.planrefcode
+                                 and pc.classificationtyperfcd = cl.code
+                                 and cl.isnotlicensedactivity =0
+                                 and p.elementrefcode = el.code
+                                 and el.typerefcode = 23
+                                 )
+                  /*фильтр по калькуляциям в договоре */
+         and case when $P{tkclassificationtypecodes} <> '' then  soo.code in
+           (select distinct so.code from tkclassificationtype tcl  , enplanwork2classfctntp p2clt , enplanwork p  , enservicesobject so
+          where tcl.kod like replace($P{tkclassificationtypecodes},'*','%')
+               and p2clt.classificationtyperfcd = tcl.code
+               and p2clt.planrefcode = p.code
+               and p.elementrefcode = so.elementcode
+               and p.kindcode = 5
+         ) else 1 = 1 end
+  ) as dogovorov_vsego_period ,
+  --/supp-42754 -- всего договоров за отчетный период по ресу
+  ( select count(soo.code)
+      from enservicesobject soo left join enservicesobject2prov qqq on (qqq.servicesobjectrefcode = soo.code  )
+     where soo.contractdateservices between to_date($P{datestart_repperiod},'dd.MM.yyyy') and to_date($P{datefinal_repperiod},'dd.MM.yyyy')
+          and soo.departmentcode = depcode
+          and soo.contracttyperefcode in (1,2) -- что б не брались приэднання всякие и продажи .
+          and soo.contractstatusrefcode not in (2,10,8) -- не берем договора которые в статусе "отказ от услуги" , отмененные и скасованые
+        -- только лиценнз работы
+          and soo.elementcode in (
+                                 select p.elementrefcode from enplanwork p , enplanwork2classfctntp pc, tkclassificationtype cl , enelement el
+                                 where p.code = pc.planrefcode
+                                 and pc.classificationtyperfcd = cl.code
+                                 and cl.isnotlicensedactivity =0
+                                 and p.elementrefcode = el.code
+                                 and el.typerefcode = 23
+                                 )
+                  /*фильтр по калькуляциям в договоре */
+         and case when $P{tkclassificationtypecodes} <> '' then  soo.code in
+           (select distinct so.code from tkclassificationtype tcl  , enplanwork2classfctntp p2clt , enplanwork p  , enservicesobject so
+          where tcl.kod like replace($P{tkclassificationtypecodes},'*','%')
+               and p2clt.classificationtyperfcd = tcl.code
+               and p2clt.planrefcode = p.code
+               and p.elementrefcode = so.elementcode
+               and p.kindcode = 5
+         ) else 1 = 1 end
+  ) as dogovorov_vsego_repperiod ,
+  --/supp-42754 -- всего договоров заключенных и проведенных за период по ресу
+  ( select count(soo.code)
+    from enservicesobject soo left join  enservicesobject2prov s2p on (soo.code = s2p.servicesobjectrefcode)
+                              left join (select a.numbergen , a.elementcode , a.dategen from enact a ) as actdata
+                                      on (actdata.elementcode = soo.elementcode
+                                      and actdata.dategen = ( select max(act.dategen) from enact act where act.elementcode = soo.elementcode ) )
+    where soo.contractdateservices between to_date($P{datestart},'dd.MM.yyyy') and to_date($P{datefinal},'dd.MM.yyyy')
+          and soo.departmentcode = depcode
+          and soo.contracttyperefcode in (1,2) -- что б не брались приэднання всякие и продажи .
+          and soo.contractstatusrefcode not in (2,10,8) -- не берем договора которые в статусе "отказ от услуги" , отмененные и скасованые
+           /* проведенные договора  statusrefcode in  (2,4)
+            SUPP-34177 - проведенным считаются договора также со енерджинетовским статусом "закритий" contractstatusrefcode = 11
+            Если по договору есть проводки то фильтруем по дате проводки
+            Если проводок нет то дату принимаем дату договора
+            */
+          and ( case when (soo.statusrefcode in  (2,4 )  or  soo.contractstatusrefcode = 11)
+               and
+                (coalesce(s2p.dateposting,coalesce(actdata.dategen,soo.contractdateservices)) between to_date($P{datestart},'dd.MM.yyyy') and to_date($P{datefinal},'dd.MM.yyyy') )
+                then 1 else 0 end
+              ) = 1  /*0- непроведено 1-проведено*/
+          -- только лиценнз работы
+          and soo.elementcode in (
+                                 select p.elementrefcode from enplanwork p , enplanwork2classfctntp pc, tkclassificationtype cl , enelement el
+                                 where p.code = pc.planrefcode
+                                 and pc.classificationtyperfcd = cl.code
+                                 and cl.isnotlicensedactivity =0
+                                 and p.elementrefcode = el.code
+                                 and el.typerefcode = 23
+                                 )
+                  /*фильтр по калькуляциям в договоре */
+         and case when $P{tkclassificationtypecodes} <> '' then  soo.code in
+           (select distinct so.code from tkclassificationtype tcl  , enplanwork2classfctntp p2clt , enplanwork p  , enservicesobject so
+          where tcl.kod like replace($P{tkclassificationtypecodes},'*','%')
+               and p2clt.classificationtyperfcd = tcl.code
+               and p2clt.planrefcode = p.code
+               and p.elementrefcode = so.elementcode
+               and p.kindcode = 5
+         ) else 1 = 1 end
+  ) as dogovorov_vsego_provedeno_period ,
+  --/supp-42754 -- всего договоров заключенных по всему периоду а проведенных за отчетный период по ресу
+  ( select count(soo.code)
+    from enservicesobject soo left join  enservicesobject2prov s2p on (soo.code = s2p.servicesobjectrefcode)
+                              left join (select a.numbergen , a.elementcode , a.dategen from enact a ) as actdata
+                                      on (actdata.elementcode = soo.elementcode
+                                      and actdata.dategen = ( select max(act.dategen) from enact act where act.elementcode = soo.elementcode ) )
+    where soo.contractdateservices between to_date($P{datestart},'dd.MM.yyyy') and to_date($P{datefinal},'dd.MM.yyyy')
+          and soo.departmentcode = depcode
+          and soo.contracttyperefcode in (1,2) -- что б не брались приэднання всякие и продажи .
+          and soo.contractstatusrefcode not in (2,10,8) -- не берем договора которые в статусе "отказ от услуги" , отмененные и скасованые
+          /* проведенные договора  statusrefcode in  (2,4)
+            SUPP-34177 - проведенным считаются договора также со енерджинетовским статусом "закритий" contractstatusrefcode = 11
+            Если по договору есть проводки то фильтруем по дате проводки
+            Если проводок нет то дату принимаем дату договора
+            */
+          and ( case when (soo.statusrefcode in  (2,4 )  or  soo.contractstatusrefcode = 11)
+               and
+                (coalesce(s2p.dateposting,coalesce(actdata.dategen,soo.contractdateservices)) between to_date($P{datestart_repperiod},'dd.MM.yyyy') and to_date($P{datefinal_repperiod},'dd.MM.yyyy') )
+                then 1 else 0 end
+              ) = 1  /*0- непроведено 1-проведено*/
+          -- только лиценнз работы
+          and soo.elementcode in (
+                                 select p.elementrefcode from enplanwork p , enplanwork2classfctntp pc, tkclassificationtype cl , enelement el
+                                 where p.code = pc.planrefcode
+                                 and pc.classificationtyperfcd = cl.code
+                                 and cl.isnotlicensedactivity =0
+                                 and p.elementrefcode = el.code
+                                 and el.typerefcode = 23
+                                 )
+                  /*фильтр по калькуляциям в договоре */
+         and case when $P{tkclassificationtypecodes} <> '' then  soo.code in
+           (select distinct so.code from tkclassificationtype tcl  , enplanwork2classfctntp p2clt , enplanwork p  , enservicesobject so
+          where tcl.kod like replace($P{tkclassificationtypecodes},'*','%')
+               and p2clt.classificationtyperfcd = tcl.code
+               and p2clt.planrefcode = p.code
+               and p.elementrefcode = so.elementcode
+               and p.kindcode = 5
+         ) else 1 = 1 end
+  ) as dogovorov_vsego_provedeno_repperiod ,
+   --/supp-42754 -- всего проведено видаткових актів за период по ресу
+  ( select count(a.code)
+    from enservicesobject soo  , enact a
+    where soo.elementcode  = a.elementcode
+          and a.statusrefcode in (3)
+          and a.dategen between to_date($P{datestart},'dd.MM.yyyy') and to_date($P{datefinal},'dd.MM.yyyy')
+          and soo.contractdateservices between to_date($P{datestart},'dd.MM.yyyy') and to_date($P{datefinal},'dd.MM.yyyy')
+          and soo.departmentcode = depcode
+          and soo.contracttyperefcode in (1,2) -- что б не брались приэднання всякие и продажи .
+          and soo.contractstatusrefcode not in (2,10,8) -- не берем договора которые в статусе "отказ от услуги" , отмененные и скасованые
+          -- только лиценнз работы
+          and soo.elementcode in (
+                                 select p.elementrefcode from enplanwork p , enplanwork2classfctntp pc, tkclassificationtype cl , enelement el
+                                 where p.code = pc.planrefcode
+                                 and pc.classificationtyperfcd = cl.code
+                                 and cl.isnotlicensedactivity =0
+                                 and p.elementrefcode = el.code
+                                 and el.typerefcode = 23
+                                 )
+                  /*фильтр по калькуляциям в договоре */
+         and case when $P{tkclassificationtypecodes} <> '' then  soo.code in
+           (select distinct so.code from tkclassificationtype tcl  , enplanwork2classfctntp p2clt , enplanwork p  , enservicesobject so
+          where tcl.kod like replace($P{tkclassificationtypecodes},'*','%')
+               and p2clt.classificationtyperfcd = tcl.code
+               and p2clt.planrefcode = p.code
+               and p.elementrefcode = so.elementcode
+               and p.kindcode = 5
+         ) else 1 = 1 end
+  ) as actov_vsego_provedeno_period ,
+    --/supp-42754 -- всего проведено видаткових актів за отчетный период по ресу по договорам за весь период
+  ( select count(a.code)
+    from enservicesobject soo  , enact a
+    where soo.elementcode  = a.elementcode
+          and a.statusrefcode in (3)
+          and a.dategen between to_date($P{datestart_repperiod},'dd.MM.yyyy') and to_date($P{datefinal_repperiod},'dd.MM.yyyy')
+          and soo.contractdateservices between to_date($P{datestart},'dd.MM.yyyy') and to_date($P{datefinal} ,'dd.MM.yyyy')
+          and soo.departmentcode = depcode
+          and soo.contracttyperefcode in (1,2) -- что б не брались приэднання всякие и продажи .
+          and soo.contractstatusrefcode not in (2,10,8) -- не берем договора которые в статусе "отказ от услуги" , отмененные и скасованые
+          -- только лиценнз работы
+          and soo.elementcode in (
+                                 select p.elementrefcode from enplanwork p , enplanwork2classfctntp pc, tkclassificationtype cl , enelement el
+                                 where p.code = pc.planrefcode
+                                 and pc.classificationtyperfcd = cl.code
+                                 and cl.isnotlicensedactivity =0
+                                 and p.elementrefcode = el.code
+                                 and el.typerefcode = 23
+                                 )
+                  /*фильтр по калькуляциям в договоре */
+         and case when $P{tkclassificationtypecodes} <> '' then  soo.code in
+           (select distinct so.code from tkclassificationtype tcl  , enplanwork2classfctntp p2clt , enplanwork p  , enservicesobject so
+          where tcl.kod like replace($P{tkclassificationtypecodes},'*','%')
+               and p2clt.classificationtyperfcd = tcl.code
+               and p2clt.planrefcode = p.code
+               and p.elementrefcode = so.elementcode
+               and p.kindcode = 5
+         ) else 1 = 1 end
+  ) as actov_vsego_provedeno_repperiod
+from (
+        select
+        contractnumberservices ,
+        depname	,
+        depcode ,
+        1 as neprovedeniy ,
+        case when is_red > 0 then 1 else 0 end as prosrocheniy ,
+        case when statusname = 'Роботи не виконані'
+              and paysumtotalbycotract > 0  /*сплачені*/
+              and contragenttyperefcode <> 2 /*не бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay <> 1
+             then 1 else 0 end as neVikOplNobudgfullperiod_platn ,
+        case when statusname = 'Роботи не виконані'
+              and paysumtotalbycotract > 0  /*сплачені*/
+              and contragenttyperefcode <> 2 /*не бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay = 1
+             then 1 else 0 end as neVikOplNobudgfullperiod_notplatn ,
+        case when statusname = 'Роботи не виконані'
+              and paysumtotalbycotract > 0  /*сплачені*/
+              and contragenttyperefcode = 2 /* бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay <> 1
+             then 1 else 0 end as neVikOplBudgfullperiod_platn ,
+        case when statusname = 'Роботи не виконані'
+              and paysumtotalbycotract > 0  /*сплачені*/
+              and contragenttyperefcode = 2 /* бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay = 1
+           then 1 else 0 end as neVikOplBudgfullperiod_notplatn ,
+        ----
+        case when statusname = 'Роботи не виконані'
+              and paysumtotalbycotract = 0  /*не сплачені*/
+              and contragenttyperefcode <> 2 /*не бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay <> 1
+         then 1 else 0 end as neVikNotOplNobudgfullperiod_platn ,
+        case when statusname = 'Роботи не виконані'
+              and paysumtotalbycotract = 0  /*не сплачені*/
+              and contragenttyperefcode <> 2 /*не бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay = 1
+             then 1 else 0 end as neVikNotOplNobudgfullperiod_notplatn ,
+        case when statusname = 'Роботи не виконані'
+              and paysumtotalbycotract = 0  /*не сплачені*/
+              and contragenttyperefcode = 2 /* бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay <> 1
+             then 1 else 0 end as neVikNotOplBudgfullperiod_platn ,
+        case when statusname = 'Роботи не виконані'
+              and paysumtotalbycotract = 0  /*не сплачені*/
+              and contragenttyperefcode = 2 /* бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay = 1
+             then 1 else 0 end as neVikNotOplBudgfullperiod_notplatn ,
+         ----
+        case when statusname <> 'Роботи не виконані'
+              and paysumtotalbycotract > 0  /*сплачені*/
+              and contragenttyperefcode <> 2 /*не бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay <> 1
+             then 1 else 0 end as VikOplNobudgfullperiod_platn ,
+        case when statusname <> 'Роботи не виконані'
+              and paysumtotalbycotract > 0  /*сплачені*/
+              and contragenttyperefcode <> 2 /*не бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay = 1
+         then 1 else 0 end as VikOplNobudgfullperiod_notplatn ,
+        case when statusname <> 'Роботи не виконані'
+              and paysumtotalbycotract > 0  /*сплачені*/
+              and contragenttyperefcode = 2 /* бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay <> 1
+              then 1 else 0 end as VikOplBudgfullperiod_platn ,
+        case when statusname <> 'Роботи не виконані'
+              and paysumtotalbycotract > 0  /*сплачені*/
+              and contragenttyperefcode = 2 /* бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay = 1
+             then 1 else 0 end as VikOplBudgfullperiod_notplatn ,
+        ----
+        case when statusname <> 'Роботи не виконані'
+              and paysumtotalbycotract = 0  /*не сплачені*/
+              and contragenttyperefcode <> 2 /*не бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay <> 1
+            then 1 else 0 end as VikNotOplNobudgfullperiod_platn ,
+        case when statusname <> 'Роботи не виконані'
+              and paysumtotalbycotract = 0  /*не сплачені*/
+              and contragenttyperefcode <> 2 /*не бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay = 1
+             then 1 else 0 end as VikNotOplNobudgfullperiod_notplatn ,
+        case when statusname <> 'Роботи не виконані'
+              and paysumtotalbycotract = 0  /*не сплачені*/
+              and contragenttyperefcode = 2 /* бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay <> 1
+             then 1 else 0 end as VikNotOplBudgfullperiod_platn ,
+         case when statusname <> 'Роботи не виконані'
+              and paysumtotalbycotract = 0  /*не сплачені*/
+              and contragenttyperefcode = 2 /* бюджет*/
+              and contractdateservices BETWEEN  to_date($P{datestart},'dd.mm.yyyy') and   to_date($P{datefinal},'dd.mm.yyyy')
+              and isnopay = 1
+             then 1 else 0 end as VikNotOplBudgfullperiod_notplatn
+/*SUPP-42537 выборка кол-во договоров по установке счетчиков просроченых */
+        , case when (replacecounterkindcode = 1 and is_red > 0 )  then
+            1
+          else 0
+          end as count_contract_expired_counters /*кол-во Договори просторочені  з "Встановлення лічильників"*/
+        , case when (replacecounterkindcode = 1 and is_red > 0 )
+               then contractcode::text
+          else null
+          end as string_codes_contract_expired_counters /*коды Договори просторочені  з "Встановлення лічильників"*/
+           , isnopay
+         from
+        (
+         select coalesce((select t.replacecounterkindcode
+          from enplanwork2classfctntp tcl,
+               tkclassificationtype t,
+               enplanwork p,
+               enservicesobject soo
+          Where tcl.classificationtyperfcd = t.code and
+                t.replacecounterkindcode = 1 /*установка многотариф счетч*/
+                and
+                tcl.planrefcode = p.code and
+                p.elementrefcode = soo.elementcode and
+                soo.code = so.code
+                limit 1 ),0) as replacecounterkindcode ,  /*признак установка многотариф счетч*/
+         so.code as contractcode ,
+                ( select  string_agg(distinct ( tct.kod || ' ' || tct.name ),' , ') from enplanwork2classfctntp p2c, enplanwork p , tkclassificationtype tct
+                  where p2c.planrefcode = p.code
+                  and p2c.classificationtyperfcd = tct.code
+                  and p.kindcode = 5
+                  and p.elementrefcode = so.elementcode
+                    ) as nameclassif_in_dogovor ,
+               so.contragenttyperefcode ,/*тип контрагента  (если 2- Юр.особа(бюджет) )*/
+               so.contractnumberservices ,
+               so.contractdateservices as contractdateservices,
+               --so.contractnumber,
+               --to_char(so.contractdate,'dd.MM.yyyy') as contractdate,
+               so.name as servicesname,
+               so.contragentname,
+               so.contragentaddress,
+               dep.name as depname,
+               dep.code as depcode,
+               /* робота виконана если по услуге есть акт вып работ и в хоть одном задание план из этого акта нету акта невыполнения   */
+               case when coalesce(( select count(enact.code) from enact , enplanwork p , enact2enplanwork a2p
+                                     where enact.elementcode = so.elementcode
+                                       and enact.elementcode = p.elementrefcode
+                                       and p.kindcode = 3
+                                       and ( select p2af.planrefcode from enplanwork2actfailure p2af where p2af.planrefcode = p.code ) is null
+                                       and enact.code = a2p.actrefcode
+                                  ),0) > 0
+                                  then
+               'Роботи виконані'
+                   else 'Роботи не виконані' end as statusname,
+               -- причины невыполнения работы
+               ( select string_agg( distinct afr.name || '( акт№'||coalesce(af.numbergen,'') || case when af.dateact is not null then ' від '||to_char(af.dateact,'dd.mm.yyyy') else '' end ||')',',' )
+                  from enplanwork2actfailure p2af , enplanwork p ,  enactfailure af , enactfailurereason afr
+                  where p2af.planrefcode = p.code
+                    and p.kindcode = 3
+                    and p.elementrefcode = so.elementcode
+                    and p2af.actfailurerefcode = af.code
+                    and af.reasonrefcode = afr.code ) as failure_work  ,
+               sobjs.name as buh_status,
+               ct.name as typename,
+               ctype.name as contragenttype,
+               ( select string_agg(distinct enact.numbergen || ' от ' || to_char(enact.dateact,'dd.MM.yyyy')||'('||actst.name||')',',')
+                  from enact , enactstatus actst , enact2enplanwork a2p
+                 where enact.statusrefcode = actst.code
+                   and enact.code = a2p.actrefcode
+                   and enact.elementcode = so.elementcode limit 1 ) as act,
+               -- исполнитель факт
+                ( select string_agg(distinct fex.name,',')
+                from finexecutor fex , enplanwork p
+                where p.elementrefcode = so.elementcode
+                and fex.code = p.finexecutorcode
+                and p.kindcode = 4
+                limit 1   ) as executor_fact
+        ,
+     /*IS_RED*/
+    /*case when so.statusrefcode in (2,4)
+            or so.contractstatusrefcode = 11 --SUPP-34177 - проведенным считаются договора также со енерджинетовским статусом "закритий"
+             then 0 else  -- SUPP-33046 если провед в фин кол то не просроч
+       case when so.contragenttyperefcode <> 2 then
+         case when
+            ( table_isjobsbytime.limit_date_by_pay < current_date
+              and table_isjobsbytime.limit_date_by_pay >= so.executeworkdate
+              and table_isjobsbytime.isjobsbytime =1)
+              and datepay is not null
+            or
+            ( so.executeworkdate < current_date
+              and table_isjobsbytime.limit_date_by_pay < so.executeworkdate
+              and table_isjobsbytime.isjobsbytime =1
+              and datepay is not null )
+            or (
+              table_isjobsbytime.limit_date_by_pay < current_date
+              and table_isjobsbytime.isjobsbytime =0
+              and datepay is not null
+            )
+            then
+              case when coalesce(( select count(enact.code) from enact , enplanwork p , enact2enplanwork a2p
+                                 where enact.elementcode = so.elementcode
+                                   and enact.elementcode = p.elementrefcode
+                                   and p.kindcode = 3
+                                   and ( select p2af.planrefcode from enplanwork2actfailure p2af where p2af.planrefcode = p.code ) is null
+                                   and enact.code = a2p.actrefcode
+                              ),0) > 0
+              then 0 else  -- кол-во дне просрочки от оплаты(красный цвет )
+                       case when table_isjobsbytime.isjobsbytime = 1 and limit_date_by_pay < so.executeworkdate then
+                         current_date -  so.executeworkdate
+                       else
+                         current_date - limit_date_by_pay
+                       end
+             end
+            else 0 end
+         else
+           case when
+            coalesce( limit_number_day + so.executeworkdate,current_date) < current_date
+            then
+              case when coalesce(( select count(enact.code) from enact , enplanwork p , enact2enplanwork a2p
+                                 where enact.elementcode = so.elementcode
+                                   and enact.elementcode = p.elementrefcode
+                                   and p.kindcode = 3
+                                   and ( select p2af.planrefcode from enplanwork2actfailure p2af where p2af.planrefcode = p.code ) is null
+                                   and enact.code = a2p.actrefcode
+                              ),0) >  0
+              then 0 else -- кол-во дней просрочки от намеченой даты выполнения для юр бюджет
+                        ( current_date - (limit_number_day + so.executeworkdate)
+                        )
+             end
+            else 0 end
+            END
+         end -- SUPP-33046 если провед в фин кол то не просроч
+        as is_red */
+        (get_number_day_delay_services_redterm(so.code)) as is_red  /* !!!!!!! SUPP-72483 что бы считались так как все договора */
+              , case when
+                coalesce(limit_number_day + so.executeworkdate,current_date) < current_date
+                then
+                  case when coalesce(( select count(enact.code) from enact , enplanwork p , enact2enplanwork a2p
+                                     where enact.elementcode = so.elementcode
+                                       and enact.elementcode = p.elementrefcode
+                                       and p.kindcode = 3
+                                       and ( select p2af.planrefcode from enplanwork2actfailure p2af where p2af.planrefcode = p.code ) is null
+                                       and enact.code = a2p.actrefcode
+                                  ),0) > 0
+                  then 0 else -- кол-во дней просрочки от намеченой даты выполнения для
+                            current_date - (limit_number_day + so.executeworkdate)
+                 end
+                else 0 end as is_yellow
+          , to_char(so.executeworkdate,'dd.mm.yyyy') as executeworkdate  -- согласовання дата вып работ
+          , (select to_char(min(dategen),'dd.mm.yyyy') from enpayment2so
+                where enpayment2so.servicesobjectrefcode = so.code) as dateinpay -- дата надходження коштыв
+            -- предельни дата выполнения
+         /*,  to_char(case when so.contragenttyperefcode <> 2 then
+               case when coalesce(so.regionaltype,0) = 2
+                then 9 + (select min(dategen) from enpayment2so
+                where enpayment2so.servicesobjectrefcode = so.code)
+                else 5 +  (select min(dategen) from enpayment2so
+                where enpayment2so.servicesobjectrefcode = so.code)
+                end
+            else
+             case when coalesce(so.regionaltype,0) = 2
+                then 9 + so.executeworkdate
+                else 5 + so.executeworkdate
+                end
+            end ,'dd.mm.yyyy') as limit_date*/
+            ,
+           /*сума оплати */
+          coalesce((select sum(p2s.sumtotal) from enpayment2so p2s where p2s.servicesobjectrefcode = so.code ),0) as paysumtotalbycotract
+          , so.isnopay
+        from enservicesobject so left join enwarrant war on (war.code = so.warrantrefcode)
+                                 left join enservicesobject2prov s2p on (so.code = s2p.servicesobjectrefcode)
+                                 left join (select a.numbergen , a.elementcode , a.dategen from enact a ) as actdata
+                                      on (actdata.elementcode = so.elementcode
+                                      and actdata.dategen = ( select max(act.dategen) from enact act where act.elementcode = so.elementcode ) ) ,
+             enservicescontractstts sc,
+             endepartment dep,
+             enservicescontracttype ct,
+             enservicescontragenttp ctype,
+             enservicesobjectstatus sobjs,
+      (select so.code as socode , so.contractnumberservices
+    , (select coalesce(p2c.isjobsbytime,0)
+         from enplanwork pw , enplanwork2classfctntp p2c
+        where pw.elementrefcode = so.elementcode
+        and pw.kindcode = 5
+        and pw.code = p2c.planrefcode
+        order by coalesce(p2c.isjobsbytime,0) desc
+        limit 1  ) as isjobsbytime
+        , (select min(dategen) from enpayment2so
+                    where enpayment2so.servicesobjectrefcode = so.code) as datepay
+        , coalesce(
+                  case when coalesce(( select count(q.code) from tkclassificationtype q , enplanwork2classfctntp p2c , enplanwork p
+                          where q.replacecounterkindcode =2
+                          and q.code = p2c.classificationtyperfcd
+                          and p2c.planrefcode = p.code
+                          and p.kindcode = 5
+                          and p.elementrefcode = so.elementcode
+                       ),0) > 0 then 14 + (select min(dategen) from enpayment2so
+                            where enpayment2so.servicesobjectrefcode = so.code)
+                  else
+                     (case coalesce(so.regionaltype,0) when 2
+                     then 9 + (select min(dategen) from enpayment2so
+                            where enpayment2so.servicesobjectrefcode = so.code)
+                     else 5 + (select min(dategen) from enpayment2so
+                            where enpayment2so.servicesobjectrefcode = so.code)
+                     end)
+                  end
+            ,so.executeworkdate) as limit_date_by_pay
+         /* граничное количество дней выполнения работы
+           по умолчанию 5 дней город, 9 ней село , если это параметризация то 14 дней */
+         ,  ( case when coalesce(( select count(q.code) from tkclassificationtype q , enplanwork2classfctntp p2c , enplanwork p
+                          where q.replacecounterkindcode =2
+                          and q.code = p2c.classificationtyperfcd
+                          and p2c.planrefcode = p.code
+                          and p.kindcode = 5
+                          and p.elementrefcode = so.elementcode
+                       ),0) > 0 then 14
+                  else
+                   case when coalesce(so.regionaltype,0) = 2 then 9 else 5 end
+             end
+            ) as limit_number_day
+     from enservicesobject so
+     ) as table_isjobsbytime
+        where so.contractstatusrefcode =  sc.code
+          and dep.code = so.departmentcode
+          and ct.code = so.contracttyperefcode
+          and ctype.code = so.contragenttyperefcode
+          and sobjs.code = so.statusrefcode
+          and so.code = table_isjobsbytime.socode
+          and so.contractdateservices between to_date($P{datestart},'dd.MM.yyyy') and to_date($P{datefinal},'dd.MM.yyyy')
+          and ( $P{renCode}::integer <> 0 and so.departmentcode = $P{renCode}::integer or  $P{renCode}::integer = 0 )
+          /* не показываем проведенные договора  statusrefcode in  (2,4)
+            SUPP-34177 - проведенным считаются договора также со енерджинетовским статусом "закритий" contractstatusrefcode = 11
+            Если по договору есть проводки то фильтруем по дате проводки
+            Если проводок нет то дату принимаем дату договора
+            */
+          and ( case when (so.statusrefcode in  (2,4 )  or  so.contractstatusrefcode = 11)
+               and
+                (coalesce(s2p.dateposting, coalesce(actdata.dategen,so.contractdateservices) ) between to_date($P{datestart},'dd.MM.yyyy') and to_date($P{datefinal},'dd.MM.yyyy') )
+                then 1 else 0 end
+              ) = 0  /*0- непроведено 1-проведено*/
+          -- and so.code = 1017010030
+          and so.contracttyperefcode in (1,2) -- что б не брались приэднання всякие и продажи .
+          and so.contractstatusrefcode not in (2,10,8) -- не берем договора которые в статусе "отказ от услуги" , отмененные и скасованые
+        -- только лиценнз работы
+         and so.elementcode in (
+                                 select p.elementrefcode from enplanwork p , enplanwork2classfctntp pc, tkclassificationtype cl , enelement el
+                                 where p.code = pc.planrefcode
+                                 and pc.classificationtyperfcd = cl.code
+                                 and cl.isnotlicensedactivity =0
+                                 and p.elementrefcode = el.code
+                                 and el.typerefcode = 23
+                                 )
+                 /*фильтр по калькуляциям в договоре */
+        and case when $P{tkclassificationtypecodes} <> '' then  so.code in
+           (select distinct so.code from tkclassificationtype tcl  , enplanwork2classfctntp p2clt , enplanwork p           , enservicesobject so
+          where tcl.kod like replace($P{tkclassificationtypecodes},'*','%')
+               and p2clt.classificationtyperfcd = tcl.code
+               and p2clt.planrefcode = p.code
+               and p.elementrefcode = so.elementcode
+               and p.kindcode = 5
+         ) else 1 = 1 end
+         GROUP BY so.contractnumberservices ,
+               so.contractdateservices,
+               so.name ,
+               so.contragentname,
+               so.contragentaddress,
+               dep.name,
+               dep.code,
+               sobjs.name ,
+               ct.name,
+               ctype.name ,
+               so.elementcode,
+               so.contragenttyperefcode ,
+               so.regionaltype,
+               so.code ,
+               table_isjobsbytime.datepay ,
+               table_isjobsbytime.isjobsbytime ,
+               table_isjobsbytime.limit_date_by_pay ,
+               table_isjobsbytime.limit_number_day ,
+               so.isnopay
+         ) as qqq
+ ) as www
+ GROUP BY depname , depcode]]>
+	</queryString>
+	<field name="cur_mm_year" class="java.lang.String"/>
+	<field name="fullPeriod" class="java.lang.String"/>
+	<field name="depname" class="java.lang.String"/>
+	<field name="neprovedeniy" class="java.lang.Integer"/>
+	<field name="prosrocheniy" class="java.lang.Integer"/>
+	<field name="nevikoplnobudgfullperiod_platn" class="java.lang.Integer"/>
+	<field name="nevikoplbudgfullperiod_platn" class="java.lang.Integer"/>
+	<field name="neviknotoplnobudgfullperiod_platn" class="java.lang.Integer"/>
+	<field name="neviknotoplbudgfullperiod_platn" class="java.lang.Integer"/>
+	<field name="vikoplnobudgfullperiod_platn" class="java.lang.Integer"/>
+	<field name="vikoplbudgfullperiod_platn" class="java.lang.Integer"/>
+	<field name="viknotoplnobudgfullperiod_platn" class="java.lang.Integer"/>
+	<field name="viknotoplbudgfullperiod_platn" class="java.lang.Integer"/>
+	<field name="count_contract_expired_counters" class="java.lang.Integer"/>
+	<field name="string_codes_contract_expired_counters" class="java.lang.String"/>
+	<field name="repPeriod" class="java.lang.String"/>
+	<field name="dogovorov_vsego_period" class="java.math.BigDecimal"/>
+	<field name="dogovorov_vsego_repperiod" class="java.math.BigDecimal"/>
+	<field name="dogovorov_vsego_provedeno_period" class="java.math.BigDecimal"/>
+	<field name="dogovorov_vsego_provedeno_repperiod" class="java.math.BigDecimal"/>
+	<field name="actov_vsego_provedeno_period" class="java.math.BigDecimal"/>
+	<field name="actov_vsego_provedeno_repperiod" class="java.math.BigDecimal"/>
+	<field name="nevikoplnobudgfullperiod_notplatn" class="java.lang.Integer"/>
+	<field name="nevikoplbudgfullperiod_notplatn" class="java.lang.Integer"/>
+	<field name="neviknotoplnobudgfullperiod_notplatn" class="java.lang.Integer"/>
+	<field name="neviknotoplbudgfullperiod_notplatn" class="java.lang.Integer"/>
+	<field name="vikoplnobudgfullperiod_notplatn" class="java.lang.Integer"/>
+	<field name="vikoplbudgfullperiod_notplatn" class="java.lang.Integer"/>
+	<field name="viknotoplnobudgfullperiod_notplatn" class="java.lang.Integer"/>
+	<field name="viknotoplbudgfullperiod_notplatn" class="java.lang.Integer"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="50">
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="150" y="0" width="1270" height="50"/>
+				<textElement markup="none">
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Звіт по послугам на сторону з " + $P{datestart} + " по " + $P{datefinal}
++ "\n Підрозділ " + $P{renName}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="92" splitType="Stretch">
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="150" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Структурний підрозділ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="150" y="0" width="120" height="60"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Укладено Договорів- всього, шт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="580" y="0" width="70" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[В тому числі просрочені Всього, шт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="650" y="0" width="1120" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Статус робіт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="650" y="15" width="560" height="15" backcolor="#A6A6B1"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Не виконані]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="650" y="30" width="280" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Сплачені]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="930" y="30" width="280" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Не сплачені]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="650" y="45" width="140" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Не бюджет]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="790" y="45" width="140" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Бюджет]]></text>
+			</staticText>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="650" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Платні"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1070" y="45" width="140" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Бюджет]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="930" y="45" width="140" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Не бюджет]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1490" y="45" width="140" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Не бюджет]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1350" y="45" width="140" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Бюджет]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1210" y="15" width="560" height="15" backcolor="#A6A6B1"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Виконані]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1630" y="45" width="140" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Бюджет]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1210" y="30" width="280" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Сплачені]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1210" y="45" width="140" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Не бюджет]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1490" y="30" width="280" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Не сплачені]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1770" y="0" width="70" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Договори просторочені  з "Встановлення лічильників"]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1840" y="0" width="210" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[в т.ч.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1840" y="15" width="70" height="77"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[ без лічильників  ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1910" y="15" width="70" height="77"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[лічильник на складі]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1980" y="15" width="70" height="77"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[лічильник  в РЕЗ]]></text>
+			</staticText>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="150" y="60" width="60" height="32"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fullPeriod}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="210" y="60" width="60" height="32"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{repPeriod}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="270" y="0" width="240" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Проведено по ФК]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="270" y="15" width="120" height="45"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Договорів, шт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="390" y="15" width="120" height="45"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Видаткових актів, шт]]></text>
+			</staticText>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="270" y="60" width="60" height="32"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fullPeriod}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="330" y="60" width="60" height="32"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{repPeriod}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="450" y="60" width="60" height="32"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{repPeriod}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="390" y="60" width="60" height="32"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fullPeriod}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="510" y="0" width="70" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Не проведені в ФК Всього, шт]]></text>
+			</staticText>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="720" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Безоплатні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="650" y="80" width="1120" height="12"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font size="8" isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fullPeriod}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="860" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Безоплатні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="790" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Платні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="1000" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Безоплатні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="930" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Платні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="1070" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Платні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="1140" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Безоплатні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="1210" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Платні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="1280" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Безоплатні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="1420" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Безоплатні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="1350" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Платні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="1560" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Безоплатні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="1490" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Платні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="1630" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Платні"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="1700" y="60" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font isBold="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Безоплатні"]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="150" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{depname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="510" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{neprovedeniy}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="580" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{prosrocheniy}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="650" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nevikoplnobudgfullperiod_platn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="790" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nevikoplbudgfullperiod_platn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="930" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{neviknotoplnobudgfullperiod_platn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1070" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{neviknotoplbudgfullperiod_platn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1350" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{vikoplbudgfullperiod_platn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1210" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{vikoplnobudgfullperiod_platn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1490" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{viknotoplnobudgfullperiod_platn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1630" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{viknotoplbudgfullperiod_platn}]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="false">
+				<reportElement x="1840" y="0" width="210" height="20" isPrintWhenDetailOverflows="true">
+					<printWhenExpression><![CDATA[$F{count_contract_expired_counters} > 0]]></printWhenExpression>
+				</reportElement>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<dataSourceExpression><![CDATA[((com.ksoe.energynet.reports.common.netScriptlet)
+    $P{REPORT_SCRIPTLET}).getExpiredServicesCounters(
+$F{string_codes_contract_expired_counters}
+)]]></dataSourceExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/Services/servicesRegistryByPodrSumInfoCounters.jasper")]]></subreportExpression>
+			</subreport>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1770" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{count_contract_expired_counters}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1840" y="0" width="70" height="20" isPrintWhenDetailOverflows="true">
+					<printWhenExpression><![CDATA[$F{count_contract_expired_counters} == 0]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1980" y="0" width="70" height="20" isPrintWhenDetailOverflows="true">
+					<printWhenExpression><![CDATA[$F{count_contract_expired_counters} == 0]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1910" y="0" width="70" height="20" isPrintWhenDetailOverflows="true">
+					<printWhenExpression><![CDATA[$F{count_contract_expired_counters} == 0]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="150" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{dogovorov_vsego_period}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="210" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{dogovorov_vsego_repperiod}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="270" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{dogovorov_vsego_provedeno_period}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="330" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{dogovorov_vsego_provedeno_repperiod}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="390" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{actov_vsego_provedeno_period}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="450" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{actov_vsego_provedeno_repperiod}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="720" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nevikoplnobudgfullperiod_notplatn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="860" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nevikoplbudgfullperiod_notplatn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1000" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{neviknotoplnobudgfullperiod_notplatn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1140" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{neviknotoplbudgfullperiod_notplatn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1280" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{vikoplnobudgfullperiod_notplatn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1420" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{vikoplbudgfullperiod_notplatn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1560" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{viknotoplnobudgfullperiod_notplatn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1700" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{viknotoplbudgfullperiod_notplatn}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

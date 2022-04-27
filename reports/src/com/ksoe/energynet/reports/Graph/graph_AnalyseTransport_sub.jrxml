@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="graph_AnalyseTransport_sub" printOrder="Horizontal" pageWidth="842" pageHeight="585" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="842" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="transportClassification" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[5]]></defaultValueExpression>
+	</parameter>
+	<parameter name="transportdepartment" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new String("10000")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="monthGen" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("03")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="yearGen" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("2013")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="cnt" class="java.lang.Integer"/>
+	<parameter name="off_cnt" class="java.lang.Integer"/>
+	<queryString>
+		<![CDATA[select b_q.transportname,  b_q.hours_in_expl as hours_load, b_q.classificationname from
+(
+select tr.code::varchar, tr.name || '('  || tr.gosnumber || ')' as transportname,
+
+coalesce((case when coalesce(sum(ts.speedometerfinal-ts.speedometerstart),0) = 0
+     then sum((select sum(entravelsheetitem.sumdistances)
+   from entravelsheetitem
+  where entravelsheetitem.travelsheetrefcode = ts.code
+    and entravelsheetitem.kindrefcode = 2))
+     else sum(ts.speedometerfinal-ts.speedometerstart) end),0)
+     as km,
+
+COALESCE(sum((select sum(entravelsheetitem.summachinehours)
+   from entravelsheetitem
+  where entravelsheetitem.travelsheetrefcode = ts.code
+    and entravelsheetitem.kindrefcode = 2)),0) as mh,
+
+COALESCE(sum((select    sum(pwi.timegen) / count(hi.code)
+from  entravelsheetitem tsi, enplanworkitem pwi, enhumenitem hi
+where tsi.planrefcode = pwi.planrefcode
+and tsi.kindrefcode = 2
+and tsi.travelsheetrefcode = ts.code
+and pwi.code = hi.planitemrefcode
+and pwi.timegen > 0
+and pwi.countgen > 0)),0) as mh_brigade,
+
+coalesce(sum(EXTRACT(EPOCH FROM ts.timefinal-ts.timestart)/3600::int) ,0) as hours_in_expl,
+
+    (select tktransportclassifictn.name
+   from tktransportclassifictn
+  where tktransportclassifictn.code =
+  (
+  select tktransport.transportclassifictncd
+    from tktransport
+   where tktransport.code = tr.transportcode
+   )
+) as classificationname,
+
+(select tktransportclassifictn.koef
+   from tktransportclassifictn
+  where tktransportclassifictn.code =
+  (
+  select tktransport.transportclassifictncd
+    from tktransport
+   where tktransport.code = tr.transportcode
+   )
+) as koef,
+
+(select tktransportclassifictn.code
+   from tktransportclassifictn
+  where tktransportclassifictn.code =
+  (
+  select tktransport.transportclassifictncd
+    from tktransport
+   where tktransport.code = tr.transportcode
+   )
+) as classification,
+
+(select d.name
+   from entransportdepartment d
+  where d.code = tr.transportdepartmntrfcd
+) as depname,
+
+(select ts.name
+from tktransportstatus ts
+where ts.code in(select tktransportrealhistory.transportstatuscode from tktransportrealhistory
+where tktransportrealhistory.transportrealrefcode = tr.code
+and tktransportrealhistory.datestart = (select max(datestart) from tktransportrealhistory
+ where tktransportrealhistory.transportrealrefcode = tr.code
+ and (tktransportrealhistory.datestart <= last_day(to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy') )
+ or tktransportrealhistory.datefinal = NULL)
+
+ ))
+) as status
+
+from tktransport tt, tktransportreal tr left join
+     entravelsheet ts on
+     (tr.code = ts.transportrealcode
+     and ts.datestart between to_date('01.' || $P{monthGen}|| '.' || $P{yearGen},'dd.MM.yyyy')
+     and last_day(to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy')))
+where (tr.transportdepartmntrfcd = $P{transportdepartment}  or $P{transportdepartment} = 0 )
+and tr.transportcode = tt.code
+and (tt.transportclassifictncd  = $P{transportClassification} or  $P{transportClassification}  = 0)
+and   (select ts.code
+from tktransportstatus ts
+where ts.code in (select tktransportrealhistory.transportstatuscode from tktransportrealhistory
+where tktransportrealhistory.transportrealrefcode = tr.code
+and tktransportrealhistory.datestart = (select max(datestart) from tktransportrealhistory
+ where tktransportrealhistory.transportrealrefcode = tr.code
+ and (tktransportrealhistory.datestart <= last_day(to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy') )
+ or tktransportrealhistory.datefinal = NULL)))) = 75000000
+
+group by tr.code, tr.name, tr.gosnumber,
+(select tktransportclassifictn.name
+   from tktransportclassifictn
+  where tktransportclassifictn.code =
+  (
+  select tktransport.transportclassifictncd
+    from tktransport
+   where tktransport.code = tr.transportcode
+   )
+)
+order by coalesce(sum(EXTRACT(EPOCH FROM ts.timefinal-ts.timestart)/3600::int) ,0) desc
+limit $P{off_cnt}
+offset $P{off_cnt}*$P{cnt}
+
+) as b_q
+
+
+union all
+
+select
+'----------------------------------------------------------------------------------------------------' ,
+MAX(hours_in_expl) as hours_load,
+''
+ from
+
+(select tr.code::varchar, tr.name || '('  || tr.gosnumber || ')' as transportname,
+
+coalesce((case when coalesce(sum(ts.speedometerfinal-ts.speedometerstart),0) = 0
+     then sum((select sum(entravelsheetitem.sumdistances)
+   from entravelsheetitem
+  where entravelsheetitem.travelsheetrefcode = ts.code
+    and entravelsheetitem.kindrefcode = 2))
+     else sum(ts.speedometerfinal-ts.speedometerstart) end),0)
+     as km,
+
+COALESCE(sum((select sum(entravelsheetitem.summachinehours)
+   from entravelsheetitem
+  where entravelsheetitem.travelsheetrefcode = ts.code
+    and entravelsheetitem.kindrefcode = 2)),0) as mh,
+
+COALESCE(sum((select    sum(pwi.timegen) / count(hi.code)
+from  entravelsheetitem tsi, enplanworkitem pwi, enhumenitem hi
+where tsi.planrefcode = pwi.planrefcode
+and tsi.kindrefcode = 2
+and tsi.travelsheetrefcode = ts.code
+and pwi.code = hi.planitemrefcode
+and pwi.timegen > 0
+and pwi.countgen > 0)),0) as mh_brigade,
+
+coalesce(sum(EXTRACT(EPOCH FROM ts.timefinal-ts.timestart)/3600::int) ,0) as hours_in_expl,
+
+    (select tktransportclassifictn.name
+   from tktransportclassifictn
+  where tktransportclassifictn.code =
+  (
+  select tktransport.transportclassifictncd
+    from tktransport
+   where tktransport.code = tr.transportcode
+   )
+) as classificationname,
+
+(select tktransportclassifictn.koef
+   from tktransportclassifictn
+  where tktransportclassifictn.code =
+  (
+  select tktransport.transportclassifictncd
+    from tktransport
+   where tktransport.code = tr.transportcode
+   )
+) as koef,
+
+(select tktransportclassifictn.code
+   from tktransportclassifictn
+  where tktransportclassifictn.code =
+  (
+  select tktransport.transportclassifictncd
+    from tktransport
+   where tktransport.code = tr.transportcode
+   )
+) as classification,
+
+(select d.name
+   from entransportdepartment d
+  where d.code = tr.transportdepartmntrfcd
+) as depname,
+
+(select ts.name
+from tktransportstatus ts
+where ts.code in(select tktransportrealhistory.transportstatuscode from tktransportrealhistory
+where tktransportrealhistory.transportrealrefcode = tr.code
+and tktransportrealhistory.datestart = (select max(datestart) from tktransportrealhistory
+ where tktransportrealhistory.transportrealrefcode = tr.code
+ and (tktransportrealhistory.datestart <= last_day(to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy') )
+ or tktransportrealhistory.datefinal = NULL)
+
+ ))
+) as status
+
+from tktransport tt, tktransportreal tr left join
+     entravelsheet ts on
+     (tr.code = ts.transportrealcode
+     and ts.datestart between to_date('01.' || $P{monthGen}|| '.' || $P{yearGen},'dd.MM.yyyy')
+     and last_day(to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy')))
+where (tr.transportdepartmntrfcd = $P{transportdepartment}  or $P{transportdepartment} = 0 )
+and tr.transportcode = tt.code
+and (tt.transportclassifictncd  = $P{transportClassification} or  $P{transportClassification}  = 0)
+and   (select ts.code
+from tktransportstatus ts
+where ts.code in (select tktransportrealhistory.transportstatuscode from tktransportrealhistory
+where tktransportrealhistory.transportrealrefcode = tr.code
+and tktransportrealhistory.datestart = (select max(datestart) from tktransportrealhistory
+ where tktransportrealhistory.transportrealrefcode = tr.code
+ and (tktransportrealhistory.datestart <= last_day(to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy') )
+ or tktransportrealhistory.datefinal = NULL)))) = 75000000
+
+group by tr.code, tr.name, tr.gosnumber,
+(select tktransportclassifictn.name
+   from tktransportclassifictn
+  where tktransportclassifictn.code =
+  (
+  select tktransport.transportclassifictncd
+    from tktransport
+   where tktransport.code = tr.transportcode
+   )
+)) as base_query]]>
+	</queryString>
+	<field name="transportname" class="java.lang.String"/>
+	<field name="hours_load" class="java.math.BigDecimal"/>
+	<field name="classificationname" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="585" splitType="Stretch">
+			<barChart>
+				<chart isShowLegend="true" evaluationTime="Report" renderType="draw" theme="default">
+					<reportElement positionType="Float" stretchType="RelativeToBandHeight" isPrintRepeatedValues="false" mode="Transparent" x="0" y="0" width="832" height="585" isPrintWhenDetailOverflows="true"/>
+					<chartTitle position="Top">
+						<font fontName="SansSerif" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</chartTitle>
+					<chartSubtitle>
+						<font size="8" pdfFontName="Courier" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</chartSubtitle>
+					<chartLegend position="Bottom">
+						<font size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</chartLegend>
+				</chart>
+				<categoryDataset>
+					<categorySeries>
+						<seriesExpression><![CDATA[" Кількість годин"]]></seriesExpression>
+						<categoryExpression><![CDATA[$F{transportname}]]></categoryExpression>
+						<valueExpression><![CDATA[$F{hours_load}]]></valueExpression>
+					</categorySeries>
+				</categoryDataset>
+				<barPlot isShowLabels="true" isShowTickLabels="true" isShowTickMarks="true">
+					<plot orientation="Horizontal" labelRotation="0.0">
+						<seriesColor seriesOrder="0" color="#FE4715"/>
+						<seriesColor seriesOrder="1" color="#FF3333"/>
+						<seriesColor seriesOrder="2" color="#3300FF"/>
+						<seriesColor seriesOrder="3" color="#660066"/>
+					</plot>
+					<itemLabel>
+						<font size="6"/>
+					</itemLabel>
+					<categoryAxisFormat labelRotation="0.0">
+						<axisFormat verticalTickLabels="false">
+							<labelFont>
+								<font size="8"/>
+							</labelFont>
+							<tickLabelFont>
+								<font size="8"/>
+							</tickLabelFont>
+						</axisFormat>
+					</categoryAxisFormat>
+					<valueAxisLabelExpression><![CDATA[]]></valueAxisLabelExpression>
+					<valueAxisFormat>
+						<axisFormat verticalTickLabels="false">
+							<tickLabelFont>
+								<font size="10"/>
+							</tickLabelFont>
+						</axisFormat>
+					</valueAxisFormat>
+				</barPlot>
+			</barChart>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band/>
+	</summary>
+</jasperReport>

@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ax_drivers_percent_load" pageWidth="1085" pageHeight="555" orientation="Landscape" whenNoDataType="NoDataSection" columnWidth="1085" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="yearGen" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="monthGen" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="worked_time_in_month" class="java.math.BigDecimal">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="fin_department" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="transportdepartmentname" class="java.lang.String"/>
+	<parameter name="netConnection" class="java.lang.Object"/>
+	<queryString>
+		<![CDATA[select
+   tabn as tabnumber ,
+  -- podr_id,
+  -- podr_nazv	,
+   fio,
+   post_fin	,
+  -- main_podr_id	,
+  -- podr_nazv_main	,
+  -- enddate ,
+   sum(norma_vrem_hours) as norma_vrem_hours,
+   sum(fact_workdays) as fact_workdays,
+   sum(sumhoursotpusk) as sumhoursotpusk
+  --   , tradecategoryid
+  --  , startdate
+  --  , positionid
+, AZT_FIXEDSALARY
+  from
+     (
+     select
+      emplid as tabn
+     ,hrmorganizationid as podr_id
+     ,description +  case when lower(rate) like '%рза%' then ' РЗйА'
+                          when lower(rate) like '%із%' then ' Ізоляція'
+                          when lower(rate) like '%дту%' then ' СДТУ'
+                          else '' end as podr_nazv
+     ,name as fio
+     ,title as post_fin
+     , positionid
+     , tradecategoryid
+      ,parentorganizationid as main_podr_id
+     ,parentdescription as podr_nazv_main
+     ,azt_paycalendarid
+     ,startdate
+     ,enddate
+     /*фонд рабочего времени за период ,без привязки к табелям по графику рабочего времени */
+      , norma_vrem_hours = coalesce((SELECT round(sum(WORKHOURS),2) FROM VSE_FN_WORKING_TIME_PLAN
+                         (
+                         'KSOE'
+                         ,sel2.startdate
+                         ,sel2.enddate
+                         ,sel2.azt_paycalendarid
+                         ,'ENET_FACT'
+                         ) ),0)
+     /*рабочие дни за период по работнику ,с привязкой к табелям т.к формируем для факт загрузки    */
+      , fact_workdays = coalesce((  SELECT sum(ROUND(TOTALDAYS,2))  FROM dbo.[ENERGYNET_FN_WORKING_TIME]
+                                      ('KSOE'
+                                     ,sel2.startdate
+                                     ,sel2.enddate
+                                     ,''
+                                     ,0
+                                     ,sel2.emplid
+                                     ,''
+                                     ,''
+                                     ,'ФАКТ;Відряджен;Пересменка;Факт' /*коды времен выхода*/
+                                     ,''
+                                      ) /*where lower(RPAYCALENDARTIMECODE) like '%факт%'*/ ),0)
+     /* отпуск по сотруднику с привязкой к табелю - т.к формируем для факт загрузки
+        !!!!!! добавить айдишники всяких невыходов   */
+     , sumhoursotpusk =
+      coalesce((  SELECT sum(ROUND(TOTALHOURS,2))  FROM dbo.[ENERGYNET_FN_WORKING_TIME]
+                                      ('KSOE'
+                                     ,sel2.startdate
+                                     ,sel2.enddate
+                                     ,''
+                                     ,0
+                                     ,sel2.emplid
+                                     ,''
+                                     ,''
+                                     ,'ВідпСпорт;Медкомісія;ВідБ/ОплОб;ВідгВихідн;ВідпБ/Опл;ВідпБ/оплА;ВідпБОгод;ВідпВагПол;ВідпДКтаК;ВідпДог6р;ВідпДогДит;ВідпНавчБО;ВідпНавчОп;ВідпОсновн;ВідпСоцДПД;ВідпСоціал;ВідпУБД;ВідпЧАЕС;ДО(Вибори);ДО(военк);Донор;ЗниклБезв;Лікарняний;Медкомісія;МедСпрБ/Оп;МобВійськС;НаркПсихол;НеявНезПри;ПідСлідств;Прогул;Суд(ОБВИН)'
+                                     ,''
+                                      ) /*where lower(RPAYCALENDARTIMECODE) like '%відп%'*/ ),0)
+, AZT_FIXEDSALARY
+     from (
+      SELECT
+          NAME
+         ,EMPLID
+         ,GENDER
+         ,BIRTHDATE
+         ,PASSPORT_SERIES
+         ,PASSPORT_NUMBER
+         ,PASSPORT_DATE
+         ,PASSPORT_ISSUEDBY
+         ,PAYEMPLOYMENTDATE_RU
+         ,PAYRESIGNEDDATE_RU
+         ,PAYINN_RU
+         ,ADDRESS
+         ,AZT_PAYCALENDARID
+         ,GROUPDISABILITY
+         ,POSITIONID
+         ,TITLE
+         ,AZT_FIXEDSALARY
+         ,RPAYTITLEPOSTING
+         ,TRADECATEGORYID
+         ,PERSONNELCATEGORYID
+         ,PERSONNELCATEGORY
+         ,RATE
+         ,HRMORGANIZATIONID
+         ,DESCRIPTION
+         ,PARENTORGANIZATIONID
+         ,PARENTDESCRIPTION
+         ,OPERATIONTYPE
+         ,case when STARTDATE < Cast('01.'+$P{monthGen}+'.'+ $P{yearGen}  as datetime) then Cast('01.'+$P{monthGen}+'.'+ $P{yearGen}  as datetime) else STARTDATE end as STARTDATE
+         ,case when ENDDATE = '01.01.1900' or ENDDATE > DATEADD(s,-1,DATEADD(mm, DATEDIFF(m,0,Cast('01.'+$P{monthGen}+'.'+ $P{yearGen}  as date))+1,0)) then  DATEADD(s,-1,DATEADD(mm, DATEDIFF(m,0,Cast('01.'+$P{monthGen}+'.'+ $P{yearGen}  as date))+1,0)) else ENDDATE END as  ENDDATE
+         ,TRANSFERWITHOUTTERMCHANGES
+      FROM dbo.ENERGYNET_FN_EMPL_HISTORY
+                                     (
+                      /*@DATAAREAID*/ 'KSOE'
+                     ,/*@FROMDATE*/ Cast('01.'+$P{monthGen}+'.'+ $P{yearGen}  as datetime)
+                     ,/*@TODATE*/  DATEADD(s,-1,DATEADD(mm, DATEDIFF(m,0,Cast('01.'+$P{monthGen}+'.'+ $P{yearGen}  as date))+1,0))
+                     ,/*@ORGANIZATIONLIST*/ $P{fin_department}
+                     ,/*@CHILDORG*/ 1
+                     ,/*@EMPLOYMENTLIST*/ ''
+                     ,/*@EMPLOYMENTNAMELIST*/ ''
+                     ,/*@STAFFPOSITIONLIST*/ '%Трактор%;%Водій%'
+                     ,/*@RATELIST*/ ''
+                     ,/*@ONLYLAST*/ 0
+                                     )
+           where ( PAYRESIGNEDDATE_RU = '01.01.1900'  or  PAYRESIGNEDDATE_RU > DATEADD(s,-1,DATEADD(mm, DATEDIFF(m,0,Cast('01.'+$P{monthGen}+'.'+ $P{yearGen}  as date))+1,0)) ) -- не уволенные
+
+
+      ) as sel2
+  ) as sel3
+  group by tabn , /*podr_id,*/	/*podr_nazv	,*/ fio,	post_fin/*, positionid*/ /*, tradecategoryid*/	/*,main_podr_id*/	/*,podr_nazv_main*/	/*, enddate*/  /*, startdate*/ , AZT_FIXEDSALARY
+  order by tabn]]>
+	</queryString>
+	<field name="tabnumber" class="java.lang.String"/>
+	<field name="fio" class="java.lang.String"/>
+	<field name="post_fin" class="java.lang.String"/>
+	<field name="norma_vrem_hours" class="java.math.BigDecimal"/>
+	<field name="sumhoursotpusk" class="java.math.BigDecimal"/>
+	<field name="AZT_FIXEDSALARY" class="java.math.BigDecimal"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band splitType="Stretch">
+			<subreport>
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="1080" height="0"/>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="norma_vrem_hours">
+					<subreportParameterExpression><![CDATA[$F{norma_vrem_hours}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="finworker_tabnumber">
+					<subreportParameterExpression><![CDATA[$F{tabnumber}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="AZT_FIXEDSALARY">
+					<subreportParameterExpression><![CDATA[$F{AZT_FIXEDSALARY}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="monthGen">
+					<subreportParameterExpression><![CDATA[$P{monthGen}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="yearGen">
+					<subreportParameterExpression><![CDATA[$P{yearGen}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="sumhoursotpusk">
+					<subreportParameterExpression><![CDATA[$F{sumhoursotpusk}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="worked_time_in_month">
+					<subreportParameterExpression><![CDATA[$P{worked_time_in_month}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="fio">
+					<subreportParameterExpression><![CDATA[$F{fio}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="post_fin">
+					<subreportParameterExpression><![CDATA[$F{post_fin}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[(java.sql.Connection)$P{netConnection}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/transport/forPrem/ax_drivers_percent_load_sub.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+</jasperReport>

@@ -1,0 +1,779 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="agree_standart_connection" pageWidth="595" pageHeight="842" whenNoDataType="AllSectionsNoDetail" columnWidth="539" leftMargin="28" rightMargin="28" topMargin="28" bottomMargin="28">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.1000000000000005"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="209"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<scriptlet name="finScriptlet" class="com.ksoe.energynet.reports.common.FINScriptlet">
+		<scriptletDescription><![CDATA[finScriptlet]]></scriptletDescription>
+	</scriptlet>
+	<parameter name="plancode" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["500458431"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="agreeCode" class="java.lang.Integer"/>
+	<parameter name="printTechTermsDate" class="java.lang.Boolean">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select
+
+case when entechconditionsservcs.contractdate > '02.06.2015' then '300506' else '320627' end as mfobanka,
+
+entechconditionsservcs.code,
+entechconditionsservcs.contractnumber,
+
+case when entechconditionsservcs.contractdatefinal is not null
+  then to_char(entechconditionsservcs.contractdatefinal,'dd.mm.yyyy')
+    else '__________' end as datfinal,
+
+to_char(entechconditionsservcs.contractdate,'dd.mm.yyyy') as contractdate,
+entechconditionsservcs.fincontractnumber,
+entechconditionsservcs.fincontractdate,
+entechconditionsservcs.partnername,
+entechconditionsservcs.partnercode,
+entechconditionsservcs.findoccode,
+entechconditionsservcs.findocid,
+entechconditionsservcs.fincommentgen,
+ecnt.contragentname,
+case when contragentaddress <> '' then trim(replace(ecnt.contragentaddress,chr(10),' ')) else null end as contragentaddress ,
+
+coalesce(trim(replace(ecnt.contragentaddresswork,chr(10),' ')),' ') as contragentaddresswork ,
+case when ecnt.warrantaddress <> '' then trim(replace(ecnt.warrantaddress,chr(10),' ')) else null end as warrantaddress  ,
+case when ecnt.contragentokpo <> '' then 'Ідентифікаційний номер ' || ecnt.contragentokpo else null end as contragentokpo ,
+ecnt.contragentbankaccount,
+ecnt.contragentbankname,
+ecnt.contragentbankmfo,
+/* ecnt.contragentbossname,  */
+case when trim(replace(coalesce(ecnt.contragentbossname,''),chr(10),'')) = '' then  ecnt.contragentname  else trim(replace(ecnt.contragentbossname,chr(10),'')) end as contragentbossname,
+
+case when ecnt.contragentpassport <> '' then  case when bt.code = 6 then 'Паспорт '
+     when bt.code = 5 then 'Свідоцтво про державну реєстрацію '
+     else ' '  end || trim(replace(ecnt.contragentpassport,chr(10),' ')) else null end as contragentpassport ,
+
+case when coalesce(entechconditionsservcs.issea,0) = 1 or
+          coalesce(entechconditionsservcs.basestation,0) = 1 or
+          coalesce(entechconditionsservcs.smallarchfrm,0) = 1 or
+          coalesce(entechconditionsservcs.buildersarea,0) = 1 then 0 else
+ coalesce(entechconditionsservcs.tyservicessumma,0) end as tyservicessumma,
+
+/* SUPP-1221... +++ мощность по договору + существующая мощность */
+/* 25.04.2013 +++ мощность берем с ТУ */
+/* entechconditionsservcs.tyservicespower + coalesce(entechconditionsobjcts.tycurrentpower,0) as tyservicespower, */
+/*coalesce(entechconditionsobjcts.tyservicespower,0) as tyservicespower,*/
+/*SUPP-91137*/
+coalesce(entechconditionsservcs.tyservicespower,0) as tyservicespower,
+/*SUPP-96448*/
+coalesce(entechconditionsobjcts.tyservicespower,0) as entechobtyservicespower,
+
+entechconditionsservcs.commentservicesgen,
+entechconditionsservcs.usergen,
+entechconditionsservcs.dateedit,
+to_char(ecnt.warrantdate,'dd.mm.yyyy') as warrantdate,
+ecnt.warrantnumber,
+case when ecnt.warrantfio <> '' then ecnt.warrantfio else null end as warrantfio ,
+case when ecnt.warrantpassport <> '' then 'Паспорт ' || trim(replace(ecnt.warrantpassport,chr(10),'')) else null end as warrantpassport  ,
+entechconditionsservcs.domain_info,
+entechconditionsservcs.modify_time,
+ecnt.techconobjectscode as techcondobjectsrefcode,
+entechconditionsservcs.elementcode,
+entechconditionsservcs.departmentcode,
+entechconditionsservcs.warrantrefcode,
+entechconditionsservcs.techcondservicessttscd,
+entechconditionsservcs.techcondservicestypecd,
+entechconditionsservcs.contragentformcode,
+ecnt.contragenttypecode,
+ecnt.basistypecode ,
+trim(replace(enwarrant.address,chr(10),'')) as enwarrant_address ,
+enwarrant.warrantfio as enwarrant_warrantfio ,
+enwarrant.warrantposition as enwarrant_warrantposition ,
+enwarrant.numbergen as enwarrant_numbergen ,
+to_char(enwarrant.datestart,'dd.mm.yyyy') as enwarrant_datestart ,
+endepartment.code as depcode ,
+endepartment.name as depname ,
+case
+  when entechconditionsobjcts.numbergen like '%EWF%'
+    then '__________'
+  else
+    entechconditionsobjcts.numbergen
+end as tunumber,
+trim(replace(entechconditionsobjcts.address,chr(10),'')) as tuaddress ,
+entechconditionsobjcts.building as tubuilding ,
+case coalesce($P{printTechTermsDate}, true)
+  when True then to_char(entechconditionsobjcts.dategen,'dd.mm.yyyy')
+  else '__________'
+end as tudate,
+entechconditionsobjcts.dategen,
+entechconditionsservcs.tysummagen  ,
+textgrivna(coalesce(entechconditionsservcs.tysummagen::numeric(15,2),0)) as txt_tysummagen,
+entechconditionsservcs.tysummavat  ,
+textgrivna(coalesce(entechconditionsservcs.tysummavat::numeric(15,2),0)) as txt_tysummavat ,
+textgrivna(coalesce(entechconditionsservcs.tyservicessumma::numeric(15,2),0)) as txt_tyservicessumma ,
+(entechconditionsservcs.tysummagen::numeric(15,2) - trunc(entechconditionsservcs.tysummagen::numeric(15,2) ))::numeric(15,2) * 100   as tysummagenKOP ,
+coalesce(ep.rencity,'') as rencity  ,
+enwarrant.warrantshortfio as enwarrant_warrantshortfio ,
+enwarrant.genitivefio ,
+enwarrant.genitiveposition ,
+   ecnt.contragentname ||
+   case when (trim(replace(coalesce(ecnt.contragentposition,''),chr(10),'')) <> ''
+         and trim(replace(coalesce(ecnt.contragentbossname,''),chr(10),'')) <> '' ) then
+       ' в особі ' || trim(replace(ecnt.contragentposition,chr(10),'')) || ' ' || trim(replace(ecnt.contragentbossname,chr(10),''))
+ else ' ' end  ||
+   case when trim(replace( ecnt.contragentpassport,chr(10),' ')) is not null and bt.code = 6  then  ' , паспорт ' || trim(replace( ecnt.contragentpassport,chr(10),' ')) else ' ' end  ||
+   case when bt.code not in (3,6) then ', що діє на підставі ' || bt.name else ' ' end ||
+   case when bt.code = 3 then ', від імені якого на підставі Довіреності  ' || ecnt.warrantnumber || ' від ' || to_char(ecnt.warrantdate,'dd.mm.yyyy') || ' діє ' || ecnt.warrantfio else ' ' end
+   as contragentname_txt_header        ,
+    coalesce( ecnt.techconditionsitem   , 'НЕВИЗНАЧЕНО' ) as techconditionsitem ,
+    coalesce( entechconditionsservcs.executionterm , 'НЕВИЗНАЧЕНО' ) as executionterm ,
+    coalesce( entechcondresponsibles.responsibleposition || '  ' || entechcondresponsibles.responsiblefio || ' тел. ' || coalesce(entechcondresponsibles.responsiblePhone,' ') , 'НЕВИЗНАЧЕНО' ) as entechcondresponsibles ,
+trim(replace(coalesce(ecnt.contragentposition,''),chr(10),'')) as contragentposition ,
+(entechconditionsservcs.tyservicessumma::numeric(15,2) - trunc(entechconditionsservcs.tyservicessumma::numeric(15,2) ))::numeric(15,2) * 100   as tyservicessummaKOP
+, (entechconditionsservcs.tysummavat::numeric(15,2) - trunc(entechconditionsservcs.tysummavat::numeric(15,2) ))::numeric(15,2) * 100   as tysummagenVatKOP
+
+, tar.powerlevel, tar.powerreliability
+, case when (tar.phasity = 1) then '0,23' else tar.powerpoint end as powerpoint
+
+, coalesce(entechconditionsobjcts.connectionpowerplaces,'не визначено') as connectionpowerplaces
+, coalesce(entechconditionsobjcts.connectionpowerpoint,'не визначено') as connectionpowerpoint
+
+, coalesce(entechconditionsobjcts.connectionpowerplacsnm,'') as connectionpowerplacsnm
+, coalesce(entechconditionsobjcts.connectionpowerpointnm,'') as connectionpowerpointnm
+
+ from entechconditionsservcs left join enwarrant on (enwarrant.code = entechconditionsservcs.warrantrefcode  )
+                             left join entechcondresponsibles on (entechcondresponsibles.code = entechconditionsservcs.techcondresponsblsrfcd)
+
+left join (
+select enconnectionlevel.name as powerlevel,
+       enpowerreliabilityctgr.name /*|| ' - ' || ensettletype.name*/ as powerreliability,
+       enconnectionpowerpoint.name as powerpoint,
+       enconnectiontariffentr.code as tecode,
+       enconnectiontariff.phasityrefcode as phasity
+from enconnectionlevel,
+     enpowerreliabilityctgr,
+     enconnectionpowerpoint,
+     ensettletype,
+     enconnectiontariff,
+     enconnectiontariffentr
+where enconnectionlevel.code = enconnectiontariff.levelrefcode and
+      enpowerreliabilityctgr.code = enconnectiontariff.categoryrefcode and
+      enconnectionpowerpoint.code = enconnectiontariff.powerpointrefcode and
+      ensettletype.code = enpowerreliabilityctgr.settletyperefcode and
+      enconnectiontariff.code = enconnectiontariffentr.tariffrefcode
+) tar on tar.tecode = entechconditionsservcs.tariffentryrefcode
+
+, entechconditionsobjcts left join (endepartment as de
+    inner join
+    (endepartment2epren as deep
+        inner join
+        epren as ep
+        on
+        deep.renrefcode = ep.code)
+    on
+    de.code = deep.departmentrefcode)
+    on
+    entechconditionsobjcts.departmentcode = de.code
+, endepartment  , encontragent ecnt  , enbasistype bt
+
+where entechconditionsservcs.code = $P{agreeCode}
+  and ecnt.techconobjectscode = entechconditionsobjcts.code
+  and entechconditionsobjcts.departmentcode = endepartment.code
+  and ecnt.techcondservicesrefcod = entechconditionsservcs.code
+  and ecnt.basistypecode = bt.code
+
+order by ecnt.code
+limit 1]]>
+	</queryString>
+	<field name="mfobanka" class="java.lang.String"/>
+	<field name="code" class="java.lang.Double"/>
+	<field name="contractnumber" class="java.lang.String"/>
+	<field name="datfinal" class="java.lang.String"/>
+	<field name="contractdate" class="java.lang.String"/>
+	<field name="fincontractnumber" class="java.lang.String"/>
+	<field name="fincontractdate" class="java.sql.Date"/>
+	<field name="partnername" class="java.lang.String"/>
+	<field name="partnercode" class="java.lang.String"/>
+	<field name="findoccode" class="java.lang.String"/>
+	<field name="findocid" class="java.lang.Double"/>
+	<field name="fincommentgen" class="java.lang.String"/>
+	<field name="contragentname" class="java.lang.String"/>
+	<field name="contragentaddress" class="java.lang.String"/>
+	<field name="contragentaddresswork" class="java.lang.String"/>
+	<field name="warrantaddress" class="java.lang.String"/>
+	<field name="contragentokpo" class="java.lang.String"/>
+	<field name="contragentbankaccount" class="java.lang.String"/>
+	<field name="contragentbankname" class="java.lang.String"/>
+	<field name="contragentbankmfo" class="java.lang.String"/>
+	<field name="contragentbossname" class="java.lang.String"/>
+	<field name="contragentpassport" class="java.lang.String"/>
+	<field name="tyservicessumma" class="java.lang.Integer"/>
+	<field name="tyservicespower" class="java.lang.Double"/>
+	<field name="entechobtyservicespower" class="java.lang.Double"/>
+	<field name="commentservicesgen" class="java.lang.String"/>
+	<field name="usergen" class="java.lang.String"/>
+	<field name="dateedit" class="java.sql.Date"/>
+	<field name="warrantdate" class="java.lang.String"/>
+	<field name="warrantnumber" class="java.lang.String"/>
+	<field name="warrantfio" class="java.lang.String"/>
+	<field name="warrantpassport" class="java.lang.String"/>
+	<field name="domain_info" class="java.lang.String"/>
+	<field name="modify_time" class="java.lang.Double"/>
+	<field name="techcondobjectsrefcode" class="java.lang.Double"/>
+	<field name="elementcode" class="java.lang.Double"/>
+	<field name="departmentcode" class="java.lang.Double"/>
+	<field name="warrantrefcode" class="java.lang.Double"/>
+	<field name="techcondservicessttscd" class="java.lang.Double"/>
+	<field name="techcondservicestypecd" class="java.lang.Double"/>
+	<field name="contragentformcode" class="java.lang.Double"/>
+	<field name="contragenttypecode" class="java.lang.Double"/>
+	<field name="basistypecode" class="java.lang.Double"/>
+	<field name="enwarrant_address" class="java.lang.String"/>
+	<field name="enwarrant_warrantfio" class="java.lang.String"/>
+	<field name="enwarrant_warrantposition" class="java.lang.String"/>
+	<field name="enwarrant_numbergen" class="java.lang.String"/>
+	<field name="enwarrant_datestart" class="java.lang.String"/>
+	<field name="depcode" class="java.lang.Double"/>
+	<field name="depname" class="java.lang.String"/>
+	<field name="tunumber" class="java.lang.String"/>
+	<field name="tuaddress" class="java.lang.String"/>
+	<field name="tubuilding" class="java.lang.String"/>
+	<field name="tudate" class="java.lang.String"/>
+	<field name="dategen" class="java.sql.Date"/>
+	<field name="tysummagen" class="java.math.BigDecimal"/>
+	<field name="txt_tysummagen" class="java.lang.String"/>
+	<field name="tysummavat" class="java.math.BigDecimal"/>
+	<field name="txt_tysummavat" class="java.lang.String"/>
+	<field name="txt_tyservicessumma" class="java.lang.String"/>
+	<field name="tysummagenkop" class="java.lang.Integer"/>
+	<field name="rencity" class="java.lang.String"/>
+	<field name="enwarrant_warrantshortfio" class="java.lang.String"/>
+	<field name="genitivefio" class="java.lang.String"/>
+	<field name="genitiveposition" class="java.lang.String"/>
+	<field name="contragentname_txt_header" class="java.lang.String"/>
+	<field name="techconditionsitem" class="java.lang.String"/>
+	<field name="executionterm" class="java.lang.String"/>
+	<field name="entechcondresponsibles" class="java.lang.String"/>
+	<field name="contragentposition" class="java.lang.String"/>
+	<field name="tyservicessummakop" class="java.lang.Integer"/>
+	<field name="tysummagenvatkop" class="java.lang.Integer"/>
+	<field name="powerlevel" class="java.lang.String"/>
+	<field name="powerreliability" class="java.lang.String"/>
+	<field name="powerpoint" class="java.lang.String"/>
+	<field name="connectionpowerplaces" class="java.lang.String"/>
+	<field name="connectionpowerpoint" class="java.lang.String"/>
+	<field name="connectionpowerplacsnm" class="java.lang.String"/>
+	<field name="connectionpowerpointnm" class="java.lang.String"/>
+	<variable name="companyFullName" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyFullName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getSettings("company.fullname")]]></initialValueExpression>
+	</variable>
+	<variable name="companyShortName" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyShortName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getSettings("company.shortname")]]></initialValueExpression>
+	</variable>
+	<variable name="companyAddress" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyAddress}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getContactValue(com.ksoe.energynet.valueobject.ENDepartment.ENDEPARTMENT_KSOE, com.ksoe.rqorder.valueobject.RQContactType.ADDRESS, $F{dategen})]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="31" splitType="Prevent">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" positionType="Float" mode="Transparent" x="0" y="0" width="539" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ДОГОВІР" + "\n" +
+"про стандартне приєднання до електричних мереж системи розподілу " + "\n" +
+"№ _____" + "\n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" positionType="Float" mode="Transparent" x="0" y="16" width="260" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new String(($F{tyservicespower}.doubleValue() > 16.00) ? " м. Херсон" : $F{rencity})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="dd.MM.yyyy" isBlankWhenNull="true">
+				<reportElement key="textField-30" positionType="Float" mode="Transparent" x="274" y="16" width="265" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["\""+"___"+"\"" + "__________ 20___р."]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="148" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-32" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="0" width="539" height="145" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["\n   <b>" + $V{companyShortName} + "</b>, в особі " + $F{genitiveposition}  + " " +
+( ($F{genitivefio} != "") ? $F{genitivefio}  : "______________________________" )
++ ", що діє на підставі "
++ ( ($F{warrantrefcode}.intValue() == 500000023 || $F{warrantrefcode}.intValue() == 1017000140 || $F{warrantrefcode}.intValue() == 1040002980 ) ? "статуту" :
+"довіреності " + $F{enwarrant_numbergen} + " від " + $F{enwarrant_datestart}+"." )
++ ", (далі - Виконавець послуг), з однієї сторони та, "
+ + $F{contragentname_txt_header} + " (далі - Замовник)" +
+", з іншої сторони (далі – Сторони), уклали цей договір про приєднання електроустановок Замовника до електричних мереж системи розподілу (далі – Договір). \n" +
+"   При виконанні умов цього Договору Сторони зобов'язуються діяти відповідно до чинного законодавства, зокрема вимог Кодексу систем розподілу (далі – Кодекс). \n\n" +
+"   <b>                                                           1. Загальні положення</b> \n" +
+"   <b>1.1.</b> За цим Договором до електричних мереж системи розподілу Виконавця послуг, оператора малої системи розподілу або іншого власника електричних мереж (основного споживача) приєднується: " + $F{tubuilding} + " місце розташування об’єкта Замовника:  " + $F{tuaddress} + ". \n" +
+"   <b>1.2.</b> Місце (точка) забезпечення потужності об’єкта Замовника встановлюється на: " + $F{connectionpowerplacsnm} + " " + $F{connectionpowerplaces} + ". Остаточна точка забезпечення потужності буде визначена проектом.\n" +
+"   <b>1.3.</b> Точка приєднання (межа балансової належності об’єкта Замовника) встановлюється на: " +$F{connectionpowerpointnm} + " " + $F{connectionpowerpoint} + " \n" +
+"   <b>1.4.</b> Тип приєднання об’єкта Замовника: стандартне. \n" +
+"   <b>1.5.</b> Величина потужності, замовленої до приєднання (у точці приєднання), "+ $F{tyservicespower} +" кВт. (Величина максимального розрахункового (прогнозованого) навантаження з урахуванням існуючої дозволеної (приєднаної) потужності: "+ $F{entechobtyservicespower}+" кВт.)  \n" +
+"   <b>1.6.</b> Категорія надійності електропостачання " + $F{powerreliability} + ". \n" +
+"   <b>1.7.</b> Ступінь напруги в точці приєднання визначається напругою на межі балансової належності та буде становити <u>" + $F{powerpoint} + "</u> кВ, ІІ клас напруги. \n\n\n" +
+"   <b>                                                         2. Предмет Договору</b> \n"+
+"   <b>2.1.</b> Виконавець послуг забезпечує приєднання електроустановок об'єкта Замовника (будівництво, реконструкція, технічне переоснащення та введення в експлуатацію електричних мереж зовнішнього електрозабезпечення об'єкта Замовника від точки забезпечення потужності до точки приєднання) відповідно до схеми зовнішнього електрозабезпечення і проєктної документації та здійснює підключення електроустановок об'єкта Замовника до електричних мереж системи розподілу на умовах цього Договору.\n"+
+"   <b>2.2.</b> Замовник оплачує Виконавцю послуг вартість приєднання до електричних мереж системи розподілу на умовах цього Договору.\n\n\n"+
+"   <b>                                                       3. Права та обов'язки Сторін</b>\n"+
+"   <b>3.1.</b> Виконавець послуг зобов'язаний:\n"+
+"   <b>3.1.1.</b> Розпочати (після виконання Замовником зобов'язань щодо авансової оплати в розмірі 20 відсотків плати, визначеної пунктом 4.1 цього Договору) в установленому порядку приєднання об'єкта (електроустановок) Замовника до електричних мереж системи розподілу.\n"+
+"   Забезпечити в установленому порядку приєднання (будівництво та введення в експлуатацію електричних мереж зовнішнього електрозабезпечення об'єкта Замовника від місця забезпечення потужності до точки приєднання) об'єкта (електроустановок) Замовника до електричних мереж системи розподілу у строки, встановлені цим Договором, після виконання Замовником зобов'язань, визначених підпунктом 3.2.3 пункт у 3.2 цього Договору.\n"+
+"   <b>3.1.2.</b> Здійснити первинне підключення електроустановок Замовника з метою проведення випробувань електрообладнання схеми зовнішнього електрозабезпечення електроустановок Замовника та підключити електроустановки Замовника до електричних мереж системи розподілу після повної (стовідсоткової) оплати послуги з приєднання впродовж 5 робочих днів після отримання заяви Замовника або впродовж 10 робочих днів, якщо підключення потребує припинення електропостачання інших Користувачів, після виконання Сторонами умов цього Договору та укладення договору про надання послуг з розподілу електричної енергії (або внесення змін до діючих договорів).\n"+
+"   <b>3.2.</b> Замовник зобов'язаний:\n"+
+"   <b>3.2.1.</b> Розробити на підставі технічних умов від _________________ р., № _________________, які є додатком до цього Договору, проєктну документацію щодо будівництва (реконструкції) електричних мереж внутрішнього електрозабезпечення (у межах земельної ділянки Замовника) електроустановок Замовника від точки приєднання до об'єкта Замовника та щодо безпеки електропостачання.\n"+
+"   <b>3.2.2.</b> Погодити з Виконавцем послуг розроблену на виконання підпункту 3.2.1 цього пункту проєктну документацію в частині влаштування комерційного обліку електричної енергії.\n"+
+"   <b>3.2.3.</b> Оплатити на умовах цього Договору вартість наданих Виконавцем послуг з приєднання електроустановок Замовника до електричних мереж системи розподілу в точці приєднання.\n"+
+"   <b>3.2.4.</b> Ввести в експлуатацію в порядку, встановленому законодавством у сфері містобудування, власний об'єкт та електричні мережі внутрішнього електрозабезпечення електроустановок Замовника (у випадку будівництва або реконструкції об'єкта).\n"+
+"   <b>3.3.</b> Виконавець послуг має право:\n"+
+"   <b>3.3.1.</b> Прийняти рішення щодо надання послуги з приєднання до електричних мереж системи розподілу або самостійно, або із залученням підрядних організацій.\n"+
+"   <b>3.3.2.</b> У разі порушення Замовником порядку розрахунків за цим Договором призупинити виконання зобов'язань за цим Договором до належного виконання Замовником відповідних умов цього Договору та/або ініціювати перегляд Сторонами істотних умов цього Договору.\n"+
+"   <b>3.4.</b> Замовник має право:\n"+
+"   <b>3.4.1.</b> Контролювати, у тому числі через особистий кабінет Замовника на вебсайті Виконавця послуг та шляхом письмових запитів до Виконавця послуг, виконання Виконавцем послуг зобов'язань щодо будівництва електричних мереж зовнішнього електрозабезпечення об'єкта Замовника від точки забезпечення потужності до точки приєднання, хід виконання робіт, пов'язаних із наданням послуги з приєднання.\n"+
+"   <b>3.5.</b> У разі виникнення потреби у перенесенні існуючих (діючих) повітряних та/або підземних електричних мереж та інших об'єктів електроенергетики звернутися до їх власника з метою укладення окремого договору щодо надання послуг з перенесення відповідних об'єктів електроенергетики відповідно до частини вісімнадцятої статті 21 Закону України \"Про ринок електричної енергії\".\n"+
+"   <b>3.6.</b> Після введення в експлуатацію електричних мереж зовнішнього електрозабезпечення об'єкта Замовника Виконавець послуг набуває права власності на збудовані електричні мережі зовнішнього електрозабезпечення (від точки забезпечення потужності до точки приєднання).\n\n\n"+
+"   <b>                                                  4. Плата за приєднання та порядок розрахунків </b>\n"+
+"   <b>4.1.</b> На дату укладення цього Договору плата за приєднання становить "+$F{tysummagen}.setScale(2, java.math.BigDecimal.ROUND_HALF_UP) + " грн., у тому числі ПДВ складає "+$F{tysummavat}.setScale(2, java.math.BigDecimal.ROUND_HALF_UP)+" грн. \n" +
+"   Розрахунок вартості плати за приєднання наведений у додатку до цього Договору, що є його невід'ємною частиною.\n"+
+"   <b>4.2.</b> Виконавець послуг зобов'язаний надати Замовнику рахунок на сплату плати за приєднання не пізніше 3 робочих днів від дати укладення цього Договору у встановленому законодавством порядку.\n"+
+"   <b>4.3.</b> У випадку відсутності необхідності відведення земельних ділянок під будівництво об'єктів електроенергетики для приєднання електроустановок Замовника Замовник сплачує попередню оплату за приєднання на поточний рахунок Виконавця послуг у розмірі 100 відсотків плати, визначеної пунктом 4.1 цього Договору, упродовж 5 робочих днів, починаючи з наступного робочого дня від дати укладення цього Договору Сторонами.\n"+
+"   У випадку необхідності відведення земельних ділянок під будівництво об'єктів електроенергетики для приєднання електроустановок Замовника оплата здійснюється відповідно до пункту 4.4 цього Договору.\n"+
+"   Виконавець послуг має протягом 5 робочих днів, починаючи з наступного робочого дня від дати узгодження з усіма заінтересованими сторонами розробленої Виконавцем послуг проєктної документації щодо електричних мереж зовнішнього електрозабезпечення об'єкта Замовника та підписання Акта про надання послуги з приєднання, повідомити Замовника про завершення вищезазначених етапів та надати Замовнику рахунок на сплату плати за приєднання.\n"+
+"   У випадку відсутності оплати Замовником плати за приєднання згідно з пунктом 4.4 цього Договору термін надання послуги з приєднання призупиняється до моменту здійснення Замовником оплати вартості послуги з приєднання до електричних мереж.\n"+
+"   <b>4.4.</b> Замовник сплачує плату за приєднання на поточний рахунок Виконавця послуг у такому порядку:\n"+
+"   оплата в розмірі 20 відсотків плати, визначеної пунктом 4.1 цього Договору, упродовж 5 робочих днів від дати підписання цього Договору Сторонами;\n"+
+"   остаточний розрахунок у розмірі 80 відсотків плати, визначеної пунктом 4.1 цього Договору, упродовж 5 робочих днів, починаючи з наступного робочого дня від дати узгодження з усіма заінтересованими сторонами розробленої Виконавцем послуг проєктної документації щодо електричних мереж зовнішнього електрозабезпечення об'єкта Замовника.\n"+
+"   <b>4.5</b> За домовленістю Сторін може бути встановлений інший порядок розрахунків шляхом конкретизації умов цього Договору.\n\n\n"+
+"   <b>                                                      5. Відповідальність Сторін</b>\n"+
+"   <b>5.1.</b> У випадку порушення своїх зобов'язань за цим Договором Сторони несуть відповідальність, визначену цим Договором та чинним законодавством. Порушенням зобов'язання є його невиконання або неналежне виконання.\n"+
+"   <b>5.2.</b> Виконавець послуг несе відповідальність за зміст та обґрунтованість виданих технічних умов та правильність розрахунку плати за приєднання до електричних мереж системи розподілу.\n"+
+"   <b>5.3.</b> За порушення строків виконання зобов'язання за цим Договором винна Сторона сплачує іншій Стороні пеню у розмірі 0,1 відсотка вартості приєднання за кожний день прострочення.\n"+
+"   У разі порушення Виконавцем послуг умов зобов'язання щодо строків надання послуги з приєднання:\n"+
+"   у разі перевищення строку надання послуги з приєднання, встановленого цим Договором, від 10 до 20 календарних днів плата за приєднання, визначена пунктом 4.1 розділу 4 цього Договору, зменшується на 10 відсотків (крім випадків, визначених Кодексом);\n"+
+"   у разі перевищення строку надання послуги з приєднання, встановленого цим Договором, від 20 до 120 календарних днів плата за приєднання, визначена пунктом 4.1 розділу 4 цього Договору, зменшується на 20 відсотків (крім випадків, визначених Кодексом);\n"+
+"   у разі перевищення строку надання послуги з приєднання, встановленого цим Договором, більше ніж на 120 календарних днів Виконавець послуг зобов'язаний повернути Замовнику кошти, отримані як попередня оплата (у розмірі 100 відсотків плати, визначеної пунктом 4.1 розділу 4 цього Договору) (крім випадків, визначених Кодексом).\n"+
+"   <b>5.4.</b> Сторони не відповідають за невиконання умов цього Договору, якщо це спричинено дією обставин непереборної сили. Факт дії обставин непереборної сили підтверджується відповідною довідкою Торгово-промислової палати України.\n\n\n"+
+"   <b>                                                      6. Порядок вирішення спорів</b>\n"+
+"   <b>6.1.</b> Усі спірні питання, пов'язані з виконанням цього Договору, вирішуються шляхом переговорів між Сторонами.\n"+
+"   <b>6.2.</b> У разі недосягнення згоди спір вирішується в судовому порядку відповідно до законодавства України.\n\n\n"+
+"   <b>                                                      7. Строк Договору</b>\n"+
+"   <b>7.1.</b> Цей Договір набирає чинності з моменту його підписання і діє до повного виконання Сторонами передбачених ним зобов'язань, але не довше ніж термін дії технічних умов. Умови договору застосовуються до відносин, які виникли між Сторонами, до його укладання та пов’язані з предметом цього договору.\n"+
+"   <b>7.2.</b> Цей Договір може бути змінено або розірвано і в інший строк за ініціативою будь-якої зі Сторін у порядку, встановленому чинним законодавством.\n"+
+"   <b>7.3.</b> Строк цього Договору може бути продовжений за вмотивованим зверненням однієї зі Сторін у порядку, встановленому чинним законодавством.\n"+
+"   <b>7.4.</b> Цей Договір може бути розірвано у порядку, встановленому чинним законодавством, у разі невиконання Сторонами своїх зобов'язань.\n\n\n"+
+"   <b>                                                      8. Інші умови Договору</b>\n"+
+"   <b>8.1.</b> Фактом виконання зобов'язання Виконавця послуг з приєднання до електричних мереж системи розподілу об'єкта Замовника (будівництво електричних мереж зовнішнього електрозабезпечення від точки забезпечення потужності до точки приєднання) Сторони вважатимуть підписання Сторонами акта про надання послуги з приєднання до електричних мереж системи розподілу.\n"+
+"   <b>8.2.</b> Акт про надання послуги з приєднання до електричних мереж системи розподілу може бути також оформлений Сторонами цього Договору після подання робочої напруги та проведення випробувань електрообладнання Замовника або обладнання зовнішнього електрозабезпечення Замовника.\n"+
+"   <b>8.3.</b> Перелік невід'ємних додатків до цього Договору:\n"+
+"   <b>   1.</b> Технічних умов від _________________ р., №  _________________ .\n"+
+"   <b>   2.</b> Розрахунок вартості плати за приєднання.\n"+
+"   <b>8.4.</b> Цей Договір укладено у двох примірниках, які мають однакову юридичну силу для Замовника та Виконавця послуг."]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="87" splitType="Prevent">
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-37" mode="Transparent" x="0" y="7" width="260" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Виконавець послуг:"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-38" mode="Transparent" x="274" y="7" width="265" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Замовник:"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-39" positionType="Float" stretchType="RelativeToTallestObject" mode="Transparent" x="160" y="22" width="100" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{enwarrant_warrantshortfio}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-40" positionType="Float" stretchType="RelativeToTallestObject" mode="Transparent" x="0" y="22" width="160" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{enwarrant_warrantposition}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-72" positionType="Float" stretchType="RelativeToTallestObject" mode="Transparent" x="274" y="22" width="80" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-73" positionType="Float" stretchType="RelativeToTallestObject" mode="Transparent" x="354" y="22" width="185" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-74" positionType="Float" mode="Transparent" x="274" y="37" width="265" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["   (посада)              (підпис, П. І. Б.)"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-74" positionType="Float" mode="Transparent" x="0" y="37" width="260" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["  (посада)                                     (підпис, П. І. Б.)"]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+	<lastPageFooter>
+		<band height="250" splitType="Prevent">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-56" positionType="Float" mode="Transparent" x="0" y="33" width="260" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{mfobanka}.equals("320627")  ?
+" " + $V{companyShortName} + " \n " +
+" " + $V{companyAddress} + " \n " +
+" р/р UA923206270000026009010034604 \n " +
+" АТ «СБЕРБАНК РОСІЇ» \n " +
+" МФО 320627 \n " +
+" ЄДРПОУ 05396638 \n "
+:
+" " + $V{companyShortName} + " \n " +
+" " + $V{companyAddress} + " \n " +
+" р/р UA443005060000026002007037568 \n " +
+" ПАТ \"Перший Інвестиційний Банк\" \n " +
+" МФО 300506 \n " +
+" ЄДРПОУ 05396638 \n "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-57" positionType="Float" mode="Transparent" x="274" y="33" width="265" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new String(($F{contragentname} != null) ? $F{contragentname} + "\n"  : "\n") +
+new String(($F{contragentaddress} != null) ? $F{contragentaddress} + "\n" : "\n")  +
+new String(($F{contragentpassport} != null) ? $F{contragentpassport} + "\n" : "\n") +
+new String(($F{contragentokpo} != null) ? $F{contragentokpo}  : "")+"\n \n"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-58" positionType="Float" mode="Transparent" x="0" y="48" width="260" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["М. П."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-59" positionType="Float" mode="Transparent" x="274" y="48" width="265" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["М. П."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-60" positionType="Float" mode="Transparent" x="160" y="63" width="100" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{enwarrant_warrantshortfio}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-61" positionType="Float" mode="Transparent" x="0" y="63" width="160" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{enwarrant_warrantposition}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-64" positionType="Float" mode="Transparent" x="0" y="93" width="260" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["«______»__________________________________________ ____________ р."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-65" positionType="Float" mode="Transparent" x="274" y="63" width="135" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-66" positionType="Float" mode="Transparent" x="409" y="63" width="130" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-68" positionType="Float" mode="Transparent" x="274" y="78" width="265" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["  (посада)        (підпис, П. І. Б.)"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-69" positionType="Float" mode="Transparent" x="274" y="93" width="265" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["«______»___________________________________________ ____________ р."]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-70" positionType="Float" mode="Transparent" x="0" y="18" width="260" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Виконавець послуг:"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-71" positionType="Float" mode="Transparent" x="274" y="18" width="265" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Замовник:"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-74" positionType="Float" mode="Transparent" x="0" y="78" width="260" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["  (посада)                                     (підпис, П. І. Б.)"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-79" isPrintRepeatedValues="false" mode="Transparent" x="0" y="0" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["9. Місцезнаходження Сторін"]]></textFieldExpression>
+			</textField>
+		</band>
+	</lastPageFooter>
+	<summary>
+		<band splitType="Prevent"/>
+	</summary>
+</jasperReport>

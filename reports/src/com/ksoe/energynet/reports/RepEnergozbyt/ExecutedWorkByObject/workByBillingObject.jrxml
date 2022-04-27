@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="workByBillingObject" pageWidth="1077" pageHeight="595" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="1077" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="224"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="dateFrom" class="java.lang.String">
+		<defaultValueExpression><![CDATA["01.12.2015"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateTo" class="java.lang.String">
+		<defaultValueExpression><![CDATA["31.12.2015"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="accountNumber" class="java.lang.String">
+		<defaultValueExpression><![CDATA["200162"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="isProm" class="java.lang.String">
+		<defaultValueExpression><![CDATA["1"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="renCode" class="java.lang.String">
+		<defaultValueExpression><![CDATA["4"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select accountnumber, customername, objectname,
+techkartnumber, tksource, tkname,
+department, finworkername, positionname,
+count(*) as workcnt, sum(workhours) as workhours,
+dense_rank() over(order by objectname) as groupnumber,
+row_number() over(partition by objectname) as linenumber
+from
+(
+select
+wo.code as wocode, wi.accountnumber, wi.customername,
+wi.recordpointbytrefcode, wi.recordpointpromrefcode,
+case cast($P{isProm} as integer) when 1 then wi.recordpointname when 0 then wi.customername end as objectname,
+f.name as finworkername, f.positionname,
+tk.techkartnumber, tks.name as tksource, tk.name as tkname, dep.name as department,
+hi_f.countfact/pwi_f.countgen as workhours
+from
+enworkorderbyt wo
+inner join enworkorderbytitem wi on wi.workorderbytrefcode=wo.code
+inner join enplanwork pw on pw.code=wi.planrefcode
+inner join enplanworkitem pwi on pwi.code=wi.planitemrefcode and pwi.planrefcode=wi.planrefcode
+inner join enplanwork pw_f on pw_f.code=wi.factcode
+inner join enplanworkitem pwi_f on pwi_f.planrefcode=wi.factcode and pwi_f.kartarefcode=pwi.kartarefcode
+inner join enhumenitem hi_f on hi_f.planitemrefcode=pwi_f.code
+inner join tktechcard tk on tk.code=pwi_f.kartarefcode
+inner join tkclassificationtype tkt on tkt.code=tk.classificationtypecode
+inner join tktechcardsource tks on tks.code=tkt.techcardsourcecode
+inner join finworker f on f.code=hi_f.finworkercode
+inner join endepartment dep on dep.code=pw_f.departmentrefcode
+where
+wo.typerefcode=2 /*Задание рейдовой бригады из биллинга*/
+--and wi.statuscode=1 //не проверять!
+and wo.dategen between to_date($P{dateFrom}, 'dd.mm.yyyy') and to_date($P{dateTo}, 'dd.mm.yyyy')
+and pw_f.renrefcode=$P!{renCode}
+--and pw.code=1020132615
+and wi.accountnumber=$P{accountNumber}
+and (
+($P!{isProm}=0 and wi.recordpointbytrefcode is not null)
+or
+($P!{isProm}=1 and wi.recordpointpromrefcode is not null)
+)
+) T group by
+accountnumber, customername, objectname,
+techkartnumber, tksource, tkname,
+department, finworkername, positionname]]>
+	</queryString>
+	<field name="accountnumber" class="java.lang.String">
+		<fieldDescription><![CDATA[Особовий рахунок]]></fieldDescription>
+	</field>
+	<field name="customername" class="java.lang.String">
+		<fieldDescription><![CDATA[П.І.Б. замовника]]></fieldDescription>
+	</field>
+	<field name="objectname" class="java.lang.String">
+		<fieldDescription><![CDATA[Об`єкт будівництва (реконструкції)]]></fieldDescription>
+	</field>
+	<field name="techkartnumber" class="java.lang.String"/>
+	<field name="tksource" class="java.lang.String"/>
+	<field name="tkname" class="java.lang.String"/>
+	<field name="department" class="java.lang.String"/>
+	<field name="finworkername" class="java.lang.String"/>
+	<field name="positionname" class="java.lang.String">
+		<fieldDescription><![CDATA[Виконавці (склад бригади)]]></fieldDescription>
+	</field>
+	<field name="workcnt" class="java.lang.Long"/>
+	<field name="workhours" class="java.lang.Double"/>
+	<field name="groupnumber" class="java.lang.Long"/>
+	<field name="linenumber" class="java.lang.Long"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="78" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="49" width="30" height="29"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isBold="true"/>
+				</textElement>
+				<text><![CDATA[№ з/п]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="49" width="55" height="29"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isBold="true"/>
+				</textElement>
+				<text><![CDATA[№ рахунку]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="211" y="49" width="251" height="29"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Назва роботи]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="462" y="49" width="70" height="29"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Кількість]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="532" y="49" width="70" height="29"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Норма часу, люд.год.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="602" y="49" width="70" height="29"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Джерело нормативу]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="672" y="49" width="118" height="29"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Структурний підрозділ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="790" y="49" width="89" height="29"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Виконавець робіт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="879" y="49" width="111" height="29"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Назва посади виконавця]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="0" y="0" width="990" height="37"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Звіт про виконання обходів рейдових бригад"+
+"\nпо особовому рахунку "+$F{accountnumber}+" з "+$P{dateFrom}+" по "+$P{dateTo}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="85" y="49" width="126" height="29"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Назва об'єкту]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="0" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{linenumber}.longValue()==1)?(""+$F{groupnumber}):""]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="30" y="0" width="55" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{linenumber}.longValue()==1)?(""+$F{accountnumber}):""]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="211" y="0" width="251" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tkname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="462" y="0" width="70" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{workcnt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="532" y="0" width="70" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{workhours}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="602" y="0" width="70" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{techkartnumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="672" y="0" width="118" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{department}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="790" y="0" width="89" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{finworkername}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="879" y="0" width="111" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{positionname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToBandHeight" x="85" y="0" width="126" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{linenumber}.longValue()==1)?(""+$F{objectname}):""]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

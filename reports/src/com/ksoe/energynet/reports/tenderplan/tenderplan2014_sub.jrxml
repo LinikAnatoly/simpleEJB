@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="tenderplan2014_sub" pageWidth="566" pageHeight="802" columnWidth="566" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="2.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="YEAR" class="java.lang.Integer"/>
+	<parameter name="identid" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[Select
+ case when es.kindrefcode = 2 then  sm.name||('(ПММ)') else sm.name end  as mname,
+ case when sm.measurementcode =796 then ceil(sum(es.countfact))::numeric(15,6) else sum(es.countfact)::numeric(15,6) end as countfact,
+ ei.name as meas,
+ (coalesce(sm.cost, 0)*
+ ( 1::numeric + coalesce(( select * from get_nds_by_date(to_date('01.01.'||$P{YEAR},'dd.mm.yyyy') )),0)/100::numeric   )
+ )::numeric(15,2) as price
+, ( case when sm.measurementcode =796 then ceil(sum(es.countfact))::numeric(15,6) else sum(es.countfact)::numeric(15,6) end
+   * (coalesce(sm.cost, 0)*
+   ( 1::numeric + coalesce(( select * from get_nds_by_date(to_date('01.01.'||$P{YEAR},'dd.mm.yyyy') )),0)/100::numeric   )
+   )::numeric(15,2) )::numeric(15,2) as cost
+ From enplanwork p ,
+tkmeasurement ei,
+enestimateitem es,
+tkmaterials sm
+Where p.code = es.planrefcode
+And es.materialrefcode = sm.code
+And ei.code=sm.measurementcode
+And p.kindcode =  2  /*годовой(1) или текущий(2)*/
+And p.yeargen = $P{YEAR}
+and $P!{identid} -- substr(sm.identid2010,1,7)= '20.30.2'
+And p.statuscode not in (2,6)
+And es.countfact <> 0
+And es.kindrefcode  = 1
+and p.dategen <='11.01.2014'
+And es.statusrefcode <> 5/*in (1,2,3)*/
+and p.code = (select q.plannewrefcode from enplancorrecthistory q where q.reasoncode = 3 and q.plannewrefcode = p.code )
+
+/*вид работ + статус по внеплановым работам */
+and case when /*{planform}*/ 0 = 0 then /*(плановые и позаплановые) тогда накинем фильтр по внеплановым планам*/
+          case when p.formrefcode = 2 and  /*{planStatusForPozaplanPlans}*/ 13 = 13  then p.statuscode in (1,3)
+               when p.formrefcode = 2 and  /*{planStatusForPozaplanPlans}*/ 13 = 1    then p.statuscode  = 1
+               when p.formrefcode = 2 and  /*{planStatusForPozaplanPlans}*/ 13 = 3   then p.statuscode = 3
+               when p.formrefcode = 2 and  /*{planStatusForPozaplanPlans}*/ 13 = 0    then 1 = 1
+               when p.formrefcode = 1                                             then 1 = 1
+          end
+         when /*{planform}*/ 0 = 1 then /*(плановые только) */ p.formrefcode = 1
+         when /*{planform}*/ 0 = 2 then /*(внеплановые только) */
+          case when p.formrefcode = 2 and /*{planStatusForPozaplanPlans}*/ 13 = 13  then p.statuscode in (1,3)
+               when p.formrefcode = 2 and  /*{planStatusForPozaplanPlans}*/ 13 = 1    then p.statuscode  = 1
+               when p.formrefcode = 2 and  /*{planStatusForPozaplanPlans}*/ 13 = 3   then p.statuscode = 3
+               when p.formrefcode = 2 and  /*{planStatusForPozaplanPlans}*/ 13 = 0    then 1 = 1
+          end
+
+    end
+
+ /*тип работ + статус по инвест программе*/
+ and
+   case when /*{pBudgOrInv}*/ 0 = 0 then
+         case  when p.typerefcode in (5, 100, 106,111,112) and  /*{planStatusForInvest}*/ 13 = 13  then p.statuscode in (1,3) /* инвест + статусы*/
+               when p.typerefcode in (5, 100, 106,111,112) and  /*{planStatusForInvest}*/ 13 = 1    then p.statuscode  = 1     /* инвест + статусы*/
+               when p.typerefcode in (5, 100, 106,111,112) and  /*{planStatusForInvest}*/ 13 = 3   then p.statuscode = 3      /* инвест + статусы*/
+               when p.typerefcode in (5, 100, 106,111,112) and  /*{planStatusForInvest}*/ 13 = 0    then 1 = 1                 /* инвест + статусы*/
+               when p.typerefcode not in (5, 100, 106,111,112)                                  then 1 = 1      /* бюджет не учитывая статусов*/
+          end
+         when /*{pBudgOrInv}*/ 0 = 1  then p.typerefcode not in (5, 100, 106,111,112) /* бюджетные планы*/
+         when /*{pBudgOrInv}*/ 0 = 2  then /*только инвест*/
+         case  when p.typerefcode in (5, 100, 106,111,112) and  /*{planStatusForInvest}*/ 13 = 13  then p.statuscode in (1,3) /* инвест + статусы*/
+               when p.typerefcode in (5, 100, 106,111,112) and  /*{planStatusForInvest}*/ 13 = 1    then p.statuscode  = 1     /* инвест + статусы*/
+               when p.typerefcode in (5, 100, 106,111,112) and  /*{planStatusForInvest}*/ 13 = 3   then p.statuscode = 3      /* инвест + статусы*/
+               when p.typerefcode in (5, 100, 106,111,112) and  /*{planStatusForInvest}*/ 13 = 0    then 1 = 1                 /* инвест + статусы*/
+          end
+   end
+
+and p.typerefcode <> 11 -- планы перевезення не берем
+and (  ( es.planitemrefcode is null )
+      or
+      -- не берем если источник норматива "перевезення"
+       ( 500000024 <> ( select tkd.techcardsourcecode from enplanworkitem pi , tktechcard tkd
+                                                      where pi.kartarefcode = tkd.code
+                                                        and pi.code = es.planitemrefcode limit 1  )
+       )
+    )
+
+
+ group by sm.name , ei.name  ,sm.cost ,es.kindrefcode ,sm.measurementcode
+order by sm.name]]>
+	</queryString>
+	<field name="mname" class="java.lang.String">
+		<fieldDescription><![CDATA[Наименование материала (номенклатура закупки)]]></fieldDescription>
+	</field>
+	<field name="countfact" class="java.math.BigDecimal"/>
+	<field name="meas" class="java.lang.String">
+		<fieldDescription><![CDATA[Наименование единицы изменения]]></fieldDescription>
+	</field>
+	<field name="price" class="java.math.BigDecimal"/>
+	<field name="cost" class="java.math.BigDecimal"/>
+	<variable name="sumcost" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{cost}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sumzcp" class="java.math.BigDecimal" resetType="None" calculation="Highest">
+		<variableExpression><![CDATA[$V{sumcost}.doubleValue() < 5000000 ? $V{sumcost} : new BigDecimal(0)]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sumvt" class="java.math.BigDecimal" resetType="None" calculation="Highest">
+		<variableExpression><![CDATA[$V{sumcost}.doubleValue() >= 5000000 ? $V{sumcost} : new BigDecimal(0)]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-142" stretchType="RelativeToBandHeight" x="0" y="0" width="185" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{mname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-142" stretchType="RelativeToBandHeight" x="185" y="0" width="70" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{meas}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-142" stretchType="RelativeToBandHeight" x="255" y="0" width="77" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countfact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-142" stretchType="RelativeToBandHeight" x="332" y="0" width="77" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{price}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-142" stretchType="RelativeToBandHeight" x="409" y="0" width="77" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{cost}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-142" stretchType="RelativeToBandHeight" x="486" y="0" width="80" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

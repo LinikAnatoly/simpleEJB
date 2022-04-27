@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ax_drivers_percent_load_ora" pageWidth="2150" pageHeight="555" orientation="Landscape" whenNoDataType="NoDataSection" columnWidth="2150" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" scriptletClass="com.ksoe.energynet.reports.common.mDaxScriptlet" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="161"/>
+	<property name="ireport.y" value="0"/>
+	<scriptlet name="scriptlet1" class="com.ksoe.energynet.reports.common.FINScriptlet"/>
+	<parameter name="yearGen" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="monthGen" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="worked_time_in_month" class="java.math.BigDecimal">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="fin_department" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="transportdepartmentname" class="java.lang.String"/>
+	<parameter name="netConnection" class="java.lang.Object"/>
+	<parameter name="DATE_FORMAT" class="java.text.DateFormat" isForPrompting="false">
+		<defaultValueExpression><![CDATA[new java.text.SimpleDateFormat("dd.MM.yyyy")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="start" class="java.util.Date" isForPrompting="false">
+		<defaultValueExpression><![CDATA[$P{DATE_FORMAT}
+    .parse("01." + $P{monthGen} + "." + $P{yearGen})]]></defaultValueExpression>
+	</parameter>
+	<parameter name="end" class="java.util.Date" isForPrompting="false">
+		<defaultValueExpression><![CDATA[com.ksoe.energynet.util.Tools.getLastDayOfMonth($P{start})]]></defaultValueExpression>
+	</parameter>
+	<parameter name="tabnumber" class="java.lang.String">
+		<parameterDescription><![CDATA[Табельный номер водителя]]></parameterDescription>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT tabnumber, hrmorganizationid, title
+  from (
+SELECT DISTINCT emplid AS tabnumber, title, hrmorganizationid
+ FROM dbo.ENERGYNET_FN_EMPL_HISTORY
+                 (
+  /*@DATAAREAID*/ 'KSOE'
+ ,/*@FROMDATE*/  Cast('01.'+$P{monthGen}+'.'+ $P{yearGen}  as datetime)
+ ,/*@TODATE*/  DATEADD(s,-1,DATEADD(mm, DATEDIFF(m,0,Cast('01.'+$P{monthGen}+'.'+ $P{yearGen}  as date))+1,0))
+ ,/*@ORGANIZATIONLIST*/ $P{fin_department}
+ ,/*@CHILDORG*/ 1
+ ,/*@EMPLOYMENTLIST*/ ''
+ ,/*@EMPLOYMENTNAMELIST*/ ''
+ ,/*@STAFFPOSITIONLIST*/ ''
+ ,/*@RATELIST*/ ''
+ ,/*@ONLYLAST*/ 0)
+) as q1 WHERE (lower(title) like '%водій%' or lower(title) like '%машиніст%' or lower(title) like '%тракторист%' )
+AND (q1.tabnumber = $P{tabnumber} OR $P{tabnumber} IS NULL OR len(rtrim(ltrim($P{tabnumber}))) = 0)
+ORDER BY hrmorganizationid, title, tabnumber]]>
+	</queryString>
+	<field name="tabnumber" class="java.lang.String"/>
+	<variable name="hashTabnumber" class="java.util.Set">
+		<variableExpression><![CDATA[$V{hashTabnumber}]]></variableExpression>
+		<initialValueExpression><![CDATA[new HashSet()]]></initialValueExpression>
+	</variable>
+	<variable name="sum_worked_time_in_month" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_worked_time_in_month}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_distance_covered" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_distance_covered}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_hours_in_move" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_hours_in_move}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_machinehours" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_machinehours}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_act_hours_repairer" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_act_hours_repairer}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_act_hours_technician" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_act_hours_technician}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_hours_wait_on_object" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_hours_wait_on_object}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_performance_time" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_performance_time}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_performance_rate_percentage" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[( $V{sum_worked_time_in_month}.compareTo(new BigDecimal(0)) == 0
+    ? new BigDecimal(0) : $V{sum_performance_time}
+.multiply(new BigDecimal(100))
+.divide($V{sum_worked_time_in_month}, 2, BigDecimal.ROUND_HALF_UP) )]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_distance_covered_by_transport" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_distance_covered_by_transport}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_hours_in_move_by_transport" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_hours_in_move_by_transport}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_machinehours_by_transport" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_machinehours_by_transport}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band splitType="Stretch">
+			<printWhenExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{scriptlet1_SCRIPTLET}).isDriver($F{tabnumber})
+/*т.к. в заданном Microsoft SQL нельзя использовать order by в подзапросах
+, то необходимо ограничить выборку только уникальных табельных номеров
+, чтобы предотвратить задвоение*/
+    && $V{hashTabnumber}.add($F{tabnumber})]]></printWhenExpression>
+			<subreport>
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="1665" height="0"/>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="start">
+					<subreportParameterExpression><![CDATA[$P{start}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="tabnumber">
+					<subreportParameterExpression><![CDATA[$F{tabnumber}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="worked_time_in_month">
+					<subreportParameterExpression><![CDATA[((com.ksoe.energynet.reports.common.mDaxScriptlet)$P{REPORT_SCRIPTLET}).getCountActualWorkHoursByEmployee($F{tabnumber}
+    , $P{DATE_FORMAT}.parse(String.format("01.%s.%s", $P{monthGen}, $P{yearGen}))
+    , com.ksoe.energynet.util.Tools.getLastDayOfMonth($P{DATE_FORMAT}.parse(String.format("01.%s.%s", $P{monthGen}, $P{yearGen}))))]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="end">
+					<subreportParameterExpression><![CDATA[$P{end}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[(java.sql.Connection)$P{netConnection}]]></connectionExpression>
+				<returnValue subreportVariable="distance_covered" toVariable="sum_distance_covered" calculation="Sum"/>
+				<returnValue subreportVariable="machinehours" toVariable="sum_machinehours" calculation="Sum"/>
+				<returnValue subreportVariable="worked_time_in_month" toVariable="sum_worked_time_in_month" calculation="Sum"/>
+				<returnValue subreportVariable="hours_wait_on_object" toVariable="sum_hours_wait_on_object" calculation="Sum"/>
+				<returnValue subreportVariable="act_hours_repairer" toVariable="sum_act_hours_repairer" calculation="Sum"/>
+				<returnValue subreportVariable="hours_in_move" toVariable="sum_hours_in_move" calculation="Sum"/>
+				<returnValue subreportVariable="act_hours_technician" toVariable="sum_act_hours_technician" calculation="Sum"/>
+				<returnValue subreportVariable="sum_distance_covered_by_transport" toVariable="sum_distance_covered_by_transport" calculation="Sum"/>
+				<returnValue subreportVariable="sum_machinehours_by_transport" toVariable="sum_machinehours_by_transport" calculation="Sum"/>
+				<returnValue subreportVariable="sum_hours_in_move_by_transport" toVariable="sum_hours_in_move_by_transport" calculation="Sum"/>
+				<returnValue subreportVariable="performance_time" toVariable="sum_performance_time" calculation="Sum"/>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/transport/ax_drivers_percent_load_sub.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<summary>
+		<band height="20">
+			<printWhenExpression><![CDATA[$V{sum_worked_time_in_month} != null && $V{sum_worked_time_in_month}.compareTo(java.math.BigDecimal.ZERO) > 0]]></printWhenExpression>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="680" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA["Разом по " + $P{transportdepartmentname} + ":"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1145" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$V{sum_distance_covered_by_transport}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1595" y="0" width="120" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$V{sum_hours_wait_on_object}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1445" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$V{sum_machinehours}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1395" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$V{sum_hours_in_move}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1495" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$V{sum_act_hours_repairer}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1715" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$V{sum_performance_time}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="680" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$V{sum_worked_time_in_month}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1785" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[( $V{sum_worked_time_in_month}.compareTo(new BigDecimal(0)) == 0
+    ? new BigDecimal(0) : $V{sum_performance_time}
+.multiply(new BigDecimal(100))
+.divide($V{sum_worked_time_in_month}, 2, BigDecimal.ROUND_HALF_UP) )]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1855" y="0" width="120" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[( $V{sum_worked_time_in_month}.compareTo(new BigDecimal(0)) == 0
+    ? new BigDecimal(0) : $V{sum_performance_time}
+.multiply(new BigDecimal(100))
+.divide($V{sum_worked_time_in_month}, 2, BigDecimal.ROUND_HALF_UP) ).doubleValue() > 60 ? "1" :
+  ( $V{sum_worked_time_in_month}.compareTo(new BigDecimal(0)) == 0
+    ? new BigDecimal(0) : $V{sum_performance_time}
+.multiply(new BigDecimal(100))
+.divide($V{sum_worked_time_in_month}, 2, BigDecimal.ROUND_HALF_UP) ).doubleValue() >40 && ( $V{sum_worked_time_in_month}.compareTo(new BigDecimal(0)) == 0
+    ? new BigDecimal(0) : $V{sum_performance_time}
+.multiply(new BigDecimal(100))
+.divide($V{sum_worked_time_in_month}, 2, BigDecimal.ROUND_HALF_UP) ).doubleValue() <= 60 ? "0,75" :
+  ( $V{sum_worked_time_in_month}.compareTo(new BigDecimal(0)) == 0
+    ? new BigDecimal(0) : $V{sum_performance_time}
+.multiply(new BigDecimal(100))
+.divide($V{sum_worked_time_in_month}, 2, BigDecimal.ROUND_HALF_UP) ).doubleValue() >30 && ( $V{sum_worked_time_in_month}.compareTo(new BigDecimal(0)) == 0
+    ? new BigDecimal(0) : $V{sum_performance_time}
+.multiply(new BigDecimal(100))
+.divide($V{sum_worked_time_in_month}, 2, BigDecimal.ROUND_HALF_UP) ).doubleValue() <= 40 ? "0,5" :
+  ( $V{sum_worked_time_in_month}.compareTo(new BigDecimal(0)) == 0
+    ? new BigDecimal(0) : $V{sum_performance_time}
+.multiply(new BigDecimal(100))
+.divide($V{sum_worked_time_in_month}, 2, BigDecimal.ROUND_HALF_UP) ).doubleValue() >20 && ( $V{sum_worked_time_in_month}.compareTo(new BigDecimal(0)) == 0
+    ? new BigDecimal(0) : $V{sum_performance_time}
+.multiply(new BigDecimal(100))
+.divide($V{sum_worked_time_in_month}, 2, BigDecimal.ROUND_HALF_UP) ).doubleValue() <= 30 ? "0,25" :
+  "0"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1545" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$V{sum_act_hours_technician}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1050" y="0" width="95" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1345" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$V{sum_distance_covered}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1245" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$V{sum_machinehours_by_transport}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1295" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1195" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$V{sum_hours_in_move_by_transport}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="750" y="0" width="300" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

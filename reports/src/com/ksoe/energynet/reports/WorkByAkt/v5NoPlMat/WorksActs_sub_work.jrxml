@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="WorksActs_sub_work" pageWidth="1400" pageHeight="25" orientation="Landscape" columnWidth="1400" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="net.sf.jasperreports.print.keep.full.text" value="true"/>
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="codeact" class="java.lang.Integer" isForPrompting="false">
+		<defaultValueExpression><![CDATA[new Integer(162004388)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="codeobject" class="java.lang.Integer" isForPrompting="false"/>
+	<parameter name="shownullfact" class="java.lang.Integer">
+		<parameterDescription><![CDATA[0 - показываем только выполненые работы
+1 - показываем только невыполненые работы]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="finexecutorfincode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select selGrWork.kartarefcodem , selGrWork.countgenm , selGrWork.timegenm ,
+       selGrWork.kartarefcodef , sum(selGrWork.countgenf) as countgenf , sum(selGrWork.timegenf) as timegenf ,
+       case when selGrWork.finexname is null then 'Робота не виконана' else selGrWork.finexname end as finexname ,
+       selGrWork.workname ,
+       selGrWork.workcode , fincode
+       , min(selGrWork.datestart) as datestartplan
+       , max(selGrWork.datestart) as datefinalplan
+       From (
+
+select wm.kartarefcode as kartarefcodem , wm.countgen as countgenm , wm.timegen as timegenm ,
+       wf.kartarefcode as kartarefcodef, wf.countgen as countgenf , wf.timegen as timegenf
+       , (Select fexx.name From finexecutor fexx
+           Where fexx.fincode = wf.fincode
+             and fexx.modify_time = (Select max(fexxm.modify_time) From finexecutor fexxm
+                                      Where fexxm.fincode = wf.fincode )
+         ) as finexname ,
+         case when coalesce(wm.kartarefcode,0) = 0   then
+          (select name from tktechcard where code = wf.kartarefcode  )
+         else
+          (select name from tktechcard where code = wm.kartarefcode  )
+         end
+         as workname
+         ,
+         case when coalesce(wm.kartarefcode,0) = 0   then
+         wf.kartarefcode
+         else
+         wm.kartarefcode
+         end
+         as workcode
+         , wf.fincode
+         , wf.datestart
+         , wf.datefinal
+        From
+(
+/*работы с фактов*/
+Select enp.datestart , enp.datefinal ,  enpi.code , enpi.kartarefcode ::double precision as kartarefcode , enpi.countgen , enpi.timegen ,  fex.fincode  From enplanworkitem enpi , enact2enplanwork a2p , enplanwork enp , finexecutor fex
+ Where enpi.planrefcode = a2p.plancode
+   And a2p.actrefcode = $P{codeact}
+   And enpi.countgen <> 0
+   And enpi.planrefcode = enp.code
+   And enp.finexecutorcode = fex.code
+   And enp.elementrefcode = $P{codeobject}
+   And enp.statuscode not in (2 , 6) ) wf  full join  (
+
+
+/*работы с месячного плана*/
+Select enpi.code , enpi.kartarefcode ::double precision as kartarefcode , enpi.countgen , enpi.timegen , fex.fincode  From enplanworkitem enpi , enplanwork enp , finexecutor fex
+ Where enpi.countgen <> 0
+   And enpi.planrefcode = enp.code
+   And enp.finexecutorcode = fex.code
+   And enp.statuscode not in (2 , 6)
+    And enp.elementrefcode = $P{codeobject}
+   And enp.code in ( select distinct  h1.planoldrefcode from enplancorrecthistory h1
+               		  where h1.reasoncode = 4
+                        and h1.plannewrefcode in
+                               (select  h1.planoldrefcode from enplancorrecthistory h1
+                                 where h1.reasoncode = 5
+                                   and h1.plannewrefcode in
+                                     ( select a2p.plancode from  enact2enplanwork a2p
+                                        where a2p.actrefcode =  $P{codeact}
+                                     )
+                               )
+                   )
+
+ ) wm on (wm.kartarefcode = wf.kartarefcode and wm.fincode = wf.fincode  )
+ ) selGrWork
+/*0 - показываем работы только выполненые , 1 - показываем только не выполненые работы  */
+ Where   (($P{shownullfact} = 0 and selGrWork.kartarefcodef is not null )  or ($P{shownullfact}  = 1 and selGrWork.kartarefcodef is null ))
+   And ( ( selGrWork.fincode =  $P{finexecutorfincode}  ) or ( $P{finexecutorfincode} = 0 ))
+Group by selGrWork.kartarefcodem , selGrWork.countgenm , selGrWork.timegenm ,
+       selGrWork.kartarefcodef , selGrWork.finexname , selGrWork.workname , selGrWork.workcode , selGrWork.fincode]]>
+	</queryString>
+	<field name="kartarefcodem" class="java.lang.Integer"/>
+	<field name="countgenm" class="java.math.BigDecimal"/>
+	<field name="timegenm" class="java.math.BigDecimal"/>
+	<field name="kartarefcodef" class="java.lang.Integer"/>
+	<field name="countgenf" class="java.math.BigDecimal"/>
+	<field name="timegenf" class="java.math.BigDecimal"/>
+	<field name="finexname" class="java.lang.String"/>
+	<field name="workname" class="java.lang.String"/>
+	<field name="workcode" class="java.lang.Integer"/>
+	<field name="datestartplan" class="java.util.Date"/>
+	<field name="datefinalplan" class="java.util.Date"/>
+	<variable name="sum_humhourmonth" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{timegenm}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_humhourfact" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{timegenf}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="25" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToBandHeight" x="0" y="0" width="250" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{finexname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-2" stretchType="RelativeToBandHeight" x="250" y="0" width="250" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{workname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-3" stretchType="RelativeToBandHeight" x="600" y="0" width="50" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countgenm}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-4" stretchType="RelativeToBandHeight" x="650" y="0" width="50" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{timegenm}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-5" stretchType="RelativeToBandHeight" x="750" y="0" width="50" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{timegenf}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-6" stretchType="RelativeToBandHeight" x="700" y="0" width="50" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countgenf}]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" stretchType="RelativeToTallestObject" mode="Transparent" x="800" y="0" width="600" height="25"/>
+				<subreportParameter name="workcode">
+					<subreportParameterExpression><![CDATA[$F{workcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="codeact">
+					<subreportParameterExpression><![CDATA[$P{codeact}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="codeobject">
+					<subreportParameterExpression><![CDATA[$P{codeobject}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[/*"C:/iReport-3.0.0/tmp/WorksActs_sub_material_by_work.jasper"*/
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/WorkByAkt/v5NoPlMat/WorksActs_sub_material_by_work.jasper")]]></subreportExpression>
+			</subreport>
+			<line>
+				<reportElement key="line-1" positionType="Float" stretchType="RelativeToBandHeight" mode="Transparent" x="1000" y="0" width="1" height="25"/>
+			</line>
+			<line>
+				<reportElement key="line-2" positionType="Float" stretchType="RelativeToBandHeight" mode="Transparent" x="1050" y="0" width="1" height="25"/>
+			</line>
+			<line>
+				<reportElement key="line-3" positionType="Float" stretchType="RelativeToBandHeight" mode="Transparent" x="1100" y="0" width="1" height="25"/>
+			</line>
+			<textField isStretchWithOverflow="true" pattern="dd.MM.yyyy" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToBandHeight" x="500" y="0" width="50" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{datestartplan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="dd.MM.yyyy" isBlankWhenNull="true">
+				<reportElement key="textField-8" stretchType="RelativeToBandHeight" x="550" y="0" width="50" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{datefinalplan}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

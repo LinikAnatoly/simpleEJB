@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="graph_AnalyseRemont" pageWidth="842" pageHeight="595" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="832" leftMargin="5" rightMargin="5" topMargin="5" bottomMargin="5" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="MONTHSTART" class="java.lang.String"/>
+	<parameter name="MONTHFINAL" class="java.lang.String"/>
+	<parameter name="YEARSTART" class="java.lang.String"/>
+	<parameter name="YEARFINAL" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[with sel as (
+	/* планы + факты */
+	 select
+	 sum(plan_cost_visokop) as plan_cost_visokop
+	,sum(fact_cost_visokop) as fact_cost_visokop
+	,floor((sum(fact_cost_visokop)/sum(plan_cost_visokop))*100) as diff_visokop
+
+	,sum(plan_cost_goloprist) as plan_cost_goloprist
+	,sum(fact_cost_goloprist) as fact_cost_goloprist
+	,floor((sum(fact_cost_goloprist)/sum(plan_cost_goloprist))*100) as diff_goloprist
+
+	,sum(plan_cost_skadovsk) as plan_cost_skadovsk
+	,sum(fact_cost_skadovsk) as fact_cost_skadovsk
+	,floor((sum(fact_cost_skadovsk)/sum(plan_cost_skadovsk))*100) as diff_skadovsk
+
+	,sum(plan_cost_oleshki) as plan_cost_oleshki
+	,sum(fact_cost_oleshki) as fact_cost_oleshki
+	,floor((sum(fact_cost_oleshki)/sum(plan_cost_oleshki))*100) as diff_oleshki
+
+	,sum(plan_cost_v_lep) as plan_cost_v_lep
+	,sum(fact_cost_v_lep) as fact_cost_v_lep
+	,floor((sum(fact_cost_v_lep)/sum(plan_cost_v_lep))*100) as diff_v_lep
+
+	,sum(plan_cost_genichesk) as plan_cost_genichesk
+	,sum(fact_cost_genichesk) as fact_cost_genichesk
+	,floor((sum(fact_cost_genichesk)/sum(plan_cost_genichesk))*100) as diff_genichesk
+
+	,sum(plan_cost_kahovka) as plan_cost_kahovka
+	,sum(fact_cost_kahovka) as fact_cost_kahovka
+	,floor((sum(fact_cost_kahovka)/sum(plan_cost_kahovka))*100) as diff_kahovka
+
+	,sum(plan_cost_ivanovka) as plan_cost_ivanovka
+	,sum(fact_cost_ivanovka) as fact_cost_ivanovka
+	,floor((sum(fact_cost_ivanovka)/sum(plan_cost_ivanovka))*100) as diff_ivanovka
+
+	,sum(plan_cost_ntroick) as plan_cost_ntroick
+	,sum(fact_cost_ntroick) as fact_cost_ntroick
+	,floor((sum(fact_cost_ntroick)/sum(plan_cost_ntroick))*100) as diff_ntroick
+
+	,sum(plan_cost_chaplinka) as plan_cost_chaplinka
+	,sum(fact_cost_chaplinka) as fact_cost_chaplinka
+	,floor((sum(fact_cost_chaplinka)/sum(plan_cost_chaplinka))*100) as diff_chaplinka
+
+	,sum(plan_cost_nkahovka) as plan_cost_nkahovka
+	,sum(fact_cost_nkahovka) as fact_cost_nkahovka
+	,floor((sum(fact_cost_nkahovka)/sum(plan_cost_nkahovka))*100) as diff_nkahovka
+
+	,sum(plan_cost_hmem) as plan_cost_hmem
+	,sum(fact_cost_hmem) as fact_cost_hmem
+	,floor((sum(fact_cost_hmem)/sum(plan_cost_hmem))*100) as diff_hmem
+
+	from
+	(
+
+		/*планы*/
+		 select
+		 (SUM(cost_visokop)/1000)::numeric(15,2) as plan_cost_visokop
+		,(SUM(cost_goloprist)/1000)::numeric(15,2) as plan_cost_goloprist
+		,(SUM(cost_skadovsk)/1000)::numeric(15,2) as plan_cost_skadovsk
+		,(SUM(cost_oleshki)/1000)::numeric(15,2) as plan_cost_oleshki
+		,(SUM(cost_v_lep)/1000)::numeric(15,2) as plan_cost_v_lep
+		,(SUM(cost_genichesk)/1000)::numeric(15,2) as plan_cost_genichesk
+		,(SUM(cost_kahovka)/1000)::numeric(15,2) as plan_cost_kahovka
+		,(SUM(cost_ivanovka)/1000)::numeric(15,2) as plan_cost_ivanovka
+		,(SUM(cost_ntroick)/1000)::numeric(15,2) as plan_cost_ntroick
+		,(SUM(cost_chaplinka)/1000)::numeric(15,2) as plan_cost_chaplinka
+		,(SUM(cost_nkahovka)/1000)::numeric(15,2) as plan_cost_nkahovka
+		,(SUM(cost_hmem)/1000)::numeric(15,2) as plan_cost_hmem
+
+		,0 as fact_cost_visokop
+		,0 as fact_cost_goloprist
+		,0 as fact_cost_skadovsk
+		,0 as fact_cost_oleshki
+		,0 as fact_cost_v_lep
+		,0 as fact_cost_genichesk
+		,0 as fact_cost_kahovka
+		,0 as fact_cost_ivanovka
+		,0 as fact_cost_ntroick
+		,0 as fact_cost_chaplinka
+		,0 as fact_cost_nkahovka
+		,0 as fact_cost_hmem
+
+
+		from (
+		 select
+			 dname , departmentcode
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(7),','))::double precision) then cost else 0 end) as cost_visokop
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(8),','))::double precision) then cost else 0 end) as cost_goloprist
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(10),','))::double precision) then cost else 0 end) as cost_skadovsk
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(11),','))::double precision) then cost else 0 end) as cost_oleshki
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(12),','))::double precision) then cost else 0 end) as cost_v_lep
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(14),','))::double precision) then cost else 0 end) as cost_genichesk
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(17),','))::double precision) then cost else 0 end) as cost_kahovka
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(18),','))::double precision) then cost else 0 end) as cost_ivanovka
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(478),','))::double precision) then cost else 0 end) as cost_ntroick
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(479),','))::double precision) then cost else 0 end) as cost_chaplinka
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(480),','))::double precision) then cost else 0 end) as cost_nkahovka
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(481),','))::double precision) then cost else 0 end) as cost_hmem
+			   From
+			 (
+			SELECT
+			 SUM(COALESCE((SM.COST * ES.COUNTFACT), 0)) AS COST,   D.NAME AS DNAME, d.code as departmentcode
+			 FROM ENPLANWORK P , ENELEMENTDATA E ,TKMEASUREMENT EI,ENESTIMATEITEM ES,
+			TKMATERIALS SM LEFT JOIN ENRESPONSIBLES RS ON SM.RESPONSIBLESREFCODE = RS.CODE ,
+			ENDEPARTMENT D ,ENDEPARTMENT DB
+			WHERE P.CODE = ES.PLANREFCODE
+			AND P.DEPARTMENTREFCODE = D.CODE
+			AND P.BUDGETREFCODE = DB.CODE
+			AND P.ELEMENTREFCODE = E.ECODE
+			AND ES.MATERIALREFCODE = SM.CODE
+			AND EI.CODE=SM.MEASUREMENTCODE
+			AND P.KINDCODE = 2
+			AND ( (P.MONTHGEN BETWEEN $P!{MONTHSTART} AND $P!{MONTHFINAL}) AND ( P.YEARGEN BETWEEN $P!{YEARSTART} AND $P!{YEARFINAL} )  )
+			AND P.BUDGETREFCODE IN ( 75000001 , 75000005 , 75000006 , 75000012 , 500000005 , 500000007)
+			AND P.STATUSCODE NOT IN (2,6)
+			AND ES.COUNTFACT > 0
+			AND ES.KINDREFCODE  = 1
+			AND ES.STATUSREFCODE <> 5 /*УСЛОВИЕ ПО ЗАДАНИЮ*/
+			 /*ТИП РАБОТ + СТАТУС ПО ИНВЕСТ ПРОГРАММЕ*/
+			AND P.TYPEREFCODE NOT IN (5, 100, 106,111,112) /* БЮДЖЕТНЫЕ ПЛАНЫ УСЛОВИЕ ПО ЗАДАНИЮ */
+			AND P.TYPEREFCODE <> 11 -- ПЛАНЫ ПЕРЕВЕЗЕННЯ НЕ БЕРЕМ
+			and e.etype not in (19,20,29,79)
+			AND (  ( ES.PLANITEMREFCODE IS NULL )
+			      OR
+			      -- НЕ БЕРЕМ ЕСЛИ ИСТОЧНИК НОРМАТИВА "ПЕРЕВЕЗЕННЯ"
+			       ( 500000024 <> ( SELECT TKD.TECHCARDSOURCECODE FROM ENPLANWORKITEM PI , TKTECHCARD TKD
+			                                                     WHERE PI.KARTAREFCODE = TKD.CODE
+			                                                       AND PI.CODE = ES.PLANITEMREFCODE LIMIT 1  )
+			       )
+			    )
+
+			 --AND 480 IN GETDEPARTMENTCODESUP(D.CODE)
+			-- AND D.CODE = 480
+
+			 GROUP BY  D.CODE , D.NAME
+
+			) dat_plan
+
+			 group by dname , departmentcode
+		) as dat_sum_plan
+
+
+		union all
+		/*факты*/
+		select
+		 0 as plan_cost_visokop
+		,0 as plan_cost_goloprist
+		,0 as plan_cost_skadovsk
+		,0 as plan_cost_oleshki
+		,0 as plan_cost_v_lep
+		,0 as plan_cost_genichesk
+		,0 as plan_cost_kahovka
+		,0 as plan_cost_ivanovka
+		,0 as plan_cost_ntroick
+		,0 as plan_cost_chaplinka
+		,0 as plan_cost_nkahovka
+		,0 as plan_cost_hmem
+		,
+
+		 (SUM(cost_visokop)/1000)::numeric(15,2) as cost_visokop
+		,(SUM(cost_goloprist)/1000)::numeric(15,2) as cost_goloprist
+		,(SUM(cost_skadovsk)/1000)::numeric(15,2) as cost_skadovsk
+		,(SUM(cost_oleshki)/1000)::numeric(15,2) as cost_oleshki
+		,(SUM(cost_v_lep)/1000)::numeric(15,2) as cost_v_lep
+		,(SUM(cost_genichesk)/1000)::numeric(15,2) as cost_genichesk
+		,(SUM(cost_kahovka)/1000)::numeric(15,2) as cost_kahovka
+		,(SUM(cost_ivanovka)/1000)::numeric(15,2) as cost_ivanovka
+		,(SUM(cost_ntroick)/1000)::numeric(15,2) as cost_ntroick
+		,(SUM(cost_chaplinka)/1000)::numeric(15,2) as cost_chaplinka
+		,(SUM(cost_nkahovka)/1000)::numeric(15,2) as cost_nkahovka
+		,(SUM(cost_hmem)/1000)::numeric(15,2) as cost_hmem
+		from (
+		 select
+			 dname , departmentcode
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(7),','))::double precision) then cost else 0 end) as cost_visokop
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(8),','))::double precision) then cost else 0 end) as cost_goloprist
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(10),','))::double precision) then cost else 0 end) as cost_skadovsk
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(11),','))::double precision) then cost else 0 end) as cost_oleshki
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(12),','))::double precision) then cost else 0 end) as cost_v_lep
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(14),','))::double precision) then cost else 0 end) as cost_genichesk
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(17),','))::double precision) then cost else 0 end) as cost_kahovka
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(18),','))::double precision) then cost else 0 end) as cost_ivanovka
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(478),','))::double precision) then cost else 0 end) as cost_ntroick
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(479),','))::double precision) then cost else 0 end) as cost_chaplinka
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(480),','))::double precision) then cost else 0 end) as cost_nkahovka
+			,SUM(case when departmentcode in (select array2items(string_to_array(getdepartmentcodesdown(481),','))::double precision) then cost else 0 end) as cost_hmem
+			   From
+			 (
+		SELECT
+			 SUM(fin.cost) AS COST,   D.NAME AS DNAME, d.code as departmentcode
+			 FROM ENPLANWORK P , ENESTIMATEITEM ES, ENDEPARTMENT D , finmaterials fin , enact2enplanwork a2p , enact a
+			WHERE P.CODE = ES.PLANREFCODE
+			and p.code = a2p.plancode
+			and a2p.actrefcode = a.code
+			and es.code = fin.estimateitemrefcode
+			and fin.statusrefcode = 1
+			AND P.DEPARTMENTREFCODE = D.CODE
+			AND P.KINDCODE = 4
+			AND a.dategen  BETWEEN  to_date('01.'||$P{MONTHSTART} ||'.'|| $P{YEARSTART},'dd.mm.yyyy') and last_day(to_date('01.'||$P{MONTHFINAL} ||'.'|| $P{YEARFINAL},'dd.mm.yyyy'))
+			AND  P.BUDGETREFCODE IN ( 75000001 , 75000005 , 75000006 , 75000012 , 500000005 , 500000007)
+			AND P.STATUSCODE = 3
+			AND ES.COUNTFACT > 0
+			AND ES.KINDREFCODE  = 1
+			AND P.TYPEREFCODE NOT IN (5, 100, 106,111,112) /* БЮДЖЕТНЫЕ ПЛАНЫ УСЛОВИЕ ПО ЗАДАНИЮ */
+			AND P.TYPEREFCODE <> 11 -- ПЛАНЫ ПЕРЕВЕЗЕННЯ НЕ БЕРЕМ
+
+			AND (  ( ES.PLANITEMREFCODE IS NULL )
+			      OR
+			      -- НЕ БЕРЕМ ЕСЛИ ИСТОЧНИК НОРМАТИВА "ПЕРЕВЕЗЕННЯ"
+			       ( 500000024 <> ( SELECT TKD.TECHCARDSOURCECODE FROM ENPLANWORKITEM PI , TKTECHCARD TKD
+			                                                     WHERE PI.KARTAREFCODE = TKD.CODE
+			                                                       AND PI.CODE = ES.PLANITEMREFCODE LIMIT 1  )
+			       )
+			    )
+			 /*материалы до доработки - не попадают в акт, будут показываться в
+		    стоимости доработанного материала*/
+			  and es.code not in
+			    	(
+				select
+					es_beforerefined.code
+				from
+					enestimateitem as es_beforerefined inner join enestimateitem as es_refined on (es_beforerefined.planrefcode = es_refined.planrefcode
+																								and es_beforerefined.materialrefcode = es_refined.materialrefcode
+																					    		and (es_beforerefined.planitemrefcode = es_refined.planitemrefcode
+																					    		or es_refined.planitemrefcode is null))
+				where es_refined.kindrefcode = 4
+			      and es_beforerefined.kindrefcode = 1
+				  and es_beforerefined.planrefcode = p.code
+				)
+
+
+			 GROUP BY  D.CODE , D.NAME
+		) dat_fact
+
+			 group by dname , departmentcode
+		) as dat_sum_fact
+	) as dat_plan_fact
+)
+select 'Високопільський РЕМ' as res , plan_cost_visokop as plan , fact_cost_visokop as fact, diff_visokop as diff from sel
+union
+select 'Г.Пристанський РЕМ' as res , plan_cost_goloprist as plan , fact_cost_goloprist as fact, diff_goloprist as diff from sel
+union
+select 'Скадовський РЕМ' as res , plan_cost_skadovsk as plan , fact_cost_skadovsk as fact, diff_skadovsk as diff from sel
+union
+select 'Олешківський РЕМ' as res , plan_cost_oleshki as plan , fact_cost_oleshki as fact, diff_oleshki as diff from sel
+union
+select 'В.Лепетиський РЕМ' as res , plan_cost_v_lep as plan , fact_cost_v_lep as fact, diff_v_lep as diff from sel
+union
+select 'Генічеський РЕМ' as res , plan_cost_genichesk as plan , fact_cost_genichesk as fact, diff_genichesk as diff from sel
+union
+select 'Каховський РЕМ' as res , plan_cost_kahovka as plan , fact_cost_kahovka as fact, diff_kahovka as diff from sel
+union
+select 'Іванівський РЕМ' as res , plan_cost_ivanovka as plan , fact_cost_ivanovka as fact, diff_ivanovka as diff from sel
+union
+select 'Н.Троїцький РЕМ' as res , plan_cost_ntroick as plan , fact_cost_ntroick as fact, diff_ntroick as diff from sel
+union
+select 'Чаплинський РЕМ' as res , plan_cost_chaplinka as plan , fact_cost_chaplinka as fact, diff_chaplinka as diff from sel
+union
+select 'Н.Каховський РЕМ' as res , plan_cost_nkahovka as plan , fact_cost_nkahovka as fact, diff_nkahovka as diff from sel
+union
+select 'ХМЕМ' as res , plan_cost_hmem as plan , fact_cost_hmem as fact, diff_hmem as diff from sel
+
+--]]>
+	</queryString>
+	<field name="res" class="java.lang.String"/>
+	<field name="plan" class="java.math.BigDecimal"/>
+	<field name="fact" class="java.math.BigDecimal"/>
+	<field name="diff" class="java.math.BigDecimal"/>
+	<variable name="companyShortName" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyShortName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("company.shortname")]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="585" splitType="Immediate">
+			<barChart>
+				<chart isShowLegend="true" evaluationTime="Report" renderType="draw" theme="default">
+					<reportElement stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" mode="Transparent" x="19" y="47" width="813" height="483"/>
+					<chartTitle position="Top"/>
+					<chartSubtitle/>
+					<chartLegend position="Bottom"/>
+				</chart>
+				<categoryDataset>
+					<categorySeries>
+						<seriesExpression><![CDATA[" План, тис.грн."]]></seriesExpression>
+						<categoryExpression><![CDATA[$F{res}]]></categoryExpression>
+						<valueExpression><![CDATA[$F{plan}]]></valueExpression>
+					</categorySeries>
+					<categorySeries>
+						<seriesExpression><![CDATA["Факт ,тис.грн."]]></seriesExpression>
+						<categoryExpression><![CDATA[$F{res}]]></categoryExpression>
+						<valueExpression><![CDATA[$F{fact}]]></valueExpression>
+					</categorySeries>
+					<categorySeries>
+						<seriesExpression><![CDATA["Відсоток виконання ,%"]]></seriesExpression>
+						<categoryExpression><![CDATA[$F{res}]]></categoryExpression>
+						<valueExpression><![CDATA[$F{diff}]]></valueExpression>
+					</categorySeries>
+				</categoryDataset>
+				<barPlot isShowLabels="true" isShowTickLabels="true" isShowTickMarks="true">
+					<plot labelRotation="-30.0">
+						<seriesColor seriesOrder="0" color="#3300FF"/>
+						<seriesColor seriesOrder="1" color="#FF3333"/>
+						<seriesColor seriesOrder="2" color="#660066"/>
+					</plot>
+					<itemLabel>
+						<font size="8"/>
+					</itemLabel>
+					<categoryAxisFormat labelRotation="-30.0">
+						<axisFormat verticalTickLabels="false">
+							<labelFont>
+								<font size="10"/>
+							</labelFont>
+							<tickLabelFont>
+								<font size="10"/>
+							</tickLabelFont>
+						</axisFormat>
+					</categoryAxisFormat>
+					<valueAxisLabelExpression><![CDATA[]]></valueAxisLabelExpression>
+					<valueAxisFormat>
+						<axisFormat verticalTickLabels="false">
+							<tickLabelFont>
+								<font size="10"/>
+							</tickLabelFont>
+						</axisFormat>
+					</valueAxisFormat>
+				</barPlot>
+			</barChart>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" stretchType="RelativeToTallestObject" x="0" y="0" width="832" height="21"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Аналіз виконання ремонтів по " + $V{companyShortName} +
+" за період з "
++ new String(Integer.parseInt($P{MONTHSTART})==1 ? "Січень" :
+             Integer.parseInt($P{MONTHSTART})==2 ? "Лютий" :
+             Integer.parseInt($P{MONTHSTART})==3 ? "Березень" :
+             Integer.parseInt($P{MONTHSTART})==4 ? "Квітень" :
+             Integer.parseInt($P{MONTHSTART})==5 ? "Травень" :
+             Integer.parseInt($P{MONTHSTART})==6 ? "Червень" :
+             Integer.parseInt($P{MONTHSTART})==7 ? "Липень" :
+             Integer.parseInt($P{MONTHSTART})==8 ? "Серпень" :
+             Integer.parseInt($P{MONTHSTART})==9 ? "Вересень" :
+             Integer.parseInt($P{MONTHSTART})==10 ? "Жовтень" :
+             Integer.parseInt($P{MONTHSTART})==11 ? "Листопад" :
+             Integer.parseInt($P{MONTHSTART})==12 ? "Грудень" : "" )
++" "+$P{YEARSTART} +" р." +
+" по " + new String(Integer.parseInt($P{MONTHFINAL})==1 ? "Січень" :
+             Integer.parseInt($P{MONTHFINAL})==2 ? "Лютий" :
+             Integer.parseInt($P{MONTHFINAL})==3 ? "Березень" :
+             Integer.parseInt($P{MONTHFINAL})==4 ? "Квітень" :
+             Integer.parseInt($P{MONTHFINAL})==5 ? "Травень" :
+             Integer.parseInt($P{MONTHFINAL})==6 ? "Червень" :
+             Integer.parseInt($P{MONTHFINAL})==7 ? "Липень" :
+             Integer.parseInt($P{MONTHFINAL})==8 ? "Серпень" :
+             Integer.parseInt($P{MONTHFINAL})==9 ? "Вересень" :
+             Integer.parseInt($P{MONTHFINAL})==10 ? "Жовтень" :
+             Integer.parseInt($P{MONTHFINAL})==11 ? "Листопад" :
+             Integer.parseInt($P{MONTHFINAL})==12 ? "Грудень" : "" ) +" "+$P{YEARFINAL} +" р."]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band splitType="Stretch"/>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band/>
+	</summary>
+</jasperReport>

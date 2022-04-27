@@ -1,0 +1,642 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="VedUseTechniq2_subreport0" pageWidth="842" pageHeight="595" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="842" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="3.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="subcodeworkplan" class="java.lang.Double"/>
+	<parameter name="subcodeworkfact" class="java.lang.Double"/>
+	<queryString>
+		<![CDATA[/*додаток 2 выборка по строкам */
+SELECT
+
+( select
+
+   case when pw.staterefcode = 7 and pw.typerefcode <> 2 and pw.budgetrefcode not in (75000009, 75000011,500000040) then 'кол. Послуги'
+        when pw.staterefcode = 5 and pw.typerefcode <> 2 and pw.budgetrefcode not in (240000001, 75000009, 75000011,500000040) then 'кол. ПР'
+        when pw.staterefcode in (1,2) and pw.budgetrefcode not in (240000001, 75000009, 75000011,500000040) and pw.typerefcode <> 2 then 'кол. КР'
+        when pw.staterefcode = 3 and pw.budgetrefcode not in (240000001, 75000009, 75000011,500000040) and  pw.typerefcode <> 2 then 'кол. ТО'
+        when pw.staterefcode <> 7 and pw.typerefcode <> 2 and pw.budgetrefcode = 240000001 then 'кол. Енергозбут'
+        when pw.staterefcode not in (1, 3, 5, 7, 2) and pw.typerefcode <> 2  and pw.budgetrefcode not in (240000001, 75000009, 75000011,500000040) then 'кол. Інше'
+        when pw.typerefcode = 5 and pw.budgetrefcode = 75000009 then 'кол. ВКБ ІП'
+        when pw.typerefcode not in (2, 5) and pw.budgetrefcode = 75000009  then 'кол. ВКБ інше'
+        when pw.typerefcode <> 2 and pw.budgetrefcode = 75000011 then 'кол. ВРТУ'
+        when pw.typerefcode = 2  and pw.budgetrefcode <> 500000040  then 'кол. АВР'
+        when pw.budgetrefcode = 500000040  then 'кол. ОВБ'
+   else ''
+   end
+  from enplanworkitem pi , enplanwork pw
+   where pi.code = $P{subcodeworkplan}
+   and pi.planrefcode = pw.code
+) as explanation ,
+
+$P{subcodeworkplan} as subcodeworkplan
+      , nameavto
+      , gosnumber
+      , coalesce(sum( countworkplan ),0) as countworkplan
+      , coalesce(sum( kmplan ),0)        as kmplan
+      , coalesce(sum( itogo95plan ),0)   as itogo95plan
+      , coalesce(sum( itogo92plan ),0)   as itogo92plan
+      , coalesce(sum( itogo80plan ),0)   as itogo80plan
+      , coalesce(sum( itogodpplan ),0)   as itogodpplan
+      , coalesce(sum( countworkfact ),0) as countworkfact
+      , coalesce(sum( kmfact ),0)        as kmfact
+      , coalesce(sum( itogo95fact ),0)   as itogo95fact
+      , coalesce(sum( itogo92fact ),0)   as itogo92fact
+      , coalesce(sum( itogo80fact ),0)   as itogo80fact
+      , coalesce(sum( itogodpfact ),0)   as itogodpfact
+ From (
+SELECT  case when  nameavtoplan is null  then nameavtofact else nameavtoplan end as nameavto
+      , case when  gosnumberplan is null then gosnumberfact else gosnumberplan end as gosnumber
+      , countworkplan
+      , kmplan
+      , itogo95plan
+      , itogo92plan
+      , itogo80plan
+      , itogodpplan
+      , countworkfact
+      , kmfact
+      , itogo95fact
+      , itogo92fact
+      , itogo80fact
+      , itogodpfact
+From (
+select nameavto as nameavtoplan
+      , gosnumber as gosnumberplan
+      , countworkfact as  countworkplan
+      -- дистанция план
+
+      , ( select sum(coalesce(dist.distance , 0) )  as km
+          from    ENTRANSPORTITEM left join endistance dist on  dist.transportitemrefcode = ENTRANSPORTITEM.code
+          , enplanworkitem
+          , entransport2enestimate ,
+           enestimateitem
+            where ENTRANSPORTITEM.planitemrefcode = enplanworkitem.code and enplanworkitem.countgen<>0
+              and ENTRANSPORTITEM.code = sel1.ENTRANSPORTITEM_CODE  -- подвязались под строку машины
+              and entransport2enestimate.transportrefcode = entransportitem.code
+              and entransport2enestimate.estimaterefcode = enestimateitem.code
+              and enestimateitem.kindrefcode = 2
+              and enplanworkitem.code = enestimateitem.planitemrefcode) as kmplan
+      -- конец дистанции план
+      , case when fuelcode = 75000000 then litrikm + litritime else 0 end as  itogo95plan
+      , case when fuelcode = 75000001 then litrikm + litritime else 0 end as  itogo92plan
+      , case when fuelcode = 75000002 then litrikm + litritime else 0 end as  itogo80plan
+      , case when fuelcode = 75000003 then litrikm + litritime else 0 end as  itogodpplan
+      , null as nameavtofact
+      , null as gosnumberfact
+      , null as countworkfact
+      , null as kmfact
+      , null as  itogo95fact
+      , null as  itogo92fact
+      , null as  itogo80fact
+      , null as  itogodpfact
+      From(
+select ENTRANSPORTITEM.code as ENTRANSPORTITEM_CODE
+      , coalesce(trreal.name,'нормативний автотранспорт без прив''язки')as nameavto
+      , coalesce(trreal.gosnumber,'б\н') as gosnumber
+      --, coalesce(tfp.name,tfp_n.name) as fueltype
+      --, coalesce(tfp.code,tfp_n.code) as fuelcode /*28 10 2014 - тип топлива берем расчитанный для машины */
+      , (select tkfueltype.code from tkfueltype  where tkfueltype.materialrefcode = enestimateitem.materialrefcode  ) as fuelcode
+      , cast( sum(ENTRANSPORTITEM.countworkfact) as numeric (15,3)) as countworkfact
+      , coalesce(trreal.rashodprobeg , coalesce(ttmark.rashodprobeg,0) ) as rashodprobeg
+      , coalesce(trreal.rashodwork , coalesce(ttmark.rashodwork,0) ) as rashodwork
+      , coalesce( sum(enestimateitem.countfact),0) as litrikm
+      , 0 as litritime
+
+    from  ENTRANSPORTITEM inner join entransport2enestimate inner join
+           enestimateitem
+            on (entransport2enestimate.estimaterefcode = enestimateitem.code)
+            on ( entransport2enestimate.transportrefcode = entransportitem.code)
+            inner join tktransport tktransp on (ENTRANSPORTITEM.transportcode = tktransp.code)
+
+          , enplanworkitem
+          -- left join tktransportreal trreal on (ENTRANSPORTITEM.transportrealcode = trreal.code)
+          -- left join tkfueltype tfp on (trreal.fueltypecode = tfp.code)
+          , tktransportreal trreal inner join tktransportmark ttmark on (trreal.transportmarkcode = ttmark.code)
+                                  -- inner join tkfueltype tfp_n on (ttmark.fueltypecode = tfp_n.code)
+          --, tkfueltype tfp
+
+            where ENTRANSPORTITEM.planitemrefcode = enplanworkitem.code
+              and enplanworkitem.countgen<>0
+			  and enestimateitem.planitemrefcode = enplanworkitem.code
+              and ENTRANSPORTITEM.transportrealcode = trreal.code
+             -- and trreal.fueltypecode = tfp.code
+              and enplanworkitem.code =  $P{subcodeworkplan}
+GROUP BY ENTRANSPORTITEM.code,  trreal.name, trreal.gosnumber,
+trreal.rashodprobeg, trreal.rashodwork , -- tfp.name , tfp.code, tfp_n.name, tfp_n.code,
+ttmark.rashodprobeg, ttmark.rashodwork , enestimateitem.materialrefcode
+
+union all
+
+select -1 as ENTRANSPORTITEM_CODE,
+       'обладнання та інструменти' as nameavto,
+       '' as gosnumber,
+       --ft.name as fueltype,
+       ft.code as fuelcode,
+       pwi.timegen as countworkfact,
+       0 as rashodprobeg,
+       ( select sum(el2tk.kolvo) from
+           tkelement2techcard el2tk,
+                tkelement el,
+                tkmaterials m
+           where el2tk.techkartcode = tk.code
+             and el2tk.elementcode = el.code
+             and el.elementtypecode = 240000004
+             and m.elementcode = el.code
+             and m.code = ft.materialrefcode
+             ) as rashodwork,
+         0 as litrikm,
+         ei.countfact as  litritime
+           from enplanworkitem pwi, tktechcard tk,
+                enestimateitem ei, tkfueltype ft
+
+           where tk.code = pwi.kartarefcode
+           and pwi.code = $P{subcodeworkplan}
+           and tk.code in (1017017724,1017017725)
+           and ei.planitemrefcode = pwi.code
+           and ei.materialrefcode = ft.materialrefcode
+           and ei.kindrefcode = 1
+           and ei.materialrefcode in (75000843, 75000844, 500000120, 500002447)
+
+union all
+
+
+select -1 as ENTRANSPORTITEM_CODE,
+       'інше' as nameavto,
+       '' as gosnumber,
+      -- ft.name as fueltype,
+       ft.code as fuelcode,
+       pwi.timegen as countworkfact,
+       0 as rashodprobeg,
+       ( select sum(el2tk.kolvo) from
+           tkelement2techcard el2tk,
+                tkelement el,
+                tkmaterials m
+           where el2tk.techkartcode = tk.code
+             and el2tk.elementcode = el.code
+             and el.elementtypecode = 240000004
+             and m.elementcode = el.code
+             and m.code = ft.materialrefcode
+             and m.code = ei.materialrefcode
+             ) as rashodwork,
+         0 as litrikm,
+         ei.countfact as  litritime
+           from enplanworkitem pwi, tktechcard tk,
+                enestimateitem ei, tkfueltype ft
+
+           where tk.code = pwi.kartarefcode
+           and pwi.code = $P{subcodeworkplan}
+           and tk.code not in (1017017724,1017017725)
+           and ei.planitemrefcode = pwi.code
+           and ei.kindrefcode = 1
+           and ei.materialrefcode in (75000843, 75000844, 500000120, 500002447)
+           and ei.materialrefcode = ft.materialrefcode
+
+
+) sel1
+UNION  all /* all 10.09.2014*/
+select
+        null as nameavtoplan
+      , null as gosnumberplan
+      , null as countworkplan
+      , null as kmplan
+      , null as itogo95plan
+      , null as  itogo92plan
+      , null as  itogo80plan
+      , null as  itogodpplan
+      , nameavto as nameavtofact
+      , gosnumber as gosnumberfact
+      , countworkfact as countworkfact
+
+           -- дистанция факт
+      , (select sum(coalesce(dist.distance , 0) )  as km
+          from    ENTRANSPORTITEM left join endistance dist on  dist.transportitemrefcode = ENTRANSPORTITEM.code
+          , enplanworkitem
+          , entransport2enestimate ,
+           enestimateitem
+            where ENTRANSPORTITEM.planitemrefcode = enplanworkitem.code and enplanworkitem.countgen<>0
+              and ENTRANSPORTITEM.code = sel2.ENTRANSPORTITEM_CODE  -- подвязались под строку машины
+              and entransport2enestimate.transportrefcode = entransportitem.code
+              and entransport2enestimate.estimaterefcode = enestimateitem.code
+              and enestimateitem.kindrefcode = 2
+              and enplanworkitem.code = enestimateitem.planitemrefcode) as  kmfact
+      -- конец дистанции факт
+      , case when fuelcode = 75000000 then litrikm + litritime else 0 end as  itogo95fact
+      , case when fuelcode = 75000001 then litrikm + litritime else 0 end as  itogo92fact
+      , case when fuelcode = 75000002 then litrikm + litritime else 0 end as  itogo80fact
+      , case when fuelcode = 75000003 then litrikm + litritime else 0 end as  itogodpfact
+      From(
+select ENTRANSPORTITEM.code as ENTRANSPORTITEM_CODE
+      , coalesce(trreal.name,'нормативний автотранспорт без прив''язки')as nameavto
+      , coalesce(trreal.gosnumber,'б\н') as gosnumber
+     -- , coalesce(tfp.name,tfp_n.name) as fueltype
+     --, coalesce(tfp.code,tfp_n.code) as fuelcode /*28 10 2014 - тип топлива берем расчитанный для машины */
+      , (select tkfueltype.code from tkfueltype  where tkfueltype.materialrefcode = enestimateitem.materialrefcode  ) as fuelcode
+      , cast( sum(ENTRANSPORTITEM.countworkfact) as numeric (15,3)) as countworkfact
+      , coalesce(trreal.rashodprobeg , coalesce(ttmark.rashodprobeg,0) ) as rashodprobeg
+      , coalesce(trreal.rashodwork , coalesce(ttmark.rashodwork,0) ) as rashodwork
+      , coalesce( sum(enestimateitem.countfact),0) as litrikm
+      , 0 as litritime
+
+    from  ENTRANSPORTITEM inner join entransport2enestimate inner join
+           enestimateitem
+            on (entransport2enestimate.estimaterefcode = enestimateitem.code)
+            on ( entransport2enestimate.transportrefcode = entransportitem.code)
+            inner join tktransport tktransp on (ENTRANSPORTITEM.transportcode = tktransp.code)
+
+          , enplanworkitem
+          -- left join tktransportreal trreal on (ENTRANSPORTITEM.transportrealcode = trreal.code)
+          -- left join tkfueltype tfp on (trreal.fueltypecode = tfp.code)
+          , tktransportreal trreal inner join tktransportmark ttmark on (trreal.transportmarkcode = ttmark.code)
+                                  -- inner join tkfueltype tfp_n on (ttmark.fueltypecode = tfp_n.code)
+         -- , tkfueltype tfp
+		  --yyy--
+          , entravelsheet as ts
+          , entravelsheetitem as tv
+           ,entravlshttm2trnsprttm as tvti
+          --yyy--
+
+            where ENTRANSPORTITEM.planitemrefcode = enplanworkitem.code
+            and enplanworkitem.countgen<>0
+            and ENTRANSPORTITEM.transportrealcode = trreal.code
+           -- and trreal.fueltypecode = tfp.code
+			---yyy---
+              and ts.transportrealcode = trreal.code
+              and tv.travelsheetrefcode = ts.code
+              and tv.kindrefcode = 2 /*фактические*/
+              and tvti.travelsheetitemrefcode = tv.code
+              and ENTRANSPORTITEM.code = tvti.transportitemrefcode
+              and enestimateitem.kindrefcode = 2 /*пмм*/
+              ---yyy---
+            and enplanworkitem.code =  $P{subcodeworkfact}
+GROUP BY ENTRANSPORTITEM.code,  trreal.name, trreal.gosnumber,
+trreal.rashodprobeg, trreal.rashodwork , --tfp.name , tfp.code, tfp_n.name, tfp_n.code,
+ttmark.rashodprobeg, ttmark.rashodwork ,  enestimateitem.materialrefcode
+
+union all
+
+select -1 as ENTRANSPORTITEM_CODE,
+       'обладнання та інструменти' as nameavto,
+       '' as gosnumber,
+       -- ft.name as fueltype,
+       ft.code as fuelcode,
+       pwi.timegen as countworkfact,
+       0 as rashodprobeg,
+       ( select sum(el2tk.kolvo) from
+           tkelement2techcard el2tk,
+                tkelement el,
+                tkmaterials m
+           where el2tk.techkartcode = tk.code
+             and el2tk.elementcode = el.code
+             and el.elementtypecode = 240000004
+             and m.elementcode = el.code
+             and m.code = ft.materialrefcode
+             ) as rashodwork,
+         0 as litrikm,
+        -- ei.countfact as  litritime
+        (select sum(f.quantity) from finmaterials f where f.statusrefcode = 1 and f.estimateitemrefcode = ei.code ) as  litritime
+           from enplanworkitem pwi, tktechcard tk,
+                enestimateitem ei, tkfueltype ft
+
+           where tk.code = pwi.kartarefcode
+           and pwi.code = $P{subcodeworkfact}
+           and tk.code in (1017017724,1017017725)
+           and ei.planitemrefcode = pwi.code
+           and ei.materialrefcode = ft.materialrefcode
+           and ei.kindrefcode = 1
+           and ei.materialrefcode in (75000843, 75000844, 500000120, 500002447)
+           and exists (select f.code from finmaterials f where f.statusrefcode = 1 and f.estimateitemrefcode = ei.code )
+
+union all
+
+
+select -1 as ENTRANSPORTITEM_CODE,
+       'інше' as nameavto,
+       '' as gosnumber,
+      -- ft.name as fueltype,
+       ft.code as fuelcode,
+       pwi.timegen as countworkfact,
+       0 as rashodprobeg,
+       ( select sum(el2tk.kolvo) from
+           tkelement2techcard el2tk,
+                tkelement el,
+                tkmaterials m
+           where el2tk.techkartcode = tk.code
+             and el2tk.elementcode = el.code
+             and el.elementtypecode = 240000004
+             and m.elementcode = el.code
+             and m.code = ft.materialrefcode
+             and m.code = ei.materialrefcode
+             ) as rashodwork,
+         0 as litrikm,
+         --ei.countfact as  litritime
+         (select sum(f.quantity) from finmaterials f where f.statusrefcode = 1 and f.estimateitemrefcode = ei.code ) as  litritime
+           from enplanworkitem pwi, tktechcard tk,
+                enestimateitem ei, tkfueltype ft
+
+           where tk.code = pwi.kartarefcode
+           and pwi.code = $P{subcodeworkfact}
+           and tk.code not in (1017017724,1017017725)
+           and ei.planitemrefcode = pwi.code
+           and ei.kindrefcode = 1
+           and ei.materialrefcode in (75000843, 75000844, 500000120, 500002447)
+           and ei.materialrefcode = ft.materialrefcode
+           and exists (select f.code from finmaterials f where f.statusrefcode = 1 and f.estimateitemrefcode = ei.code )
+
+
+) Sel2
+) Selunion
+) SelNa
+group by nameavto , gosnumber]]>
+	</queryString>
+	<field name="nameavto" class="java.lang.String"/>
+	<field name="countworkplan" class="java.lang.Double"/>
+	<field name="kmplan" class="java.lang.Double"/>
+	<field name="itogo95plan" class="java.lang.Double"/>
+	<field name="itogo92plan" class="java.lang.Double"/>
+	<field name="itogo80plan" class="java.lang.Double"/>
+	<field name="itogodpplan" class="java.lang.Double"/>
+	<field name="countworkfact" class="java.lang.Double"/>
+	<field name="kmfact" class="java.lang.Double"/>
+	<field name="itogo95fact" class="java.lang.Double"/>
+	<field name="itogo92fact" class="java.lang.Double"/>
+	<field name="itogo80fact" class="java.lang.Double"/>
+	<field name="itogodpfact" class="java.lang.Double"/>
+	<field name="gosnumber" class="java.lang.String"/>
+	<field name="explanation" class="java.lang.String"/>
+	<variable name="sum80objectplan" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{itogo80plan}]]></variableExpression>
+	</variable>
+	<variable name="sum80objectfact" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{itogo80fact}]]></variableExpression>
+	</variable>
+	<variable name="sum95objectfact" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{itogo95fact}]]></variableExpression>
+	</variable>
+	<variable name="sum95objectplan" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{itogo95plan}]]></variableExpression>
+	</variable>
+	<variable name="sum92objectfact" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{itogo92fact}]]></variableExpression>
+	</variable>
+	<variable name="sum92objectplan" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{itogo92plan}]]></variableExpression>
+	</variable>
+	<variable name="sumdpobjectfact" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{itogodpfact}]]></variableExpression>
+	</variable>
+	<variable name="sumdpobjectplan" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{itogodpplan}]]></variableExpression>
+	</variable>
+	<variable name="summh_objectplan" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{countworkplan}]]></variableExpression>
+	</variable>
+	<variable name="summh_objectfact" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{countworkfact}]]></variableExpression>
+	</variable>
+	<variable name="sumkm_objectplan" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{kmplan}]]></variableExpression>
+	</variable>
+	<variable name="sumkm_objectfact" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{kmfact}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Prevent"/>
+	</columnHeader>
+	<detail>
+		<band height="10" splitType="Prevent">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" mode="Transparent" x="110" y="0" width="80" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nameavto}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-11" stretchType="RelativeToTallestObject" mode="Transparent" x="360" y="0" width="30" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countworkplan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" mode="Transparent" x="420" y="0" width="30" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kmplan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-13" stretchType="RelativeToTallestObject" mode="Transparent" x="480" y="0" width="30" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogo95plan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-14" stretchType="RelativeToTallestObject" mode="Transparent" x="540" y="0" width="30" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogo92plan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-15" stretchType="RelativeToTallestObject" mode="Transparent" x="600" y="0" width="30" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogo80plan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-16" stretchType="RelativeToTallestObject" mode="Transparent" x="660" y="0" width="30" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogodpplan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-17" stretchType="RelativeToTallestObject" mode="Transparent" x="390" y="0" width="30" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countworkfact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-18" stretchType="RelativeToTallestObject" mode="Transparent" x="450" y="0" width="30" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kmfact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-19" stretchType="RelativeToTallestObject" mode="Transparent" x="510" y="0" width="30" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogo95fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-20" stretchType="RelativeToTallestObject" mode="Transparent" x="570" y="0" width="30" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogo92fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-21" stretchType="RelativeToTallestObject" mode="Transparent" x="630" y="0" width="30" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogo80fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-22" stretchType="RelativeToTallestObject" mode="Transparent" x="690" y="0" width="30" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogodpfact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-23" stretchType="RelativeToTallestObject" mode="Transparent" x="0" y="0" width="110" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Гос.ном " + $F{gosnumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" mode="Transparent" x="190" y="0" width="170" height="10" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{explanation}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

@@ -1,0 +1,678 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ExaminationTransport" pageWidth="1420" pageHeight="842" orientation="Landscape" whenNoDataType="NoDataSection" columnWidth="1360" leftMargin="30" rightMargin="30" topMargin="20" bottomMargin="20" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="0.75"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="transportDepartmentCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Код транспортного подразделения]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(-1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="transportDepartmentName" class="java.lang.String">
+		<parameterDescription><![CDATA[Наименование транспортного подразделения]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new String("Невідомо")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="transportTypeCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Код типа транспорта]]></parameterDescription>
+	</parameter>
+	<parameter name="transportTypeName" class="java.lang.String">
+		<parameterDescription><![CDATA[Наименование транспортного типа]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new String("Не задано")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="realTransportCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Код автотранспорта]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(-1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="realTransportName" class="java.lang.String">
+		<parameterDescription><![CDATA[Наименование автотранспорта]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new String("Не задано")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateStart" class="java.util.Date">
+		<parameterDescription><![CDATA[Дата початку]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Date()]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateFinal" class="java.util.Date">
+		<parameterDescription><![CDATA[Дата кінця періоду]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Date()]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select
+wo.dategen as dategen
+, ts.transportrealcode
+, ma.name
+, re.gosnumber
+, string_agg(distinct cast(pw.departmentrefcode as varchar), ',') as department_codes
+, string_agg(distinct cast(pw.elementrefcode as varchar), ',') as object_codes
+, string_agg(distinct cast(tv.code as varchar), ',')  as travelsheet_item_codes
+, string_agg(distinct cast(pw.code as varchar), ',')  as plan_codes
+, 0 as transportorder_type
+from
+entravelsheetitem as tv
+inner join entravelsheet as ts on ts.code = tv.travelsheetrefcode
+inner join tktransportreal as re on ts.transportrealcode = re.code
+inner join tktransport as tt on re.transportcode = tt.code
+inner join tktransportmark as ma on re.transportmarkcode = ma.code
+inner join entravlshttm2trnsprttm as tvti on tvti.travelsheetitemrefcode = tv.code
+inner join entransportitem as ti on tvti.transportitemrefcode = ti.code
+inner join enplanwork as pw on ti.planrefcode = pw.code
+inner join enworkorder2enplanwork as wopw on pw.code = wopw.plancode
+inner join enworkorder as wo on wopw.workordercode = wo.code
+where
+wo.dategen between $P{dateStart} and $P{dateFinal}
+and re.transportdepartmntrfcd = $P{transportDepartmentCode}
+and case
+		when $P{transportTypeCode} = -1
+        then 1 = 1
+        else tt.transportclassifictncd = $P{transportTypeCode}
+	end
+and case
+		when $P{realTransportCode}= -1
+        then 1 = 1
+        else re.code = $P{realTransportCode}
+	end
+group by
+ts.transportrealcode
+, tt.transportclassifictncd
+, ma.name
+, re.gosnumber
+, wo.dategen
+
+union all
+
+select
+ wo.dategen
+ , -1 as transportrealcode
+ , '' as name
+ , '' as gosnumber
+, string_agg(distinct cast(pw.departmentrefcode as varchar), ',') as department_codes
+, string_agg(distinct cast(pw.elementrefcode as varchar), ',') as object_codes
+, string_agg(distinct cast(tor.code as varchar), ',')  as travelsheet_item_codes
+, string_agg(distinct cast(pw.code as varchar), ',')  as plan_codes
+, 1 as transportroder_type
+ from
+entransportorder as tor
+inner join enplanwork as pw on tor.planrefcode = pw.code
+inner join enworkorder2enplanwork as wopw on pw.code = wopw.plancode
+inner join enworkorder as wo on wopw.workordercode = wo.code
+where
+not exists (select 1 from entransportorder2travl as totv where totv.transportordercode = tor.code)
+and tor.parentrefcode is null
+and wo.dategen between $P{dateStart} and $P{dateFinal}
+and tor.transportdepartmentcod = $P{transportDepartmentCode}
+and case when $P{transportTypeCode} != -1 then -1 = -2 else -1 = -1 end
+and case when $P{realTransportCode} != -1 then -1 = -2 else -1 = -1 end
+and case
+		when $P{transportTypeCode} = -1
+        then 1 = 1
+        else exists (select 1 from tktransport as tt1 where tt1.transportclassifictncd = $P{transportTypeCode} and tt1.code = tor.transportcode)
+	end
+group by
+wo.dategen
+
+order by transportrealcode desc, dategen desc]]>
+	</queryString>
+	<field name="dategen" class="java.sql.Date"/>
+	<field name="transportrealcode" class="java.lang.Double"/>
+	<field name="name" class="java.lang.String"/>
+	<field name="gosnumber" class="java.lang.String"/>
+	<field name="department_codes" class="java.lang.String"/>
+	<field name="object_codes" class="java.lang.String"/>
+	<field name="travelsheet_item_codes" class="java.lang.String"/>
+	<field name="plan_codes" class="java.lang.String"/>
+	<field name="transportorder_type" class="java.lang.Integer"/>
+	<variable name="transport_real_exclude_codes" class="java.lang.String" incrementType="Column">
+		<variableExpression><![CDATA[$V{transport_real_exclude_codes} + ", " + $F{transportrealcode}.toString()]]></variableExpression>
+		<initialValueExpression><![CDATA[new String("-1")]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="157" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="false">
+				<reportElement key="textField-18" x="0" y="0" width="1210" height="157"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="24"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Графік завантаження автотранспорту" + "\n" +
+" за період з " + new SimpleDateFormat("dd.MM.yyyy").format($P{dateStart}) +
+" по " + new SimpleDateFormat("dd.MM.yyyy").format($P{dateFinal}) + "\n" +
+" по транспортному підрозділу: " + $P{transportDepartmentName} + "\n" +
+($P{transportTypeCode} == -1 ? "" : " по классифікації: " + $P{transportTypeName} + "\n") +
+($P{realTransportCode} == -1 ? "" : " по транспорту: " + $P{realTransportName} + "\n" )]]></textFieldExpression>
+			</textField>
+			<rectangle>
+				<reportElement x="1210" y="33" width="30" height="30" backcolor="#00FF00"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="1240" y="33" width="120" height="30"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[- планова загрузка]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="1210" y="103" width="30" height="30" backcolor="#0000FF"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="1240" y="103" width="120" height="30"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[- фактична
+загрузка]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="75" splitType="Stretch">
+			<staticText>
+				<reportElement key="staticText-2" x="640" y="0" width="720" height="50"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Время]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-11" x="670" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[1
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-12" x="700" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[2]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-13" x="730" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[3]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-14" x="760" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[4]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-15" x="790" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[5]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-16" x="820" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[6]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-17" x="850" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[7]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-18" x="880" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[8]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-19" x="910" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[9]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-20" x="940" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[10
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-21" x="970" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[11
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-22" x="1000" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[12
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-24" x="240" y="0" width="120" height="75"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Підрозділ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-18" x="1240" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[20]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-14" x="1120" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[16]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-20" x="1300" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[22]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-16" x="1180" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[18]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-19" x="1270" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[21]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-22" x="640" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[0]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-12" x="1060" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[14]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-11" x="1030" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[13]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-17" x="1210" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[19]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-15" x="1150" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[17]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-21" x="1330" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[23]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-13" x="1090" y="50" width="30" height="25"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[15]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-1" x="160" y="0" width="80" height="75"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Дата]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-24" x="360" y="0" width="120" height="75"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Найменування об'єкту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-1" x="0" y="0" width="160" height="75"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Автотранспорт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-24" x="480" y="0" width="80" height="75"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Наряд-завдання]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-24" x="560" y="0" width="80" height="75"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Подорожній лист (К - командировка)]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="30" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="false">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" x="0" y="0" width="160" height="30"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11" isBold="false"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{name} + " " + $F{gosnumber}]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" stretchType="RelativeToTallestObject" mode="Transparent" x="160" y="0" width="1200" height="30"/>
+				<subreportParameter name="planCodes">
+					<subreportParameterExpression><![CDATA[$F{plan_codes}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="travelSheetItemCodes">
+					<subreportParameterExpression><![CDATA[$F{travelsheet_item_codes}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="departmentCodes">
+					<subreportParameterExpression><![CDATA[$F{department_codes}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="transportorder_type">
+					<subreportParameterExpression><![CDATA[$F{transportorder_type}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="date">
+					<subreportParameterExpression><![CDATA[$F{dategen}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="objectCodes">
+					<subreportParameterExpression><![CDATA[$F{object_codes}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/Timetables/ExaminationTransport/ExaminationTransport_subrep0.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="30" splitType="Stretch">
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" positionType="Float" stretchType="RelativeToTallestObject" mode="Transparent" x="0" y="0" width="1360" height="30">
+					<printWhenExpression><![CDATA[$P{realTransportCode} == -1]]></printWhenExpression>
+				</reportElement>
+				<subreportParameter name="transportDepartmentCode">
+					<subreportParameterExpression><![CDATA[$P{transportDepartmentCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="excluded_transport_real_codes">
+					<subreportParameterExpression><![CDATA[$V{transport_real_exclude_codes}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="transportTypeCode">
+					<subreportParameterExpression><![CDATA[$P{transportTypeCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="date">
+					<subreportParameterExpression><![CDATA[$P{dateFinal}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/Timetables/ExaminationTransport/ExaminationTransport_free_transport_subrep.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</summary>
+	<noData>
+		<band height="50">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="false">
+				<reportElement key="textField-18" x="0" y="0" width="610" height="50"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="24"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Немає даних для звіту з параметрами: \n" +
+" період: з " + new SimpleDateFormat("dd.MM.yyyy").format($P{dateStart}) + " по " + new SimpleDateFormat("dd.MM.yyyy").format($P{dateFinal}) + "\n" +
+($P{transportDepartmentCode} == -1 ? " " : "Транспортний підрозділ: " + $P{transportDepartmentName} + "\n") +
+($P{transportTypeCode} == -1 ? " " : "Тип транспорту: " + $P{transportTypeName} + "\n") +
+($P{transportTypeCode} == -1 ? " " : "Тип транспорту: " + $P{transportTypeName} + "\n")]]></textFieldExpression>
+			</textField>
+		</band>
+	</noData>
+</jasperReport>

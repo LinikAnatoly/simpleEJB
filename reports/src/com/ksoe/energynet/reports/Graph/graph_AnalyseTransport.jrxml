@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="graph_AnalyseTransport_sub" printOrder="Horizontal" pageWidth="842" pageHeight="685" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="832" leftMargin="5" rightMargin="5" topMargin="5" bottomMargin="5" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="transportClassification" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[5]]></defaultValueExpression>
+	</parameter>
+	<parameter name="transportdepartment" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new String("10000")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="monthGen" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("03")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="yearGen" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("2013")]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select* , 30 as off_cnt,
+case when $P{transportClassification} > 0 then
+(select name from tktransportclassifictn where tktransportclassifictn.code = $P{transportClassification} )
+else 'Всі классіфікації транспорту' end as trclassname,
+case when $P{transportdepartment}  > 0 then
+(select name from entransportdepartment where entransportdepartment.code = $P{transportdepartment} )
+else 'Всі підрозділи транспорту' end as trdepname
+ from generate_series(0,(
+select case when (count(distinct tr.code)::numeric(15,2)/30)::numeric(15) = 1 then 0 else
+ (count(distinct tr.code)::numeric(15,2)/30)::numeric(15) end
+from      tktransport tt, tktransportreal tr left join
+     entravelsheet ts on
+     (tr.code = ts.transportrealcode
+     and ts.datestart between to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy')
+     and last_day(to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy')))
+where (tr.transportdepartmntrfcd = $P{transportdepartment} or $P{transportdepartment} = 0 )
+and tr.transportcode = tt.code
+and (tt.transportclassifictncd  = $P{transportClassification} or  $P{transportClassification} = 0)
+and   (select ts.code
+from tktransportstatus ts
+where ts.code in (select tktransportrealhistory.transportstatuscode from tktransportrealhistory
+where tktransportrealhistory.transportrealrefcode = tr.code
+and tktransportrealhistory.datestart = (select max(datestart) from tktransportrealhistory
+ where tktransportrealhistory.transportrealrefcode = tr.code
+ and (tktransportrealhistory.datestart <= last_day(to_date('01.' || $P{monthGen}|| '.' || $P{yearGen},'dd.MM.yyyy') )
+ or tktransportrealhistory.datefinal = NULL)))) = 75000000
+)::integer) as cnt]]>
+	</queryString>
+	<field name="cnt" class="java.lang.Integer"/>
+	<field name="off_cnt" class="java.lang.Integer"/>
+	<field name="trclassname" class="java.lang.String"/>
+	<field name="trdepname" class="java.lang.String"/>
+	<variable name="companyShortName" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyShortName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("company.shortname")]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="68" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" stretchType="RelativeToTallestObject" x="0" y="0" width="832" height="68"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Аналіз завантаження транспорту по " + $V{companyShortName} + " \n" +
+" за період " + $P{monthGen} + "." + $P{yearGen} + "\n" +
+" Классіфікація транспорту: " + $F{trclassname} + "\n" +
+" Підрозділ транспорту: " + $F{trdepname}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="585">
+			<subreport>
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="832" height="585"/>
+				<subreportParameter name="cnt">
+					<subreportParameterExpression><![CDATA[$F{cnt}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="monthGen">
+					<subreportParameterExpression><![CDATA[$P{monthGen}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="yearGen">
+					<subreportParameterExpression><![CDATA[$P{yearGen}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="off_cnt">
+					<subreportParameterExpression><![CDATA[$F{off_cnt}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="transportClassification">
+					<subreportParameterExpression><![CDATA[$P{transportClassification}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="transportdepartment">
+					<subreportParameterExpression><![CDATA[$P{transportdepartment}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/Graph/graph_AnalyseTransport_sub.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band/>
+	</summary>
+</jasperReport>

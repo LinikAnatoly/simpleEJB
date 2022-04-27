@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="DSTNumberConsumerAppeals_sub" pageWidth="1200" pageHeight="595" orientation="Landscape" columnWidth="1180" leftMargin="0" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="start_date_from" class="java.lang.String"/>
+	<parameter name="start_date_to" class="java.lang.String"/>
+	<parameter name="isFromSiteName" class="java.lang.String"/>
+	<parameter name="contracttype" class="java.lang.Integer"/>
+	<parameter name="isprom" class="java.lang.Integer"/>
+	<parameter name="wfDepatmentCode" class="java.lang.Integer"/>
+	<queryString>
+		<![CDATA[--SUPP-91384
+select * from (
+select dstp.id, dstp.id_pack_status,
+(
+select CAST(startdate as timestamp) from dst_movement
+where
+id_pack=dstp.id
+order by startdate
+limit 1
+)as startdatetime,
+(
+select CAST(startdate as date) from dst_movement
+where
+id_pack=dstp.id
+order by startdate
+limit 1
+)as startdatem,
+(
+select CAST(startdate as time) from dst_movement
+where
+id_pack=dstp.id
+order by startdate
+limit 1
+)as starttime,
+dstp.reg_num_spl_contract, dstp.name as nameCustemer, dstp.isprom,
+case
+	when dstp.isprom = 1then
+    	'Юридичний'
+    ELSE
+    	'Побутовий'
+end as ispromname,
+dstp.isfromsite,
+case
+	when dstp.isfromsite = 1 then
+    	'YES'
+    		ELSE
+    	'NO'
+end as isfromsitename,
+dstp.contracttype,
+dstc.name as nameServices, cren.name as nameRen, cren.id as idRen, cren.wfDepatmentCode
+ from cn.dst_packages dstp, dst_contacttypes dstc, cn.cn_ren cren
+where
+dstp.contracttype=dstc.id_type
+and dstp.isprom=dstc.is_prom
+and dstp.id_ren = cren.id
+and dstp.id_pack_status<>1000
+) as dstpm
+	where
+    1=1
+ and   (
+                      case
+                              /*Поиск по Дате начального состояния*/
+                          when ($P{start_date_from} = '') and ($P{start_date_to} = '')then
+                         		1=1
+                          when ($P{start_date_from} <> '') and ($P{start_date_to} = '')then
+                              (dstpm.startdatem >= to_date($P{start_date_from}, 'dd.MM.yyyy'))
+                          when ($P{start_date_from} = '') and ($P{start_date_to} <> '') then
+                              (dstpm.startdatem <= to_date($P{start_date_to}, 'dd.MM.yyyy'))
+                          when ($P{start_date_from} <> '') and ($P{start_date_to} <> '') then
+                              (dstpm.startdatem BETWEEN to_date($P{start_date_from}, 'dd.MM.yyyy') and to_date($P{start_date_to}, 'dd.MM.yyyy'))
+                      end
+    )
+ and   (
+                              /*Поиск по Онлайн*/
+                          (dstpm.isfromsitename = $P{isFromSiteName} or '' = $P{isFromSiteName})
+
+    )
+ and   (
+                              /*Поиск по Найменування послуги*/
+                          (dstpm.contracttype = $P{contracttype} or -1 = $P{contracttype})
+
+    )
+ and   (
+                              /*Поиск по Тип замовника*/
+                          (dstpm.isprom = $P{isprom} or -1 = $P{isprom})
+
+    )
+ and   (
+                              /*Поиск по Підрозділ*/
+                          (dstpm.wfDepatmentCode = $P{wfDepatmentCode} or -1 = $P{wfDepatmentCode})
+
+    )
+order by dstpm.nameCustemer]]>
+	</queryString>
+	<field name="id" class="java.lang.Double"/>
+	<field name="id_pack_status" class="java.lang.Double"/>
+	<field name="startdatetime" class="java.sql.Timestamp"/>
+	<field name="startdatem" class="java.sql.Date"/>
+	<field name="starttime" class="java.sql.Time"/>
+	<field name="reg_num_spl_contract" class="java.lang.String"/>
+	<field name="namecustemer" class="java.lang.String"/>
+	<field name="isprom" class="java.lang.Double"/>
+	<field name="ispromname" class="java.lang.String"/>
+	<field name="isfromsite" class="java.lang.Double"/>
+	<field name="isfromsitename" class="java.lang.String"/>
+	<field name="contracttype" class="java.lang.Double"/>
+	<field name="nameservices" class="java.lang.String"/>
+	<field name="nameren" class="java.lang.String"/>
+	<field name="idren" class="java.lang.Double"/>
+	<field name="wfdepatmentcode" class="java.lang.Integer"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="30" splitType="Stretch">
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="34" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{REPORT_COUNT}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="34" y="0" width="168" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{startdatetime}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="202" y="0" width="338" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{namecustemer}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="540" y="0" width="204" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nameservices}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="744" y="0" width="132" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ispromname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="876" y="0" width="64" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{isfromsitename}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="940" y="0" width="168" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nameren}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

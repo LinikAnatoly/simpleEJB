@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="sub_EstItems_Child" pageWidth="56" pageHeight="226" whenNoDataType="BlankPage" columnWidth="56" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="planworkcode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="number" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select one_pwi.tknumber, T2.* from
+
+(select enplanworkitem.code as pwicode, tktechcard.techkartnumber as tknumber from enplanworkitem
+inner join enplanwork on enplanworkitem.planrefcode = enplanwork.code
+inner join enestimateitem on enestimateitem.planitemrefcode = enplanworkitem.code
+inner join tktechcard on enplanworkitem.kartarefcode = tktechcard.code
+where enplanworkitem.planrefcode = $P{planworkcode}
+and enplanwork.statuscode not in (2,6) and enplanworkitem.countgen > 0
+group by enplanworkitem.code, tktechcard.techkartnumber
+having count(enestimateitem.code) > 0
+order by pwicode
+limit 1 offset ($P{number}-1)) as one_pwi
+
+inner join
+
+(SELECT massive.*,
+case when coalesce(estim.countfact, 0) = 0 then '–' else cast(estim.countfact::decimal as varchar(255)) end as countfact
+FROM
+
+(select * from
+(select
+mat.code as matcode, mat.name as matname, sum(ei.countfact) as sumfact
+from enestimateitem ei
+inner join enplanworkitem pwi on ei.planitemrefcode = pwi.code
+inner join tkmaterials mat on ei.materialrefcode = mat.code
+where ei.countfact>0
+and pwi.countgen>0
+and ei.planrefcode = $P{planworkcode}
+/*and ei.statusrefcode in (1,2,3)*/
+group by mat.code, mat.name, mat.measurementcode) as mat
+,
+(select pwitem.code as pwicode from enplanworkitem pwitem
+inner join enplanwork pw on pwitem.planrefcode = pw.code
+where pwitem.planrefcode = $P{planworkcode} and pw.statuscode not in (2, 6)
+and pwitem.countgen > 0)
+as pwi) as massive
+
+LEFT JOIN
+
+(
+select w.matcode, w.pwicode, sum(w.countfact) as countfact
+from (
+select ei.materialrefcode as matcode, ei.planitemrefcode as pwicode,
+
+/* sum(ei.countfact) as countfact */
+/* NET-4420... нормативное плановое кол-во материала показывать как подвязанное из остатков.... */
+case when ei.kindrefcode = 1 then sum(coalesce(fm.quantity,0))
+   else sum(ei.countfact) end as countfact
+
+from enestimateitem ei
+left join finmaterials fm on fm.estimateitemrefcode = ei.code and fm.statusrefcode = 1
+where ei.countfact>0 and ei.planrefcode = $P{planworkcode} /* and ei.statusrefcode in (1,2,3)*/
+group by ei.materialrefcode, ei.planitemrefcode, ei.kindrefcode ) w
+group by matcode, pwicode
+) as estim
+
+ON  (massive.matcode = estim.matcode and massive.pwicode = estim.pwicode)) AS T2
+
+on one_pwi.pwicode = T2.pwicode
+order by matname, matcode]]>
+	</queryString>
+	<field name="tknumber" class="java.lang.String"/>
+	<field name="matcode" class="java.lang.Double"/>
+	<field name="matname" class="java.lang.String"/>
+	<field name="sumfact" class="java.lang.Double"/>
+	<field name="pwicode" class="java.lang.Double"/>
+	<field name="countfact" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="26" splitType="Stretch">
+			<staticText>
+				<reportElement key="staticText-1" x="0" y="13" width="28" height="13"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[П]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-2" x="28" y="13" width="28" height="13"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Ф*]]></text>
+			</staticText>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-14" x="0" y="0" width="56" height="13"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tknumber}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="13" splitType="Stretch">
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-12" x="28" y="0" width="28" height="13"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-13" x="0" y="0" width="28" height="13"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countfact}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

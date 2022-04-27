@@ -1,0 +1,773 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="fs_object" pageWidth="1410" pageHeight="595" orientation="Landscape" whenNoDataType="NoDataSection" columnWidth="1350" leftMargin="30" rightMargin="30" topMargin="20" bottomMargin="20" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="departmentrefcode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(-1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="datestart" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("01.07.2012")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="datefinal" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("01.07.2012")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="isnotenergozbyt" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="departmentrefname" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("aaa")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="groupByTravelSheet" class="java.lang.Integer">
+		<parameterDescription><![CDATA[групировка по путевым листам при отображении транспорта фактического
+1 - групируем по путевому
+0 - склеиваем в строку]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="elementCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Код объекта: если -1, то выбираются все]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(-1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="transportDepartmentCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Код подразделения транспорта: если -1 - то выбираются все]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(-1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="fuelTypeCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Код типа топлива: если -1 - то выбираются все]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(-1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="tktransportRealCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Код реального транспорта, если равен -1, то выбираются все]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(-1)]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[Select distinct
+el.code ,
+dep.code,
+dep.name as depname,
+to_char(pw.datestart,'mm'),
+case when to_char(pw.datestart,'mm') = '01' then 'Січень'
+              when to_char(pw.datestart,'mm') = '02' then 'Лютий'
+              when to_char(pw.datestart,'mm') = '03' then 'Березень'
+              when to_char(pw.datestart,'mm') = '04' then 'Квітень'
+              when to_char(pw.datestart,'mm') = '05' then 'Травень'
+              when to_char(pw.datestart,'mm') = '06' then 'Червень'
+              when to_char(pw.datestart,'mm') = '07' then 'Липень'
+              when to_char(pw.datestart,'mm') = '08' then 'Серпень'
+              when to_char(pw.datestart,'mm') = '09' then 'Вересень'
+              when to_char(pw.datestart,'mm') = '10' then 'Жовтень'
+              when to_char(pw.datestart,'mm') = '11' then 'Листопад'
+              when to_char(pw.datestart,'mm') = '12' then 'Грудень'
+            end||' '||to_char(pw.datestart,'yyyy') as period,
+(select eld.ename from enelementdata eld where eld.ecode = el.code ) as elname ,
+(select eld.invnumber from enelementdata eld where eld.ecode = el.code ) as invnumber ,
+pw.code as codemonthplan
+from
+enplanwork pw , enelement el, endepartment dep
+ where pw.kindcode = 2
+ and pw.elementrefcode = el.code
+ and case when $P{departmentrefcode} = -1 then 1=1 else pw.departmentrefcode = $P{departmentrefcode} end
+
+  and exists (select plan_code from
+				(select distinct plan_month.code as plan_code from
+				enplanwork as plan_month inner join enplancorrecthistory as history_month on plan_month.code = history_month.planoldrefcode
+				inner join enplanwork as plan_plan on history_month.plannewrefcode = plan_plan.code
+				where history_month.reasoncode = 4 /*Перенос у НПЗ*/
+                             	and plan_plan.datestart between to_date($P{datestart},'dd.mm.yyyy') and to_date($P{datefinal},'dd.mm.yyyy')
+				and not exists (select pcho.planoldrefcode from enplancorrecthistory as pcho where pcho.planoldrefcode = plan_plan.code)
+                		/*если задано транспортное подразделение или реальный транспорт
+                		, то запрос смотрит только на фактические планы*/
+                		and $P{transportDepartmentCode} = -1
+                		and $P{tktransportRealCode} = -1
+
+				union all
+
+				select distinct plan_month.code as plan_code from
+				enplanwork as plan_month inner join enplancorrecthistory as history_month on plan_month.code = history_month.planoldrefcode
+				inner join enplanwork as plan_plan on history_month.plannewrefcode = plan_plan.code
+				inner join enplancorrecthistory as history_plan on plan_plan.code = history_plan.planoldrefcode
+				inner join enplanwork as plan_fact on history_plan.plannewrefcode = plan_fact.code
+            			inner join entransportitem as ti_fact on ti_fact.planrefcode = plan_fact.code
+				inner join tktransportreal as tr on ti_fact.transportrealcode = tr.code
+                inner join tktransportrealhistory as trh on (tr.code = trh.transportrealrefcode and trh.transportdepartmntrfcd is not null and trh.datestart <= plan_fact.datestart and coalesce(trh.datefinal,to_date('31.12.9999','dd.MM.yyyy')) >= plan_fact.datestart)
+				inner join entransport2enestimate as ties on ti_fact.code = ties.transportrefcode
+            			inner join entravlshttm2trnsprttm as tvti on tvti.transportitemrefcode = ti_fact.code
+             			where
+            			history_month.reasoncode = 4 /*Перенос у НПЗ*/
+				and history_plan.reasoncode = 5 /*Перенос у Факт*/
+                		and plan_fact.datestart between to_date($P{datestart},'dd.mm.yyyy') and to_date($P{datefinal},'dd.mm.yyyy')
+				and ($P{transportDepartmentCode} = -1 or trh.transportdepartmntrfcd = $P{transportDepartmentCode})
+				and ($P{tktransportRealCode} = -1 or tr.code = $P{tktransportRealCode})
+
+				union all
+
+				select distinct plan_month.code as plan_code from
+				enplanwork as plan_month
+				where
+                		plan_month.datestart between to_date($P{datestart},'dd.mm.yyyy') and to_date($P{datefinal},'dd.mm.yyyy')
+				and not exists(select pcho.planoldrefcode from enplancorrecthistory as pcho where pcho.planoldrefcode = plan_month.code)
+                		/*если задано транспортное подразделение или реальный транспорт
+                		, то запрос смотрит только на фактические планы*/
+                		and $P{transportDepartmentCode} = -1
+                		and $P{tktransportRealCode} = -1) as query
+	where plan_code = pw.code)
+ and pw.departmentrefcode = dep.code
+ and (
+    (  pw.budgetrefcode <> 240000001 and $P{isnotenergozbyt}  = 1  )
+     or
+    (  1 = 1 and $P{isnotenergozbyt}  = -1  )
+     )
+-- and pw.code in (select ei.planrefcode from enestimateitem ei where ei.planrefcode = pw.code and ei.kindrefcode = 2 /*только ПММ*/   )
+ and pw.statuscode not in (2,6)
+ and case when $P{elementCode} = -1 then 1=1 else el.code = $P{elementCode} end
+/*Если выбран тип топлива, то ставиться ограничение - выбирать только те месячные планы в нпз
+и фактах, которых есть это топливо*/
+and case
+	when $P{fuelTypeCode} = -1
+	then 1=1
+	else case
+    		when $P{transportDepartmentCode} = -1
+            then exists (select plan_code, fuel_code from
+							(select distinct plan_month.code as plan_code, fu.code as fuel_code from
+							enplanwork as plan_month inner join enplancorrecthistory as history_month on plan_month.code = history_month.planoldrefcode
+							inner join enplanwork as plan_plan on history_month.plannewrefcode = plan_plan.code
+            				inner join entransportitem as ti_plan on ti_plan.planrefcode = plan_plan.code
+            				inner join entransport2enestimate as ties on ti_plan.code = ties.transportrefcode
+                    		inner join enestimateitem as es on ties.estimaterefcode = es.code
+                    		inner join tkmaterials as ma on es.materialrefcode = ma.code
+            				inner join tkfueltype as fu on ma.code = fu.materialrefcode
+						where
+							history_month.reasoncode = 4 /*Перенос у НПЗ*/
+
+						union all
+
+						select distinct plan_month.code as plan_code, fu.code as fuel_code from
+            				enplanwork as plan_month inner join enplancorrecthistory as history_month on plan_month.code = history_month.planoldrefcode
+            				inner join enplanwork as plan_plan on history_month.plannewrefcode = plan_plan.code
+            				inner join enplancorrecthistory as history_plan on plan_plan.code = history_plan.planoldrefcode
+            				inner join enplanwork as plan_fact on history_plan.plannewrefcode = plan_fact.code
+            				inner join entransportitem as ti_fact on ti_fact.planrefcode = plan_fact.code
+            				inner join entransportitem as ti_plan on ti_plan.planrefcode = plan_plan.code
+            				inner join entransport2enestimate as ties on ti_fact.code = ties.transportrefcode
+            				inner join entravlshttm2trnsprttm as tvti on tvti.transportitemrefcode = ti_fact.code
+            				inner join enestimateitem as es on ties.estimaterefcode = es.code
+					inner join tkmaterials as ma on es.materialrefcode = ma.code
+            				inner join tkfueltype as fu on ma.code = fu.materialrefcode
+            			where
+            				history_month.reasoncode = 4 /*Перенос у НПЗ*/
+							and history_plan.reasoncode = 5 /*Перенос у Факт*/) as query
+						where plan_code = pw.code
+						and fuel_code = $P{fuelTypeCode})
+            else
+            	exists (select distinct plan_month.code as plan_code, fu.code as fuel_code from
+            				enplanwork as plan_month inner join enplancorrecthistory as history_month on plan_month.code = history_month.planoldrefcode
+            				inner join enplanwork as plan_plan on history_month.plannewrefcode = plan_plan.code
+            				inner join enplancorrecthistory as history_plan on plan_plan.code = history_plan.planoldrefcode
+            				inner join enplanwork as plan_fact on history_plan.plannewrefcode = plan_fact.code
+            				inner join entransportitem as ti_fact on ti_fact.planrefcode = plan_fact.code
+            				inner join entransportitem as ti_plan on ti_plan.planrefcode = plan_plan.code
+            				inner join entransport2enestimate as ties on ti_fact.code = ties.transportrefcode
+            				inner join entravlshttm2trnsprttm as tvti on tvti.transportitemrefcode = ti_fact.code
+            				inner join enestimateitem as es on ties.estimaterefcode = es.code
+					inner join tkmaterials as ma on es.materialrefcode = ma.code
+            				inner join tkfueltype as fu on ma.code = fu.materialrefcode
+                            		inner join tktransportreal as re_fact on ti_fact.transportrealcode = re_fact.code
+            			where
+            				history_month.reasoncode = 4 /*Перенос у НПЗ*/
+							and history_plan.reasoncode = 5 /*Перенос у Факт*/
+                            and plan_month.code = pw.code
+                            and fu.code = $P{fuelTypeCode}
+                            and re_fact.code in (select re.transportrealrefcode from tktransportrealhistory as re where
+							re.transportdepartmntrfcd = $P{transportDepartmentCode}
+							and re.datestart <= plan_fact.datestart
+							and coalesce(re.datefinal,to_date('31.12.9999','dd.MM.yyyy')) >= plan_fact.datestart
+							and re.transportdepartmntrfcd is not null))
+            end
+   end
+order by to_char(pw.datestart,'mm'), dep.code, el.code]]>
+	</queryString>
+	<field name="code" class="java.lang.Integer"/>
+	<field name="elname" class="java.lang.String"/>
+	<field name="invnumber" class="java.lang.String"/>
+	<field name="codemonthplan" class="java.lang.Integer"/>
+	<field name="depname" class="java.lang.String"/>
+	<field name="period" class="java.lang.String"/>
+	<variable name="sum_gsm_dp" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_gsm_dp}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_80" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_gsm_80}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_92" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_gsm_92}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_95" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_gsm_95}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_80_norm" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_gsm_80_norm}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_dp_norm" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_gsm_dp_norm}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_95_norm" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_gsm_95_norm}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_92_norm" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_gsm_92_norm}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="fuelGPS" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{fuelGPS}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<group name="PeriodGroup">
+		<groupExpression><![CDATA[$F{period}]]></groupExpression>
+		<groupHeader>
+			<band height="20" splitType="Stretch">
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement key="textField-32" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="1350" height="20" isRemoveLineWhenBlank="true">
+						<printWhenExpression><![CDATA[new Boolean(false)]]></printWhenExpression>
+					</reportElement>
+					<box>
+						<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+						<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+						<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+						<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					</box>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Times New Roman" size="14" isBold="true" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{period}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band splitType="Stretch"/>
+		</groupFooter>
+	</group>
+	<group name="DepartmentName">
+		<groupExpression><![CDATA[$F{depname}]]></groupExpression>
+		<groupHeader>
+			<band height="20" splitType="Stretch">
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement key="textField-31" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="1350" height="20" isRemoveLineWhenBlank="true">
+						<printWhenExpression><![CDATA[new Boolean(true)]]></printWhenExpression>
+					</reportElement>
+					<box>
+						<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+						<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+						<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+						<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman" size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{depname}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band splitType="Stretch"/>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="47" splitType="Stretch">
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-17" x="0" y="0" width="1350" height="47"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA["Фактичне використання ПММ  " + $P{departmentrefname}  + " з "  +
+ $P{datestart} + " по " +
+ $P{datefinal}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="50" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-2" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="200" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Об`єкт"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-3" positionType="Float" stretchType="RelativeToTallestObject" x="200" y="0" width="200" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Транспорт нормативний"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-4" positionType="Float" stretchType="RelativeToTallestObject" x="400" y="0" width="50" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Відстань планова"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-5" positionType="Float" stretchType="RelativeToTallestObject" x="450" y="0" width="50" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["маш./год. план "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" positionType="Float" stretchType="RelativeToTallestObject" x="500" y="0" width="50" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ПММ(ДП) кільк. план "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-8" positionType="Float" stretchType="RelativeToTallestObject" x="700" y="0" width="200" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Транспорт фактичний"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-9" positionType="Float" stretchType="RelativeToTallestObject" x="1000" y="0" width="50" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Відстань факт."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" positionType="Float" stretchType="RelativeToTallestObject" x="1050" y="0" width="50" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["маш./год. факт."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-11" positionType="Float" stretchType="RelativeToTallestObject" x="1100" y="0" width="50" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ПММ(ДП) кільк. факт. "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" positionType="Float" stretchType="RelativeToTallestObject" x="1150" y="0" width="50" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ПММ(А-80) кільк. факт. "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-13" positionType="Float" stretchType="RelativeToTallestObject" x="900" y="0" width="100" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["№ ПЛ"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-14" positionType="Float" stretchType="RelativeToTallestObject" x="550" y="0" width="50" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ПММ(А-80) кільк. план"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-15" positionType="Float" stretchType="RelativeToTallestObject" x="600" y="0" width="50" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ПММ(А-92) кільк. план"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-16" positionType="Float" stretchType="RelativeToTallestObject" x="650" y="0" width="50" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ПММ(А-95) кільк. план"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-18" positionType="Float" stretchType="RelativeToTallestObject" x="1200" y="0" width="50" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ПММ(А-92) кільк. факт."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-19" positionType="Float" stretchType="RelativeToTallestObject" x="1250" y="0" width="50" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ПММ(А-95) кільк. факт."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" stretchType="RelativeToTallestObject" x="1300" y="0" width="50" height="50"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Использовано кол-во л. по GPS"]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Prevent">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="200" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{elname} + " инв. " + $F{invnumber}]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" positionType="Float" stretchType="RelativeToTallestObject" x="200" y="0" width="1150" height="20"/>
+				<subreportParameter name="codemonthplan">
+					<subreportParameterExpression><![CDATA[$F{codemonthplan}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="groupByTravelSheet">
+					<subreportParameterExpression><![CDATA[$P{groupByTravelSheet}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="transportDepartmentCode">
+					<subreportParameterExpression><![CDATA[$P{transportDepartmentCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="fuelTypeCode">
+					<subreportParameterExpression><![CDATA[$P{fuelTypeCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="tktransportRealCode">
+					<subreportParameterExpression><![CDATA[$P{tktransportRealCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="datestart">
+					<subreportParameterExpression><![CDATA[$P{datestart}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="datefinal">
+					<subreportParameterExpression><![CDATA[$P{datefinal}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<returnValue subreportVariable="sum_gsm_dp" toVariable="sum_gsm_dp" calculation="Sum"/>
+				<returnValue subreportVariable="sum_gsm_80" toVariable="sum_gsm_80" calculation="Sum"/>
+				<returnValue subreportVariable="sum_gsm_92" toVariable="sum_gsm_92" calculation="Sum"/>
+				<returnValue subreportVariable="sum_gsm_95" toVariable="sum_gsm_95" calculation="Sum"/>
+				<returnValue subreportVariable="sum_gsm_95_norm" toVariable="sum_gsm_95_norm" calculation="Sum"/>
+				<returnValue subreportVariable="sum_gsm_92_norm" toVariable="sum_gsm_92_norm" calculation="Sum"/>
+				<returnValue subreportVariable="sum_gsm_80_norm" toVariable="sum_gsm_80_norm" calculation="Sum"/>
+				<returnValue subreportVariable="sum_gsm_dp_norm" toVariable="sum_gsm_dp_norm" calculation="Sum"/>
+				<returnValue subreportVariable="fuelGPS_fact" toVariable="fuelGPS" calculation="Sum"/>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/Auto/fact_state_gsm2/fs_norm_transp.jasper")
+/*"D:\\Projects\\EnergyServerEclipse\\EnergyNet\\reports\\src\\com\\ksoe\\energynet\\reports\\Auto\\fact_state_gsm2\\fs_norm_transp.jasper"*/
+/*"C:\\iReport-3.0.0\\tmp\\fs_norm_transp.jasper"*/]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="30" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-20" positionType="Float" stretchType="RelativeToTallestObject" x="1100" y="0" width="50" height="30"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sum_gsm_dp}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-21" positionType="Float" stretchType="RelativeToTallestObject" x="1150" y="0" width="50" height="30"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sum_gsm_80}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-22" positionType="Float" stretchType="RelativeToTallestObject" x="1200" y="0" width="50" height="30"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sum_gsm_92}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-23" positionType="Float" stretchType="RelativeToTallestObject" x="1250" y="0" width="50" height="30"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sum_gsm_95}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-24" positionType="Float" stretchType="RelativeToTallestObject" x="500" y="0" width="50" height="30"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sum_gsm_dp_norm}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-25" positionType="Float" stretchType="RelativeToTallestObject" x="550" y="0" width="50" height="30"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sum_gsm_80_norm}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-26" positionType="Float" stretchType="RelativeToTallestObject" x="600" y="0" width="50" height="30"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sum_gsm_92_norm}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-27" positionType="Float" stretchType="RelativeToTallestObject" x="650" y="0" width="50" height="30"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sum_gsm_95_norm}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-28" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="200" height="30"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Всього ПММ "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-29" positionType="Float" stretchType="RelativeToTallestObject" x="200" y="0" width="300" height="30"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-30" positionType="Float" stretchType="RelativeToTallestObject" x="700" y="0" width="400" height="30"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" stretchType="RelativeToTallestObject" x="1300" y="0" width="50" height="30"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{fuelGPS}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+	<noData>
+		<band height="44">
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-17" x="0" y="0" width="500" height="44"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left"/>
+				<textFieldExpression><![CDATA["Для заданих параметрів не знайдено даних \n " +
+" підрозділ: "  + $P{departmentrefname}  +  "\n" +
+" період з "  +
+ $P{datestart} + " по " +
+ $P{datefinal}]]></textFieldExpression>
+			</textField>
+		</band>
+	</noData>
+</jasperReport>

@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="sbt_dodat3_get_report_str" pageWidth="860" pageHeight="535" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="860" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="2"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.2100000000000002"/>
+	<property name="ireport.x" value="183"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="Ppodr_name" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="Ppodrkod" class="java.lang.Integer"/>
+	<parameter name="pdate1" class="java.lang.String"/>
+	<parameter name="pdate2" class="java.lang.String"/>
+	<parameter name="sumhoursotpusk" class="java.math.BigDecimal"/>
+	<parameter name="fio_fin" class="java.lang.String"/>
+	<parameter name="post_fin" class="java.lang.String"/>
+	<parameter name="tabn_fin" class="java.lang.Integer"/>
+	<parameter name="plankind" class="java.lang.Integer"/>
+	<parameter name="podr_nazv" class="java.lang.String"/>
+	<parameter name="vv_count_personal" class="java.math.BigDecimal"/>
+	<parameter name="podr_nazv_main" class="java.lang.String"/>
+	<parameter name="tabn" class="java.lang.Integer"/>
+	<parameter name="fio" class="java.lang.String"/>
+	<parameter name="p_countworkhours" class="java.math.BigDecimal"/>
+	<queryString>
+		<![CDATA[select
+fio_worker ,
+name_position_fin ,
+sum(work_epr) as work_plan ,
+sum(work_enr) as work_not_plan ,
+sum(coalesce(deliverytimefact , 0)) as delivery_all_work ,
+period ,
+coalesce((select COALESCE(q.coefficient,1) from ENCOEFFICIENTEXECPLAN q
+        where q.finpodrcode = $P{Ppodrkod}
+        and q.dategen = first_day(to_date($P{pdate2},'dd.mm.yyyy'))
+),1) as coefficient
+
+      From (
+
+
+select (select  case when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '01' then 'Січень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '02' then 'Лютий'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '03' then 'Березень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '04' then 'Квітень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '05' then 'Травень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '06' then 'Червень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '07' then 'Липень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '08' then 'Серпень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '09' then 'Вересень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '10' then 'Жовтень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '11' then 'Листопад'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '12' then 'Грудень'
+            end  ) as period ,
+   $P{fio_fin}  as fio_worker ,
+   $P{post_fin} as name_position_fin  ,
+
+sum(work_epr) as work_epr ,
+sum(work_enr) as work_enr ,
+sum(deliverytimefact) as deliverytimefact
+
+
+
+From (
+Select
+baz_sel.fio_worker , baz_sel.positionname ,
+
+-------------------- работы в энергозбыте плановые и не плановые работы  ------------------------------------------
+/*колонка 14  */ case When baz_sel.formrefcode = 1 /* плановые работы  енергозбыт */
+                       Then coalesce(baz_sel.countfact,0 ) else 0 end as work_epr ,
+/*колонка 15 */  case When baz_sel.formrefcode = 2   /* неплановые  работы енергозбыт */
+                       Then coalesce(baz_sel.countfact,0 ) else 0 end as work_enr
+ ,
+ baz_sel.deliverytimefact
+
+ From (
+
+SELECT  enplanwork.code ,
+        enhumenitem.countfact ,
+        enplanwork.typerefcode as enp_typerefcode ,
+        enplanwork.staterefcode ,
+        finworker.name as fio_worker ,
+        finworker.positionname ,
+        sum( endeliverytime.deliverytimefact) as deliverytimefact ,
+        enhumenitem.code as humanitemcode ,
+        enplanwork.formrefcode
+
+          from enhumenitem   left join endeliverytime on (endeliverytime.humenitemrefcode = enhumenitem.code  )
+              , enplanworkitem , finworker , enplanwork
+                   Where  enhumenitem.planitemrefcode = enplanworkitem.code
+                     and  enplanworkitem.planrefcode = enplanwork.code
+                     and  coalesce(enhumenitem.countfact  , 0 ) <> 0
+                     and  enhumenitem.finworkercode = finworker.code
+                     and  enplanwork.datestart between to_date($P{pdate1} , 'dd.mm.yyyy') and to_date($P{pdate2},'dd.mm.yyyy')
+                     and  enplanwork.statuscode NOT IN (2,6)
+                     and  enplanwork.kindcode = $P{plankind}
+                     and  enplanworkitem.countgen <> 0
+                     and  enhumenitem.planrefcode = enplanwork.code
+                     and  finworker.tabnumber::integer = $P{tabn_fin}::integer
+                     and ( finworker.departmentcode = $P{Ppodrkod}::varchar
+                          or
+                             finworker.departmentcode in ( select q.axorgid from axorgid2fkorgid q
+                                                                            where q.fkorgid = $P{Ppodrkod}::varchar  )
+                           )
+                     and  finworker.kindrefcode = 2 /*Енергозбутовий  персонал*/
+
+group by enplanwork.code ,
+        enhumenitem.countfact ,
+        enplanwork.typerefcode ,
+        enplanwork.staterefcode ,
+        finworker.name ,
+        finworker.positionname ,
+        enhumenitem.code  ,
+        enplanwork.formrefcode
+) baz_sel
+) baz_sum
+group by baz_sum.fio_worker , baz_sum.positionname
+
+
+UNION
+select
+(select  case when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '01' then 'Січень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '02' then 'Лютий'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '03' then 'Березень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '04' then 'Квітень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '05' then 'Травень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '06' then 'Червень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '07' then 'Липень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '08' then 'Серпень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '09' then 'Вересень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '10' then 'Жовтень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '11' then 'Листопад'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '12' then 'Грудень'
+            end  ) as period  ,
+  $P{fio_fin} as fio_worker ,
+  $P{post_fin} as name_position_fin  ,
+
+
+0 as work_epr ,
+0 as work_enr ,
+0 as deliverytimefact
+  where not exists ( select finworker.code from
+             enhumenitem , finworker , enplanwork
+                   Where  enhumenitem.planrefcode = enplanwork.code
+                     and  coalesce(enhumenitem.countfact  , 0 ) <> 0
+                     and  enhumenitem.finworkercode = finworker.code
+                     and  enplanwork.datestart between to_date($P{pdate1}, 'dd.mm.yyyy') and to_date($P{pdate2},'dd.mm.yyyy')
+                     and  enplanwork.statuscode NOT IN (2,6)
+                     and  enplanwork.kindcode = $P{plankind}
+                     and  finworker.tabnumber::integer = $P{tabn_fin}::integer
+                     and   ( finworker.departmentcode = $P{Ppodrkod}::varchar
+                          or
+                             finworker.departmentcode in ( select q.axorgid from axorgid2fkorgid q
+                                                                            where q.fkorgid = $P{Ppodrkod}::varchar  )
+                           )
+                     and  finworker.kindrefcode = 2 /*Енергозбутовий  персонал*/
+               )
+
+
+) sel_zag
+
+group by period , fio_worker , name_position_fin
+
+
+order by fio_worker , name_position_fin]]>
+	</queryString>
+	<field name="work_plan" class="java.math.BigDecimal"/>
+	<field name="work_not_plan" class="java.math.BigDecimal"/>
+	<field name="fio_worker" class="java.lang.String"/>
+	<field name="name_position_fin" class="java.lang.String"/>
+	<field name="delivery_all_work" class="java.math.BigDecimal"/>
+	<field name="coefficient" class="java.math.BigDecimal"/>
+	<variable name="var_z_vr" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[($P{p_countworkhours}.subtract($P{sumhoursotpusk})).doubleValue() > 0 ?
+(((($P{p_countworkhours}.subtract($P{sumhoursotpusk}))
+.multiply(new BigDecimal(0.05))).
+add($F{delivery_all_work}).
+add($F{work_plan}).add($F{work_not_plan})
+).setScale(2, BigDecimal.ROUND_HALF_UP).divide($P{p_countworkhours}.subtract($P{sumhoursotpusk}),6, BigDecimal.ROUND_HALF_UP)
+).multiply(new BigDecimal(100)).setScale(2, BigDecimal.ROUND_HALF_UP)
+: new BigDecimal(0)]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_pb" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[$V{var_z_vr}.compareTo(new BigDecimal(100)) == 1 ? new BigDecimal(50) :
+(($V{var_z_vr}.compareTo(new BigDecimal(98)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(98)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(100)) == -1) ? new BigDecimal(45) :
+(($V{var_z_vr}.compareTo(new BigDecimal(96)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(96)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(98)) == -1) ? new BigDecimal(35) :
+(($V{var_z_vr}.compareTo(new BigDecimal(94)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(94)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(96)) == -1) ? new BigDecimal(30) :
+(($V{var_z_vr}.compareTo(new BigDecimal(92)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(92)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(94)) == -1) ? new BigDecimal(25) :
+(($V{var_z_vr}.compareTo(new BigDecimal(90)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(90)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(92)) == -1) ? new BigDecimal(20) :
+$V{var_z_vr}.compareTo(new BigDecimal(90)) == -1 ? new BigDecimal(0) : new BigDecimal(0)]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-12" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="340" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{p_countworkhours}.subtract($P{sumhoursotpusk})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-14" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="310" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{p_countworkhours}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-20" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="380" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($P{p_countworkhours}.subtract($P{sumhoursotpusk}))
+.multiply(new BigDecimal(0.05))]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-21" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="500" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{work_not_plan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-22" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="420" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{delivery_all_work}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-24" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="460" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{work_plan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-44" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="540" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[(($P{p_countworkhours}.subtract($P{sumhoursotpusk}))
+.multiply(new BigDecimal(0.05))).
+add($F{delivery_all_work}).
+add($F{work_plan}).add($F{work_not_plan})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-44" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="580" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{var_z_vr}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-44" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="620" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($P{p_countworkhours}.subtract($P{sumhoursotpusk})).doubleValue() > 0 ?
+($F{work_plan}.divide($P{p_countworkhours}.subtract($P{sumhoursotpusk}),6, BigDecimal.ROUND_HALF_UP)
+).multiply(new BigDecimal(100)).setScale(2, BigDecimal.ROUND_HALF_UP)
+: new BigDecimal(0)]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-44" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="660" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($P{p_countworkhours}.subtract($P{sumhoursotpusk})).doubleValue() > 0 ?
+($F{work_not_plan}.divide($P{p_countworkhours}.subtract($P{sumhoursotpusk}),6, BigDecimal.ROUND_HALF_UP)
+).multiply(new BigDecimal(100)).setScale(2, BigDecimal.ROUND_HALF_UP)
+: new BigDecimal(0)]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-44" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="700" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{var_pb}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-7" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="740" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{coefficient}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-7" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="780" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{var_pb}.multiply($F{coefficient}).setScale(2, BigDecimal.ROUND_HALF_UP)
+/*$V{var_z_vr}.compareTo(new BigDecimal(100)) == 1 ? new BigDecimal(50) :
+(($V{var_z_vr}.compareTo(new BigDecimal(98)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(98)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(100)) == -1) ? new BigDecimal(45) :
+(($V{var_z_vr}.compareTo(new BigDecimal(96)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(96)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(98)) == -1) ? new BigDecimal(35) :
+(($V{var_z_vr}.compareTo(new BigDecimal(94)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(94)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(96)) == -1) ? new BigDecimal(30) :
+(($V{var_z_vr}.compareTo(new BigDecimal(92)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(92)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(94)) == -1) ? new BigDecimal(25) :
+(($V{var_z_vr}.compareTo(new BigDecimal(90)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(90)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(92)) == -1) ? new BigDecimal(20) :
+$V{var_z_vr}.compareTo(new BigDecimal(90)) == -1 ? new BigDecimal(0) : new BigDecimal(0)
+*/]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-3" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="110" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{Ppodr_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0" isBlankWhenNull="true">
+				<reportElement key="textField-2" stretchType="RelativeToTallestObject" mode="Opaque" x="190" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{tabn}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-2" stretchType="RelativeToTallestObject" mode="Opaque" x="110" y="0" width="80" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{fio}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" mode="Opaque" x="230" y="0" width="80" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{post_fin}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0" isBlankWhenNull="true">
+				<reportElement key="textField-7" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="820" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)
+    $P{REPORT_SCRIPTLET}).getDaysWorked($P{pdate1},$P{pdate2},$P{tabn_fin}.toString(), new Boolean(true))]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+</jasperReport>

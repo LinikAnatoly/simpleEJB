@@ -1,0 +1,788 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="VedUseTechniq2_subreport2" pageWidth="535" pageHeight="802" whenNoDataType="AllSectionsNoDetail" columnWidth="535" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="elementName" class="java.lang.String">
+		<parameterDescription><![CDATA[наименование обьекта]]></parameterDescription>
+		<defaultValueExpression><![CDATA["  "]]></defaultValueExpression>
+	</parameter>
+	<parameter name="elementCode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="renName" class="java.lang.String">
+		<defaultValueExpression><![CDATA[" "]]></defaultValueExpression>
+	</parameter>
+	<parameter name="renCode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pdatefinal" class="java.lang.String">
+		<defaultValueExpression><![CDATA["31.01.2010"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pdatestart" class="java.lang.String">
+		<defaultValueExpression><![CDATA["01.01.2010"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="managementCode" class="java.lang.String"/>
+	<parameter name="budgCode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="budgName" class="java.lang.String">
+		<defaultValueExpression><![CDATA[" "]]></defaultValueExpression>
+	</parameter>
+	<parameter name="transportation" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[/*додаток 2 выборка итого */
+ SELECT
+       sum( countworkplan ) as countworkplan
+      , sum( kmplan )        as kmplan
+      , sum( itogo95plan )   as itogo95plan
+      , sum( itogo92plan )   as itogo92plan
+      , sum( itogo80plan )   as itogo80plan
+      , sum( itogodpplan )   as itogodpplan
+      , sum( countworkfact ) as countworkfact
+      , sum( kmfact )        as kmfact
+      , sum( itogo95fact )   as itogo95fact
+      , sum( itogo92fact )   as itogo92fact
+      , sum( itogo80fact )   as itogo80fact
+      , sum( itogodpfact )   as itogodpfact
+ From (
+SELECT case when  nameavtoplan is null  then nameavtofact else nameavtoplan end as nameavto
+      , countworkplan
+      , kmplan
+      , itogo95plan
+      , itogo92plan
+      , itogo80plan
+      , itogodpplan
+      , countworkfact
+      , kmfact
+      , itogo95fact
+      , itogo92fact
+      , itogo80fact
+      , itogodpfact
+From (
+select nameavto as nameavtoplan
+      , countworkfact as  countworkplan
+       -- дистанция план
+      , ( select sum(coalesce(dist.distance , 0) )  as km
+          from    ENTRANSPORTITEM left join endistance dist on  dist.transportitemrefcode = ENTRANSPORTITEM.code
+          , enplanworkitem
+          , entransport2enestimate ,
+           enestimateitem
+            where ENTRANSPORTITEM.planitemrefcode = enplanworkitem.code and enplanworkitem.countgen<>0
+              and ENTRANSPORTITEM.code = sel1.ENTRANSPORTITEM_CODE  -- подвязались под строку машины
+              and entransport2enestimate.transportrefcode = entransportitem.code
+              and entransport2enestimate.estimaterefcode = enestimateitem.code
+              and enestimateitem.kindrefcode = 2
+              and enplanworkitem.code = enestimateitem.planitemrefcode) as kmplan
+      -- конец дистанции план
+      , case when fuelcode = 75000000 then litrikm + litritime else 0 end as  itogo95plan
+      , case when fuelcode = 75000001 then litrikm + litritime else 0 end as  itogo92plan
+      , case when fuelcode = 75000002 then litrikm + litritime else 0 end as  itogo80plan
+      , case when fuelcode = 75000003 then litrikm + litritime else 0 end as  itogodpplan
+      , codeworkplan
+      , null as nameavtofact
+      , null as countworkfact
+      , null as kmfact
+      , null as  itogo95fact
+      , null as  itogo92fact
+      , null as  itogo80fact
+      , null as  itogodpfact
+      From(
+select ENTRANSPORTITEM.code as ENTRANSPORTITEM_CODE
+      , coalesce(trreal.name,'нормативний автотранспорт без прив''язки')as nameavto
+      , coalesce(trreal.gosnumber,'б\н') as gosnumber
+      , coalesce(tfp.name,tfp_n.name) as fueltype
+      , coalesce(tfp.code,tfp_n.code) as fuelcode
+      , cast( sum(ENTRANSPORTITEM.countworkfact) as numeric (15,3)) as countworkfact
+      , coalesce(trreal.rashodprobeg , coalesce(ttmark.rashodprobeg,0) ) as rashodprobeg
+      , coalesce(trreal.rashodwork , coalesce(ttmark.rashodwork,0) ) as rashodwork
+      , coalesce( sum(enestimateitem.countfact),0) as litrikm
+      , 0 as litritime
+      , enplanworkitem.code as codeworkplan
+
+    from  ENTRANSPORTITEM left join entransport2enestimate left join
+           enestimateitem
+            on (entransport2enestimate.estimaterefcode = enestimateitem.code)
+            on ( entransport2enestimate.transportrefcode = entransportitem.code)
+            left join tktransportreal trreal on (ENTRANSPORTITEM.transportrealcode = trreal.code)
+            left join tktransport tktransp on (ENTRANSPORTITEM.transportcode = tktransp.code)
+            left join tktransportmark ttmark on (tktransp.transportmarkcode = ttmark.code)
+            left join tkfueltype tfp on (trreal.fueltypecode = tfp.code)
+            left join tkfueltype tfp_n on (ttmark.fueltypecode = tfp_n.code)
+          , enplanworkitem
+
+            where ENTRANSPORTITEM.planitemrefcode = enplanworkitem.code and enplanworkitem.countgen<>0
+
+             and enplanworkitem.code in    /*подставляем код работы по плану */
+              (
+              SELECT
+         eni.code  as enicode_plan
+      From enplanwork enp left join enworkorder2enplanwork wo2pw on (wo2pw.plancode = enp.code)
+                        left join  enworkorder wo on (wo2pw.workordercode = wo.code),
+         enplanworkitem eni ,
+         endepartment d ,
+          endepartment db ,
+          endepartment manag , /*26.08.2010*/
+         enelement en ,
+         tktechcard tk
+
+  where enp.code = eni.planrefcode
+    and enp.departmentrefcode = d.code
+     And enp.budgetrefcode = db.code
+     and enp.budgetrefcode = manag.code /*26.08.2010*/
+     and manag.managementrefcode in $P!{managementCode} /*26.08.2010*/
+    and enp.elementrefcode = en.code
+    and eni.kartarefcode = tk.code
+    and eni.countgen <> 0
+    and enp.statuscode not in (2,6)
+    and enp.kindcode = 3 /* четко  НПЗ */
+    and enp.datestart >= to_date($P{pdatestart}, 'dd.mm.yyyy')
+    and enp.datestart <= to_date($P{pdatefinal}, 'dd.mm.yyyy')
+    and (enp.departmentrefcode =  $P{renCode}  or $P{renCode} = 0)
+    and enp.staterefcode <> 9 /*исключили ТУ*/
+    and (en.code = $P{elementCode} or $P{elementCode} = 0)
+    And ((enp.budgetrefcode = $P{budgCode}) or $P{budgCode} = 0)
+    and tk.code in $P!{transportation}
+              )
+GROUP BY ENTRANSPORTITEM.code,  trreal.name, trreal.gosnumber,
+trreal.rashodprobeg, trreal.rashodwork , tfp.name , tfp.code, tfp_n.name, tfp_n.code,
+ttmark.rashodprobeg, ttmark.rashodwork, enplanworkitem.code
+ ) sel1
+UNION
+select
+        null as nameavtoplan
+      , null as countworkplan
+      , null as kmplan
+      , null as  itogo95plan
+      , null as  itogo92plan
+      , null as  itogo80plan
+      , null as  itogodpplan
+      , codeworkfact
+      , nameavto as nameavtofact
+      , countworkfact as countworkfact
+                  -- дистанция факт
+      , (select sum(coalesce(dist.distance , 0) )  as km
+          from    ENTRANSPORTITEM left join endistance dist on  dist.transportitemrefcode = ENTRANSPORTITEM.code
+          , enplanworkitem
+          , entransport2enestimate ,
+           enestimateitem
+            where ENTRANSPORTITEM.planitemrefcode = enplanworkitem.code and enplanworkitem.countgen<>0
+              and ENTRANSPORTITEM.code = sel2.ENTRANSPORTITEM_CODE  -- подвязались под строку машины
+              and entransport2enestimate.transportrefcode = entransportitem.code
+              and entransport2enestimate.estimaterefcode = enestimateitem.code
+              and enestimateitem.kindrefcode = 2
+              and enplanworkitem.code = enestimateitem.planitemrefcode) as  kmfact
+      -- конец дистанции факт
+      , case when fuelcode = 75000000 then litrikm + litritime else 0 end as  itogo95fact
+      , case when fuelcode = 75000001 then litrikm + litritime else 0 end as  itogo92fact
+      , case when fuelcode = 75000002 then litrikm + litritime else 0 end as  itogo80fact
+      , case when fuelcode = 75000003 then litrikm + litritime else 0 end as  itogodpfact
+      From(
+select ENTRANSPORTITEM.code as ENTRANSPORTITEM_CODE
+      , coalesce(trreal.name,'нормативний автотранспорт без прив''язки')as nameavto
+      , coalesce(trreal.gosnumber,'б\н') as gosnumber
+      , coalesce(tfp.name,tfp_n.name) as fueltype
+      , coalesce(tfp.code,tfp_n.code) as fuelcode
+      , cast( sum(ENTRANSPORTITEM.countworkfact) as numeric (15,3)) as countworkfact
+      , coalesce(trreal.rashodprobeg , coalesce(ttmark.rashodprobeg,0) ) as rashodprobeg
+      , coalesce(trreal.rashodwork , coalesce(ttmark.rashodwork,0) ) as rashodwork
+      , coalesce( sum(enestimateitem.countfact),0) as litrikm
+      , 0 as litritime
+      ,  enplanworkitem.code as codeworkfact
+
+    from  ENTRANSPORTITEM left join entransport2enestimate left join
+           enestimateitem
+            on (entransport2enestimate.estimaterefcode = enestimateitem.code)
+            on ( entransport2enestimate.transportrefcode = entransportitem.code)
+            left join tktransportreal trreal on (ENTRANSPORTITEM.transportrealcode = trreal.code)
+            left join tktransport tktransp on (ENTRANSPORTITEM.transportcode = tktransp.code)
+            left join tktransportmark ttmark on (tktransp.transportmarkcode = ttmark.code)
+            left join tkfueltype tfp on (trreal.fueltypecode = tfp.code)
+            left join tkfueltype tfp_n on (ttmark.fueltypecode = tfp_n.code)
+          , enplanworkitem
+
+            where ENTRANSPORTITEM.planitemrefcode = enplanworkitem.code and enplanworkitem.countgen<>0
+              and enplanworkitem.code in
+                  -- выборка кодов работ для факта
+
+                   (SELECT
+         eni.code  as enicode_fact
+      From enplanwork enp left join enworkorder2enplanwork wo2pw on (wo2pw.plancode = enp.code)
+                        left join  enworkorder wo on (wo2pw.workordercode = wo.code),
+         enplanworkitem eni ,
+         endepartment d ,
+          endepartment db ,
+          endepartment manag , /*26.08.2010*/
+         enelement en ,
+         tktechcard tk
+
+  where enp.code = eni.planrefcode
+    and enp.departmentrefcode = d.code
+     And enp.budgetrefcode = db.code
+     and enp.budgetrefcode = manag.code /*26.08.2010*/
+     and manag.managementrefcode in $P!{managementCode} /*26.08.2010*/
+    and enp.elementrefcode = en.code
+    and eni.kartarefcode = tk.code
+    and eni.countgen <> 0
+    and enp.statuscode not in (2,6)
+    and enp.kindcode = 4 /* четко  ФАКТ */
+     and enp.datestart >= to_date($P{pdatestart}, 'dd.mm.yyyy')
+    and enp.datestart <= to_date($P{pdatefinal}, 'dd.mm.yyyy')
+    and (enp.departmentrefcode =  $P{renCode}  or $P{renCode} = 0)
+    and enp.staterefcode <> 9 /*исключили ТУ*/
+    and (en.code = $P{elementCode} or $P{elementCode} = 0)
+    And ((enp.budgetrefcode = $P{budgCode}) or $P{budgCode} = 0)
+    and tk.code in $P!{transportation}
+                    )
+GROUP BY ENTRANSPORTITEM.code,  trreal.name, trreal.gosnumber,
+trreal.rashodprobeg, trreal.rashodwork , tfp.name , tfp.code, tfp_n.name, tfp_n.code,
+ttmark.rashodprobeg, ttmark.rashodwork, enplanworkitem.code
+) sel2
+
+union
+
+select
+       nameavto as nameavtoplan
+      , countworkplan as countworkplan
+      , 0 as kmplan
+      , case when fuelcode = 75000000 then litrikm + litritime else 0 end as  itogo95plan
+      , case when fuelcode = 75000001 then litrikm + litritime else 0 end as  itogo92plan
+      , case when fuelcode = 75000002 then litrikm + litritime else 0 end as  itogo80plan
+      , case when fuelcode = 75000003 then litrikm + litritime else 0 end as  itogodpplan
+      , codeworkplan
+      , null as nameavtofact
+      , null as countworkfact
+      , null as kmfact
+      , null as  itogo95fact
+      , null as  itogo92fact
+      , null as  itogo80fact
+      , null as  itogodpfact
+from (
+
+select
+       'обладнання та інструменти' as nameavto,
+       '' as gosnumber,
+       ft.name as fueltype,
+       ft.code as fuelcode,
+       pwi.timegen as countworkplan,
+       0 as rashodprobeg,
+       ( select sum(el2tk.kolvo) from
+           tkelement2techcard el2tk,
+                tkelement el,
+                tkmaterials m
+           where el2tk.techkartcode = tk.code
+             and el2tk.elementcode = el.code
+             and el.elementtypecode = 240000004
+             and m.elementcode = el.code
+             and m.code = ft.materialrefcode
+             ) as rashodwork,
+         0 as litrikm,
+         ei.countfact as  litritime,
+         pwi.code as codeworkplan
+           from enplanworkitem pwi, tktechcard tk,
+                enestimateitem ei, tkfueltype ft
+
+           where tk.code = pwi.kartarefcode
+           and tk.code in (1017017724,11010112)
+           and ei.planitemrefcode = pwi.code
+           and ei.materialrefcode = ft.materialrefcode
+           and pwi.code in
+           (
+           SELECT
+         eni.code  as enicode_plan
+      From enplanwork enp left join enworkorder2enplanwork wo2pw on (wo2pw.plancode = enp.code)
+                        left join  enworkorder wo on (wo2pw.workordercode = wo.code),
+         enplanworkitem eni ,
+         endepartment d ,
+          endepartment db ,
+          endepartment manag , /*26.08.2010*/
+         enelement en ,
+         tktechcard tk
+
+  where enp.code = eni.planrefcode
+    and enp.departmentrefcode = d.code
+     And enp.budgetrefcode = db.code
+     and enp.budgetrefcode = manag.code /*26.08.2010*/
+     and manag.managementrefcode in $P!{managementCode} /*26.08.2010*/
+    and enp.elementrefcode = en.code
+    and eni.kartarefcode = tk.code
+    and eni.countgen <> 0
+    and enp.statuscode not in (2,6)
+    and enp.kindcode = 3 /* четко  НПЗ */
+    and enp.datestart >= to_date($P{pdatestart}, 'dd.mm.yyyy')
+    and enp.datestart <= to_date($P{pdatefinal}, 'dd.mm.yyyy')
+    and (enp.departmentrefcode =  $P{renCode}  or $P{renCode} = 0)
+    and enp.staterefcode <> 9 /*исключили ТУ*/
+    and (en.code = $P{elementCode} or $P{elementCode} = 0)
+    And ((enp.budgetrefcode = $P{budgCode}) or $P{budgCode} = 0)
+    and tk.code in $P!{transportation}
+           )
+
+ )  as sel3
+
+ union all
+
+select
+      null as nameavtoplan
+      , null as countworkplan
+      , null as kmplan
+      , null as  itogo95plan
+      , null as  itogo92plan
+      , null as  itogo80plan
+      , null as  itogodpplan
+      , codeworkfact
+      , nameavto as nameavtofact
+      , countworkfact as countworkfact
+      , 0 as kmfact
+      , case when fuelcode = 75000000 then litrikm + litritime else 0 end as  itogo95fact
+      , case when fuelcode = 75000001 then litrikm + litritime else 0 end as  itogo92fact
+      , case when fuelcode = 75000002 then litrikm + litritime else 0 end as  itogo80fact
+      , case when fuelcode = 75000003 then litrikm + litritime else 0 end as  itogodpfact
+from (
+
+select
+       'обладнання та інструменти' as nameavto,
+       '' as gosnumber,
+       ft.name as fueltype,
+       ft.code as fuelcode,
+       pwi.timegen as countworkfact,
+       0 as rashodprobeg,
+       ( select sum(el2tk.kolvo) from
+           tkelement2techcard el2tk,
+                tkelement el,
+                tkmaterials m
+           where el2tk.techkartcode = tk.code
+             and el2tk.elementcode = el.code
+             and el.elementtypecode = 240000004
+             and m.elementcode = el.code
+             and m.code = ft.materialrefcode
+             ) as rashodwork,
+         0 as litrikm,
+         ei.countfact as  litritime,
+         pwi.code as codeworkfact
+           from enplanworkitem pwi, tktechcard tk,
+                enestimateitem ei, tkfueltype ft
+
+           where tk.code = pwi.kartarefcode
+           and tk.code in (1017017724,11010112)
+           and ei.planitemrefcode = pwi.code
+           and ei.materialrefcode = ft.materialrefcode
+           and pwi.code in
+           (
+           SELECT
+         eni.code  as enicode_fact
+      From enplanwork enp left join enworkorder2enplanwork wo2pw on (wo2pw.plancode = enp.code)
+                        left join  enworkorder wo on (wo2pw.workordercode = wo.code),
+         enplanworkitem eni ,
+         endepartment d ,
+          endepartment db ,
+          endepartment manag , /*26.08.2010*/
+         enelement en ,
+         tktechcard tk
+
+  where enp.code = eni.planrefcode
+    and enp.departmentrefcode = d.code
+     And enp.budgetrefcode = db.code
+     and enp.budgetrefcode = manag.code /*26.08.2010*/
+     and manag.managementrefcode in $P!{managementCode} /*26.08.2010*/
+    and enp.elementrefcode = en.code
+    and eni.kartarefcode = tk.code
+    and eni.countgen <> 0
+    and enp.statuscode not in (2,6)
+    and enp.kindcode = 4 /* четко  ФАКТ */
+    and enp.datestart >= to_date($P{pdatestart}, 'dd.mm.yyyy')
+    and enp.datestart <= to_date($P{pdatefinal}, 'dd.mm.yyyy')
+    and (enp.departmentrefcode =  $P{renCode}  or $P{renCode} = 0)
+    and enp.staterefcode <> 9 /*исключили ТУ*/
+    and (en.code = $P{elementCode} or $P{elementCode} = 0)
+    And ((enp.budgetrefcode = $P{budgCode}) or $P{budgCode} = 0)
+    and tk.code in $P!{transportation}
+           )
+
+ )  as sel4
+
+ union
+
+select
+
+       nameavto as nameavtoplan
+      , countworkplan as countworkplan
+      , 0 as kmplan
+      , case when fuelcode = 75000000 then litrikm + litritime else 0 end as  itogo95plan
+      , case when fuelcode = 75000001 then litrikm + litritime else 0 end as  itogo92plan
+      , case when fuelcode = 75000002 then litrikm + litritime else 0 end as  itogo80plan
+      , case when fuelcode = 75000003 then litrikm + litritime else 0 end as  itogodpplan
+      , codeworkplan
+      , null as nameavtofact
+      , null as countworkfact
+      , null as kmfact
+      , null as  itogo95fact
+      , null as  itogo92fact
+      , null as  itogo80fact
+      , null as  itogodpfact
+from (
+
+select
+       'інше' as nameavto,
+       '' as gosnumber,
+       ft.name as fueltype,
+       ft.code as fuelcode,
+       pwi.timegen as countworkplan,
+       0 as rashodprobeg,
+       ( select sum(el2tk.kolvo) from
+           tkelement2techcard el2tk,
+                tkelement el,
+                tkmaterials m
+           where el2tk.techkartcode = tk.code
+             and el2tk.elementcode = el.code
+             and el.elementtypecode = 240000004
+             and m.elementcode = el.code
+             and m.code = ft.materialrefcode
+             and m.code = ei.materialrefcode
+             ) as rashodwork,
+         0 as litrikm,
+         ei.countfact as  litritime,
+         pwi.code as codeworkplan
+           from enplanworkitem pwi, tktechcard tk,
+                enestimateitem ei, tkfueltype ft
+
+           where tk.code = pwi.kartarefcode
+           and tk.code not in (1017017724,11010112)
+           and ei.planitemrefcode = pwi.code
+           and ei.materialrefcode = ft.materialrefcode
+           and ei.kindrefcode = 1
+           and ei.materialrefcode in (75000843, 75000844, 500000120, 500002447)
+           and pwi.code in
+           (
+           SELECT
+         eni.code  as enicode_plan
+      From enplanwork enp left join enworkorder2enplanwork wo2pw on (wo2pw.plancode = enp.code)
+                        left join  enworkorder wo on (wo2pw.workordercode = wo.code),
+         enplanworkitem eni ,
+         endepartment d ,
+          endepartment db ,
+          endepartment manag , /*26.08.2010*/
+         enelement en ,
+         tktechcard tk
+
+  where enp.code = eni.planrefcode
+    and enp.departmentrefcode = d.code
+     And enp.budgetrefcode = db.code
+     and enp.budgetrefcode = manag.code /*26.08.2010*/
+     and manag.managementrefcode in $P!{managementCode} /*26.08.2010*/
+    and enp.elementrefcode = en.code
+    and eni.kartarefcode = tk.code
+    and eni.countgen <> 0
+    and enp.statuscode not in (2,6)
+    and enp.kindcode = 3 /* четко  НПЗ */
+    and enp.datestart >= to_date($P{pdatestart}, 'dd.mm.yyyy')
+    and enp.datestart <= to_date($P{pdatefinal}, 'dd.mm.yyyy')
+    and (enp.departmentrefcode =  $P{renCode}  or $P{renCode} = 0)
+    and enp.staterefcode <> 9 /*исключили ТУ*/
+    and (en.code = $P{elementCode} or $P{elementCode} = 0)
+    And ((enp.budgetrefcode = $P{budgCode}) or $P{budgCode} = 0)
+    and tk.code in $P!{transportation}
+           )
+
+ )  as sel5
+
+ union all
+
+select
+      null as nameavtoplan
+      , null as countworkplan
+      , null as kmplan
+      , null as  itogo95plan
+      , null as  itogo92plan
+      , null as  itogo80plan
+      , null as  itogodpplan
+      , codeworkfact
+      , nameavto as nameavtofact
+      , countworkfact as countworkfact
+      , 0 as kmfact
+      , case when fuelcode = 75000000 then litrikm + litritime else 0 end as  itogo95fact
+      , case when fuelcode = 75000001 then litrikm + litritime else 0 end as  itogo92fact
+      , case when fuelcode = 75000002 then litrikm + litritime else 0 end as  itogo80fact
+      , case when fuelcode = 75000003 then litrikm + litritime else 0 end as  itogodpfact
+from (
+
+select
+       'інше' as nameavto,
+       '' as gosnumber,
+       ft.name as fueltype,
+       ft.code as fuelcode,
+       pwi.timegen as countworkfact,
+       0 as rashodprobeg,
+       ( select sum(el2tk.kolvo) from
+           tkelement2techcard el2tk,
+                tkelement el,
+                tkmaterials m
+           where el2tk.techkartcode = tk.code
+             and el2tk.elementcode = el.code
+             and el.elementtypecode = 240000004
+             and m.elementcode = el.code
+             and m.code = ft.materialrefcode
+             and m.code = ei.materialrefcode
+             ) as rashodwork,
+         0 as litrikm,
+         ei.countfact as  litritime,
+         pwi.code as codeworkfact
+           from enplanworkitem pwi, tktechcard tk,
+                enestimateitem ei, tkfueltype ft
+
+           where tk.code = pwi.kartarefcode
+           and tk.code not in (1017017724,11010112)
+           and ei.planitemrefcode = pwi.code
+           and ei.materialrefcode = ft.materialrefcode
+           and ei.kindrefcode = 1
+           and ei.materialrefcode in (75000843, 75000844, 500000120, 500002447)
+           and pwi.code in
+           (
+           SELECT
+         eni.code  as enicode_fact
+      From enplanwork enp left join enworkorder2enplanwork wo2pw on (wo2pw.plancode = enp.code)
+                        left join  enworkorder wo on (wo2pw.workordercode = wo.code),
+         enplanworkitem eni ,
+         endepartment d ,
+          endepartment db ,
+          endepartment manag , /*26.08.2010*/
+         enelement en ,
+         tktechcard tk
+
+  where enp.code = eni.planrefcode
+    and enp.departmentrefcode = d.code
+     And enp.budgetrefcode = db.code
+     and enp.budgetrefcode = manag.code /*26.08.2010*/
+    and manag.managementrefcode in $P!{managementCode} /*26.08.2010*/
+    and enp.elementrefcode = en.code
+    and eni.kartarefcode = tk.code
+    and eni.countgen <> 0
+    and enp.statuscode not in (2,6)
+    and enp.kindcode = 4 /* четко  ФАКТ */
+    and enp.datestart >= to_date($P{pdatestart}, 'dd.mm.yyyy')
+    and enp.datestart <= to_date($P{pdatefinal}, 'dd.mm.yyyy')
+    and (enp.departmentrefcode =  $P{renCode}  or $P{renCode} = 0)
+    and enp.staterefcode <> 9 /*исключили ТУ*/
+    and (en.code = $P{elementCode} or $P{elementCode} = 0)
+    And ((enp.budgetrefcode = $P{budgCode}) or $P{budgCode} = 0)
+    and tk.code in $P!{transportation}
+           )
+
+ )  as sel6
+
+
+
+) Selunion
+) SelNa]]>
+	</queryString>
+	<field name="countworkplan" class="java.math.BigDecimal"/>
+	<field name="kmplan" class="java.lang.Double"/>
+	<field name="itogo95plan" class="java.lang.Double"/>
+	<field name="itogo92plan" class="java.lang.Double"/>
+	<field name="itogo80plan" class="java.lang.Double"/>
+	<field name="itogodpplan" class="java.lang.Double"/>
+	<field name="countworkfact" class="java.math.BigDecimal"/>
+	<field name="kmfact" class="java.lang.Double"/>
+	<field name="itogo95fact" class="java.lang.Double"/>
+	<field name="itogo92fact" class="java.lang.Double"/>
+	<field name="itogo80fact" class="java.lang.Double"/>
+	<field name="itogodpfact" class="java.lang.Double"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" mode="Transparent" x="120" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogo95plan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-2" stretchType="RelativeToTallestObject" mode="Transparent" x="150" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogo95fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-3" stretchType="RelativeToTallestObject" mode="Transparent" x="180" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogo92plan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-4" stretchType="RelativeToTallestObject" mode="Transparent" x="210" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogo92fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-5" stretchType="RelativeToTallestObject" mode="Transparent" x="240" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogo80plan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-6" stretchType="RelativeToTallestObject" mode="Transparent" x="270" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogo80fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" mode="Transparent" x="300" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogodpplan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-8" stretchType="RelativeToTallestObject" mode="Transparent" x="330" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itogodpfact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Transparent" x="0" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countworkplan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-10" stretchType="RelativeToTallestObject" mode="Transparent" x="30" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countworkfact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-11" stretchType="RelativeToTallestObject" mode="Transparent" x="60" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kmplan}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" mode="Transparent" x="90" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kmfact}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

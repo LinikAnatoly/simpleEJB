@@ -1,0 +1,3337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="tableByAct" pageWidth="2000" pageHeight="595" orientation="Landscape" columnWidth="2000" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isFloatColumnFooter="true" scriptletClass="com.ksoe.energynet.reports.common.netScriptlet" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="setPostgresqlParam" class="java.lang.String">
+		<defaultValueExpression><![CDATA[((com.ksoe.energynet.reports.common.netScriptlet)$P{REPORT_SCRIPTLET}).setParamPostgresql("set join_collapse_limit = 8;set seq_page_cost = 1;set random_page_cost = 4;set cpu_operator_cost = 0.0025;")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="yearGen" class="java.lang.Integer"/>
+	<parameter name="monthGen" class="java.lang.Integer"/>
+	<parameter name="departmentCode" class="java.lang.Integer" isForPrompting="false"/>
+	<parameter name="sysdate" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[
+select
+(select to_char(now(),'dd.mm.yyyy')) as rrr
+
+, /* depcode , мега хрень */
+ /*SUPP-8010  документы ОЗ-2   */
+
+(select count(rm.code) from net.enreconstrmodernoz rm
+where rm.departmentrefcode = depcode
+and to_char(rm.dategen,'mm')::numeric = $P{monthGen}
+and to_char(rm.dategen,'yyyy')::numeric = $P{yearGen}
+and rm.statusrefcode = 1) as rm_chernov
+,
+(select count(rm.code) from net.enreconstrmodernoz rm
+where rm.departmentrefcode = depcode
+and to_char(rm.dategen,'mm')::numeric = $P{monthGen}
+and to_char(rm.dategen,'yyyy')::numeric = $P{yearGen}
+and rm.statusrefcode = 2) as rm_scladeno
+,
+(select count(rm.code) from net.enreconstrmodernoz rm
+where rm.departmentrefcode = depcode
+and to_char(rm.dategen,'mm')::numeric = $P{monthGen}
+and to_char(rm.dategen,'yyyy')::numeric = $P{yearGen}
+and rm.statusrefcode = 3) as rm_provedeno
+,
+case when (depcode = 482) then 2 else
+case when (depcode = 481) then 1 else
+case when (depcode = 480) then 4 else
+case when (depcode = 479) then 7 else
+case when (depcode = 478) then 6 else
+case when (depcode = 18) then 9 else
+case when (depcode = 17) then 3 else
+case when (depcode = 14) then 8 else
+case when (depcode = 12) then 14 else
+case when (depcode = 11) then 12 else
+case when (depcode = 10) then 10 else
+case when (depcode = 9) then 16 else
+case when (depcode = 8) then 11 else
+case when (depcode = 7) then 17 else
+case when (depcode = 6) then 15 else
+case when (depcode = 5) then 13 else
+case when (depcode = 4) then 5
+else depcode
+end end end end end end end end end end end end end end end end end
+as depcode_sort
+
+,depname , rencode
+,plan_repair::integer as  plan_repair
+,plan_repair_fact::integer as plan_repair_fact
+,plan_repair_fact_not_act::integer as plan_repair_fact_not_act
+
+,plan_techservice::integer as plan_techservice
+,plan_techservice_fact::integer as plan_techservice_fact
+,plan_techservice_fact_not_act::integer as plan_techservice_fact_not_act
+
+,plan_prisoed_modernizac::integer as plan_prisoed_modernizac
+,plan_prisoed_modernizac_fact::integer as plan_prisoed_modernizac_fact
+,plan_prisoed_modernizac_fact_not_act::integer as plan_prisoed_modernizac_fact_not_act
+
+,plan_modernizac::integer as plan_modernizac
+,plan_modernizac_fact::integer as plan_modernizac_fact
+,plan_modernizac_fact_not_act::integer as plan_modernizac_fact_not_act
+
+,plan_prisoed_stroitelstvo::integer as plan_prisoed_stroitelstvo
+,plan_prisoed_stroitelstvo_fact::integer as plan_prisoed_stroitelstvo_fact
+,plan_prisoed_stroitelstvo_fact_not_act::integer as plan_prisoed_stroitelstvo_fact_not_act
+
+,plan_energosbyt_modernizac::integer as plan_energosbyt_modernizac
+,plan_energosbyt_modernizac_fact::integer as plan_energosbyt_modernizac_fact
+,plan_energosbyt_modernizac_fact_not_act::integer as plan_energosbyt_modernizac_fact_not_act
+
+,plan_energosbyt_techservice::integer as plan_energosbyt_techservice
+,plan_energosbyt_techservice_fact::integer as plan_energosbyt_techservice_fact
+,plan_energosbyt_techservice_fact_not_act::integer as plan_energosbyt_techservice_fact_not_act
+
+,plan_energosbyt_repair::integer as plan_energosbyt_repair
+,plan_energosbyt_repair_fact::integer as plan_energosbyt_repair_fact
+,plan_energosbyt_repair_fact_not_act::integer as plan_energosbyt_repair_fact_not_act
+
+, sum(act_move_repair)::integer as act_move_repair /*проведенные акты по ремонтам */
+, sum(act_draft_repair)::integer as act_draft_repair /*черновые акты по ремонтам */
+, sum(act_podpisanie_repair)::integer as act_podpisanie_repair  /*на подписании акты по ремонтам */
+-- , sum(act_move_workside)::integer as act_move_workside  /*проведенные акты по услугам на сторону */
+,
+/*меняем услуги на сторону федорчак выбирает из договрв на сторону по бух статусу "проевденный в финколекции" */
+-- если дата проведения проводк в фиснансы в текущем периоде,
+ -- и дата приходного акта (она такая же как и у расходного (если неск расходных то дата самого первого акта)) тоже в текущем отчетном периоде
+ -- то должно попасть в колонку проведено в фин
+ -- !!!КОЛ-ВО ПРЕВЕДЕННЫХ АКТОВ ПО УСЛУГАМ НА СТОРОНУ ЭТО НЕ КОЛ-ВО РАСХОДНЫХ АКТОВ А СЧИТАТЬ КОЛ-ВО ДОХОДНЫХ (ОДНА УСЛУГА - ТОЛЬКО ОДИН ДОХОДНЫХ АКТ)
+
+(select count(ENSERVICESOBJECT.code)
+FROM ENSERVICESOBJECT  LEFT JOIN ENSERVICESCONTRACTSTTS ON ENSERVICESCONTRACTSTTS.CODE = ENSERVICESOBJECT.CONTRACTSTATUSREFCODE
+LEFT JOIN ENSERVICESCONTRACTTYPE ON ENSERVICESCONTRACTTYPE.CODE = ENSERVICESOBJECT.CONTRACTTYPEREFCODE
+LEFT JOIN ENSERVICESCONTRAGENTTP ON ENSERVICESCONTRAGENTTP.CODE = ENSERVICESOBJECT.CONTRAGENTTYPEREFCODE
+LEFT JOIN ENSERVICESBILLSTATUS ON ENSERVICESBILLSTATUS.CODE = ENSERVICESOBJECT.BILLSTATUSREFCODE
+LEFT JOIN ENWARRANT ON ENWARRANT.CODE = ENSERVICESOBJECT.WARRANTREFCODE
+LEFT JOIN ENSERVICESOBJECTSTATUS ON ENSERVICESOBJECTSTATUS.CODE = ENSERVICESOBJECT.STATUSREFCODE ,
+ENDEPARTMENT , ENELEMENT , enservicesobject2prov s2p
+WHERE   ENDEPARTMENT.CODE = ENSERVICESOBJECT.DEPARTMENTCODE
+AND ENELEMENT.CODE = ENSERVICESOBJECT.ELEMENTCODE
+AND ENELEMENT.typerefcode = 23
+AND ENSERVICESOBJECT.contracttyperefcode IN (1,2) -- SUPP-8134 НЕ БЕРЕМ ПРОДАЖИ )
+/* в подразделение "Відділ реалізації технічних умов і видачі договорів про приєднання електроустановок замовників
+" кидаем договора которые заводились на "ПрАТ Херсонобленерго" и ТОЛЬКО ТУ */
+AND (
+   (ENSERVICESOBJECT.DEPARTMENTCODE = depcode  and depcode <> 745 ) or
+   (ENSERVICESOBJECT.DEPARTMENTCODE IN ( 745 , 500000019 ) and depcode = 745 and ENSERVICESOBJECT.contracttyperefcode = 1 /*ТУ*/ )
+    )
+AND ENSERVICESOBJECT.STATUSREFCODE = 2 /*проведенные */
+and ENSERVICESOBJECT.code = s2p.servicesobjectrefcode
+AND  (
+      ( -- дата прих акта по договору (он же расходник(enact) на мин дату ) в текущем отчетном периоде
+        (select a.dategen from enact a where a.elementcode = ENSERVICESOBJECT.elementcode order by a.dategen limit 1 ) between to_date('01.'||$P{monthGen}||'.'|| $P{yearGen} , 'dd.mm.yyyy' ) and last_day(to_date('01.'||$P{monthGen}||'.'|| $P{yearGen} , 'dd.mm.yyyy' ))
+       and
+       -- и дата проведения проводк в текущем отчетном периоде
+        s2p.dateposting  between to_date('01.'||$P{monthGen}||'.'|| $P{yearGen} , 'dd.mm.yyyy' ) and last_day(to_date('01.'||$P{monthGen}||'.'|| $P{yearGen} , 'dd.mm.yyyy' ))
+      )
+AND ENSERVICESOBJECT.CONTRACTNUMBERSERVICES is not null ) )::integer as act_move_workside
+
+,
+-- SUPP-26355 колонка с колич проведен актов в периоде выборки и договора предыдущего периода
+-- если дата проведения проводк в фиснансы в текущем периоде,
+ -- а дата приходного акта (она такая же как и у расходного (если неск расходных то дата самого первого акта))
+ -- то должно попасть в колонку проведено за предыдущ период
+ -- !!!КОЛ-ВО ПРЕВЕДЕННЫХ АКТОВ ПО УСЛУГАМ НА СТОРОНУ ЭТО НЕ КОЛ-ВО РАСХОДНЫХ АКТОВ А СЧИТАТЬ КОЛ-ВО ДОХОДНЫХ (ОДНА УСЛУГА - ТОЛЬКО ОДИН ДОХОДНЫХ АКТ)
+(select count(ENSERVICESOBJECT.code)
+FROM ENSERVICESOBJECT  LEFT JOIN ENSERVICESCONTRACTSTTS ON ENSERVICESCONTRACTSTTS.CODE = ENSERVICESOBJECT.CONTRACTSTATUSREFCODE
+LEFT JOIN ENSERVICESCONTRACTTYPE ON ENSERVICESCONTRACTTYPE.CODE = ENSERVICESOBJECT.CONTRACTTYPEREFCODE
+LEFT JOIN ENSERVICESCONTRAGENTTP ON ENSERVICESCONTRAGENTTP.CODE = ENSERVICESOBJECT.CONTRAGENTTYPEREFCODE
+LEFT JOIN ENSERVICESBILLSTATUS ON ENSERVICESBILLSTATUS.CODE = ENSERVICESOBJECT.BILLSTATUSREFCODE
+LEFT JOIN ENWARRANT ON ENWARRANT.CODE = ENSERVICESOBJECT.WARRANTREFCODE
+LEFT JOIN ENSERVICESOBJECTSTATUS ON ENSERVICESOBJECTSTATUS.CODE = ENSERVICESOBJECT.STATUSREFCODE ,
+ENDEPARTMENT , ENELEMENT , enservicesobject2prov s2p
+WHERE   ENDEPARTMENT.CODE = ENSERVICESOBJECT.DEPARTMENTCODE
+AND ENELEMENT.CODE = ENSERVICESOBJECT.ELEMENTCODE
+AND ENELEMENT.typerefcode = 23
+AND ENSERVICESOBJECT.contracttyperefcode IN (1,2) -- SUPP-8134 НЕ БЕРЕМ ПРОДАЖИ )
+/* в подразделение "Відділ реалізації технічних умов і видачі договорів про приєднання електроустановок замовників
+" кидаем договора которые заводились на "ПрАТ Херсонобленерго" и ТОЛЬКО ТУ */
+ AND (
+   (ENSERVICESOBJECT.DEPARTMENTCODE = depcode  and depcode <> 745 ) or
+   (ENSERVICESOBJECT.DEPARTMENTCODE IN ( 745 , 500000019 ) and depcode = 745 and ENSERVICESOBJECT.contracttyperefcode = 1 /*ТУ*/ )
+    )
+AND ENSERVICESOBJECT.STATUSREFCODE = 2 /*проведенные */
+and ENSERVICESOBJECT.code = s2p.servicesobjectrefcode
+AND  (
+      ( -- дата прих акта по договору (он же расходник(enact) на мин дату ) в предыдущем периоде
+        (select a.dategen from enact a where a.elementcode = ENSERVICESOBJECT.elementcode order by a.dategen limit 1 ) < to_date('01.'||$P{monthGen}||'.'|| $P{yearGen} , 'dd.mm.yyyy' )
+       and
+       -- и дата проведения проводк в текущем отчетном периоде
+        s2p.dateposting  between to_date('01.'||$P{monthGen}||'.'|| $P{yearGen} , 'dd.mm.yyyy' ) and last_day(to_date('01.'||$P{monthGen}||'.'|| $P{yearGen} , 'dd.mm.yyyy' ))
+      )
+AND ENSERVICESOBJECT.CONTRACTNUMBERSERVICES is not null )
+
+)::integer as act_move_workside_prev_period
+
+-- , sum(act_draft_workside)::integer as act_draft_workside /*черновые акты по услугам на сторону */
+/*меняем услуги на сторону федорчак выбирает из договрв на сторону по бух статусу " чорновой " и подписаные договора  */
+,(SELECT count(*)
+FROM ENSERVICESOBJECT  LEFT JOIN ENSERVICESCONTRACTSTTS ON ENSERVICESCONTRACTSTTS.CODE = ENSERVICESOBJECT.CONTRACTSTATUSREFCODE
+LEFT JOIN ENSERVICESCONTRACTTYPE ON ENSERVICESCONTRACTTYPE.CODE = ENSERVICESOBJECT.CONTRACTTYPEREFCODE
+LEFT JOIN ENSERVICESCONTRAGENTTP ON ENSERVICESCONTRAGENTTP.CODE = ENSERVICESOBJECT.CONTRAGENTTYPEREFCODE
+LEFT JOIN ENSERVICESBILLSTATUS ON ENSERVICESBILLSTATUS.CODE = ENSERVICESOBJECT.BILLSTATUSREFCODE
+LEFT JOIN ENWARRANT ON ENWARRANT.CODE = ENSERVICESOBJECT.WARRANTREFCODE
+LEFT JOIN ENSERVICESOBJECTSTATUS ON ENSERVICESOBJECTSTATUS.CODE = ENSERVICESOBJECT.STATUSREFCODE ,
+ENDEPARTMENT , ENELEMENT
+WHERE   ENDEPARTMENT.CODE = ENSERVICESOBJECT.DEPARTMENTCODE
+AND ENELEMENT.CODE = ENSERVICESOBJECT.ELEMENTCODE
+AND ENELEMENT.typerefcode = 23
+AND ENSERVICESOBJECT.contracttyperefcode NOT IN (3,4) -- SUPP-8134 НЕ БЕРЕМ ПРОДАЖИ )
+/* в подразделение "Відділ реалізації технічних умов і видачі договорів про приєднання електроустановок замовників
+" кидаем договора которые заводились на "ПрАТ Херсонобленерго" и ТОЛЬКО ТУ */
+AND (
+   (ENSERVICESOBJECT.DEPARTMENTCODE = /*481*/  depcode  and depcode <> 745 ) or
+   (ENSERVICESOBJECT.DEPARTMENTCODE IN ( 745 , 500000019 ) and depcode = 745 and ENSERVICESOBJECT.contracttyperefcode = 1 /*ТУ*/ )
+    )
+AND ENSERVICESOBJECT.CONTRACTSTATUSREFCODE = 5
+AND ENSERVICESOBJECT.STATUSREFCODE =  1
+AND  (
+  case when ENSERVICESOBJECT.executeworkdate is not null then
+ (  ENSERVICESOBJECT.executeworkdate >= to_date('01.'||$P{monthGen}||'.'|| $P{yearGen} , 'dd.mm.yyyy' )
+AND ENSERVICESOBJECT.executeworkdate <= last_day(to_date('01.'||$P{monthGen}||'.'|| $P{yearGen} , 'dd.mm.yyyy' ))
+  )
+ else  (  ENSERVICESOBJECT.CONTRACTDATESERVICES >= to_date('01.'||$P{monthGen}||'.'|| $P{yearGen} , 'dd.mm.yyyy' )
+      AND ENSERVICESOBJECT.CONTRACTDATESERVICES <= last_day(to_date('01.'||$P{monthGen}||'.'|| $P{yearGen} , 'dd.mm.yyyy' ))
+  ) end
+-- если есть дата выполнения работ по договору то берем по этой дате иначе по дате договора так нужно федорчак
+
+AND ENSERVICESOBJECT.CONTRACTNUMBERSERVICES is not null) )::integer as act_draft_workside
+--, sum(act_podpisanie_workside)::integer as act_podpisanie_workside /*на подписании  акты по услугам на сторону */
+/*на подписании услуги на сторону также условие по ВРТУВД и ПрАТ Хeрсонобленерго если ВРТУВД то акті берем "подготовка ТУ "  */
+, (select count(*) from (
+ Select distinct a.code as codeact , p.departmentrefcode  , a.acttyperefcode , p.typerefcode as plantyperefcode , p.budgetrefcode  , a.statusrefcode
+ from enact a  , enact2enplanwork a2p  , enplanwork p
+Where to_char(a.dategen,'yyyy')::numeric = $P{yearGen}
+and  to_char(a.dategen,'mm')::numeric = $P{monthGen}
+and a.code = a2p.actrefcode
+and a.statusrefcode = 4 /*на подписании */
+and a2p.plancode = p.code
+AND (
+   (p.DEPARTMENTrefCODE = /*481*/  depcode  and depcode <> 745  and a.acttyperefcode = 7 /*роботти на сторону*/  ) or
+   (p.DEPARTMENTrefCODE IN ( 745 , 500000019 ) and depcode = 745 and a.acttyperefcode =  9 /*подготовка ту*/ )
+    )
+and p.typerefcode not in (19 /*Послуги зі сторони*/ , 20 /*Послуги зі сторони (Інвест Програма)*/)  )as  s1)::integer as act_podpisanie_workside /*на подписании  акты по услугам на сторону */
+
+
+, sum(act_move_techobsl)::integer as act_move_techobsl  /*проведенные акты по тех. обслуживанию */
+, sum(act_draft_techobsl)::integer as act_draft_techobsl  /*черновые акты по тех. обслуживанию */
+, sum(act_podpisanie_techobsl)::integer as act_podpisanie_techobsl  /*на подписании акты по тех. обслуживанию */
+, sum(act_move_prisoed_modern)::integer as act_move_prisoed_modern  /*проведенные акты по Присоединению / Модернизации */
+, sum(act_draft_prisoed_modern)::integer as act_draft_prisoed_modern /*черновые акты по Присоединению / Модернизации */
+, sum(act_podpisanie_prisoed_modern)::integer as act_podpisanie_prisoed_modern /*на подписании акты по Присоединению / Модернизации */
+, sum(act_move_prisoed_build)::integer as  act_move_prisoed_build  /*проведенные акты по Присоединению / Строительство */
+, sum(act_draft_prisoed_build)::integer as  act_draft_prisoed_build /*черновые акты по Присоединению / Строительство */
+, sum(act_podpisanie_prisoed_build)::integer as act_podpisanie_prisoed_build  /*на подписании акты по Присоединению / Строительство */
+, sum(act_move_rekostr_modern)::integer as act_move_rekostr_modern  /*проведенные акты по Реконструкции модернизации  */
+, sum(act_draft_rekostr_modern)::integer as act_draft_rekostr_modern /*черновые акты по Реконструкции модернизации  */
+, sum(act_podpisanie_rekostr_modern)::integer as act_podpisanie_rekostr_modern  /*на подписании акты по Реконструкции модернизации  */
+, sum(act_move_rekostr_modern_sbyt)::integer as act_move_rekostr_modern_sbyt /*проведенные акты по Реконструкции модернизации  енергосбыт */
+, sum(act_draft_rekostr_modern_sbyt)::integer as act_draft_rekostr_modern_sbyt /*черновые акты по Реконструкции модернизации  енергосбыт */
+, sum(act_podpisanie_rekostr_modern_sbyt)::integer as act_podpisanie_rekostr_modern_sbyt  /*на подписании акты по Реконструкции модернизации  енергосбыт */
+, sum(act_move_techobsl_sbyt)::integer as act_move_techobsl_sbyt  /*проведенные акты по техобслуживание  (енергосбыт) */
+, sum(act_draft_techobsl_sbyt)::integer as act_draft_techobsl_sbyt /*черновые акты по техобслуживание  (енергосбыт) */
+, sum(act_podpisanie_techobsl_sbyt)::integer as act_podpisanie_techobsl_sbyt /*на подписании акты по техобслуживание  (енергосбыт) */
+, sum(act_move_repair_sbyt)::integer as act_move_repair_sbyt  /*проведенные акты по ремонтам  (енергосбыт) */
+, sum(act_draft_repair_sbyt)::integer as act_draft_repair_sbyt  /*черновые акты по ремонтам  (енергосбыт) */
+, sum(act_podpisanie_repair_sbyt)::integer as act_podpisanie_repair_sbyt  /*на подписании акты по ремонтам  (енергосбыт) */
+
+
+from (
+
+select depcode , depname , rencode
+,plan_repair
+,plan_repair_fact
+,plan_repair_fact_not_act
+
+,plan_techservice
+,plan_techservice_fact
+,plan_techservice_fact_not_act
+
+,plan_prisoed_modernizac
+,plan_prisoed_modernizac_fact
+,plan_prisoed_modernizac_fact_not_act
+
+,plan_prisoed_stroitelstvo
+,plan_prisoed_stroitelstvo_fact
+,plan_prisoed_stroitelstvo_fact_not_act
+
+,plan_modernizac
+,plan_modernizac_fact
+,plan_modernizac_fact_not_act
+
+,plan_energosbyt_modernizac
+,plan_energosbyt_modernizac_fact
+,plan_energosbyt_modernizac_fact_not_act
+
+,plan_energosbyt_techservice
+,plan_energosbyt_techservice_fact
+,plan_energosbyt_techservice_fact_not_act
+
+,plan_energosbyt_repair
+,plan_energosbyt_repair_fact
+,plan_energosbyt_repair_fact_not_act
+
+, codeact
+------------------ремонты  ---------------------------------
+, case when sel_act.acttyperefcode in (1,5,6)
+        and sel_act.statusrefcode = 3
+        and sel_act.budgetrefcode <> 240000001
+     then 1 else 0 end as act_move_repair /*проведенные акты по ремонтам */
+, case when sel_act.acttyperefcode in (1,5,6)
+        and sel_act.statusrefcode = 1
+        and sel_act.budgetrefcode <> 240000001
+     then 1 else 0 end as act_draft_repair /*черновые акты по ремонтам */
+, case when sel_act.acttyperefcode in (1,5,6)
+        and sel_act.statusrefcode = 4
+        and sel_act.budgetrefcode <> 240000001
+then 1 else 0 end as act_podpisanie_repair /*на подписании акты по ремонтам */
+----------------- услуги на сторону  -------------------------
+, case when sel_act.acttyperefcode = 7
+        and sel_act.statusrefcode = 3
+
+then 1 else 0 end as act_move_workside /*проведенные акты по услугам на сторону */
+, case when sel_act.acttyperefcode = 7
+        and sel_act.statusrefcode = 1
+
+then 1 else 0 end as act_draft_workside /*черновые акты по услугам на сторону */
+, case when sel_act.acttyperefcode = 7
+        and sel_act.statusrefcode = 4
+
+then 1 else 0 end as act_podpisanie_workside /*на подписании  акты по услугам на сторону */
+------------------ Тех. Обслуживание -------------------------------------------
+, case when sel_act.acttyperefcode = 3
+        and sel_act.statusrefcode = 3
+        and sel_act.budgetrefcode <> 240000001
+     then 1 else 0 end as act_move_techobsl /*проведенные акты по тех. обслуживанию */
+, case when sel_act.acttyperefcode = 3
+        and sel_act.statusrefcode = 1
+        and sel_act.budgetrefcode <> 240000001
+     then 1 else 0 end as act_draft_techobsl /*черновые акты по тех. обслуживанию */
+, case when sel_act.acttyperefcode = 3
+        and sel_act.statusrefcode = 4
+        and sel_act.budgetrefcode <> 240000001
+then 1 else 0 end as act_podpisanie_techobsl /*на подписании акты по тех. обслуживанию */
+------------------- Присоединение / модернизация -------------------------------
+, case when sel_act.plantyperefcode = 7 and sel_act.acttyperefcode = 2
+        and sel_act.statusrefcode = 3
+        and sel_act.budgetrefcode <> 240000001
+     then 1 else 0 end as act_move_prisoed_modern /*проведенные акты по Присоединению / Модернизации */
+, case when sel_act.plantyperefcode = 7 and sel_act.acttyperefcode = 2
+        and sel_act.statusrefcode = 1
+        and sel_act.budgetrefcode <> 240000001
+     then 1 else 0 end as act_draft_prisoed_modern /*черновые акты по Присоединению / Модернизации */
+, case when sel_act.plantyperefcode = 7 and sel_act.acttyperefcode = 2
+        and sel_act.statusrefcode = 4
+        and sel_act.budgetrefcode <> 240000001
+then 1 else 0 end as act_podpisanie_prisoed_modern /*на подписании акты по Присоединению / Модернизации */
+------------------- Присоединение / строительство ------------------------------
+, case when sel_act.plantyperefcode = 7 and sel_act.acttyperefcode = 4
+        and sel_act.statusrefcode = 3
+        and sel_act.budgetrefcode <> 240000001
+     then 1 else 0 end as act_move_prisoed_build /*проведенные акты по Присоединению / Строительство */
+, case when sel_act.plantyperefcode = 7 and sel_act.acttyperefcode = 4
+        and sel_act.statusrefcode = 1
+        and sel_act.budgetrefcode <> 240000001
+     then 1 else 0 end as act_draft_prisoed_build /*черновые акты по Присоединению / Строительство */
+, case when sel_act.plantyperefcode = 7 and sel_act.acttyperefcode = 4
+        and sel_act.statusrefcode = 4
+        and sel_act.budgetrefcode <> 240000001
+then 1 else 0 end as act_podpisanie_prisoed_build /*на подписании акты по Присоединению / Строительство */
+------------------- реконструкция модернизация  ---------
+, case when sel_act.acttyperefcode = 2 and sel_act.plantyperefcode <> 7
+        and sel_act.statusrefcode = 3
+        and sel_act.budgetrefcode <> 240000001
+     then 1 else 0 end as act_move_rekostr_modern /*проведенные акты по Реконструкции модернизации  */
+, case when sel_act.acttyperefcode = 2 and sel_act.plantyperefcode <> 7
+        and sel_act.statusrefcode = 1
+        and sel_act.budgetrefcode <> 240000001
+     then 1 else 0 end as act_draft_rekostr_modern /*черновые акты по Реконструкции модернизации  */
+, case when sel_act.acttyperefcode = 2 and sel_act.plantyperefcode <> 7
+        and sel_act.statusrefcode = 4
+        and sel_act.budgetrefcode <> 240000001
+then 1 else 0 end as act_podpisanie_rekostr_modern /*на подписании акты по Реконструкции модернизации  */
+------------------- реконструкция модернизация  (енергосбыт)---------
+, case when sel_act.acttyperefcode = 2  and  sel_act.budgetrefcode = 240000001
+        and sel_act.statusrefcode = 3
+     then 1 else 0 end as act_move_rekostr_modern_sbyt /*проведенные акты по Реконструкции модернизации  енергосбыт */
+, case when sel_act.acttyperefcode = 2 and  sel_act.budgetrefcode = 240000001
+        and sel_act.statusrefcode = 1
+     then 1 else 0 end as act_draft_rekostr_modern_sbyt /*черновые акты по Реконструкции модернизации  енергосбыт */
+, case when sel_act.acttyperefcode = 2 and  sel_act.budgetrefcode = 240000001
+        and sel_act.statusrefcode = 4
+then 1 else 0 end as act_podpisanie_rekostr_modern_sbyt /*на подписании акты по Реконструкции модернизации  енергосбыт */
+------------------- техобслуживание  (енергосбыт)---------
+, case when sel_act.acttyperefcode = 3  and  sel_act.budgetrefcode = 240000001
+        and sel_act.statusrefcode = 3
+     then 1 else 0 end as act_move_techobsl_sbyt /*проведенные акты по техобслуживание  (енергосбыт) */
+, case when sel_act.acttyperefcode = 3 and  sel_act.budgetrefcode = 240000001
+        and sel_act.statusrefcode = 1
+     then 1 else 0 end as act_draft_techobsl_sbyt /*черновые акты по техобслуживание  (енергосбыт) */
+, case when sel_act.acttyperefcode = 3 and  sel_act.budgetrefcode = 240000001
+        and sel_act.statusrefcode = 4
+then 1 else 0 end as act_podpisanie_techobsl_sbyt /*на подписании акты по техобслуживание  (енергосбыт) */
+------------------- ремонты  (енергосбыт)---------
+, case when sel_act.acttyperefcode in (1,5,6) and  sel_act.budgetrefcode = 240000001
+        and sel_act.statusrefcode = 3
+     then 1 else 0 end as act_move_repair_sbyt /*проведенные акты по ремонтам  (енергосбыт) */
+, case when sel_act.acttyperefcode in (1,5,6) and  sel_act.budgetrefcode = 240000001
+        and sel_act.statusrefcode = 1
+     then 1 else 0 end as act_draft_repair_sbyt /*черновые акты по ремонтам  (енергосбыт) */
+, case when sel_act.acttyperefcode in (1,5,6) and  sel_act.budgetrefcode = 240000001
+        and sel_act.statusrefcode = 4
+then 1 else 0 end as act_podpisanie_repair_sbyt /*на подписании акты по ремонтам  (енергосбыт) */
+
+
+
+from (
+select depcode , depname , rencode
+--------------------------ремонты ---------------------------
+, sum(plan_repair) as plan_repair
+, sum(plan_repair_fact) as plan_repair_fact
+, sum(plan_repair_fact_not_act) as plan_repair_fact_not_act
+-------------------------- тех.обслуживание ------------------
+, sum(plan_techservice) as plan_techservice
+, sum(plan_techservice_fact) as plan_techservice_fact
+, sum(plan_techservice_fact_not_act) as plan_techservice_fact_not_act
+-------------------Присоединение Модернизация  НЕ энергосбыт-------
+, sum(plan_prisoed_modernizac) as plan_prisoed_modernizac
+, sum(plan_prisoed_modernizac_fact) as plan_prisoed_modernizac_fact
+, sum(plan_prisoed_modernizac_fact_not_act) as plan_prisoed_modernizac_fact_not_act
+/*Присоединение Строительство НЕ энергосбыт */
+, sum(plan_prisoed_stroitelstvo) as plan_prisoed_stroitelstvo
+, sum(plan_prisoed_stroitelstvo_fact) as plan_prisoed_stroitelstvo_fact
+, sum(plan_prisoed_stroitelstvo_fact_not_act) as plan_prisoed_stroitelstvo_fact_not_act
+-------------------Модернизация  НЕ энергосбыт-------
+, sum(plan_modernizac) as plan_modernizac
+, sum(plan_modernizac_fact) as plan_modernizac_fact
+, sum(plan_modernizac_fact_not_act) as plan_modernizac_fact_not_act
+-------------------Модернізація (Энергосбыт)-------
+,sum(plan_energosbyt_modernizac) as plan_energosbyt_modernizac
+,sum(plan_energosbyt_modernizac_fact) as plan_energosbyt_modernizac_fact
+,sum(plan_energosbyt_modernizac_fact_not_act) as plan_energosbyt_modernizac_fact_not_act
+-------------------Техобслуживание (Энергосбыт)-------
+,sum(plan_energosbyt_techservice) as plan_energosbyt_techservice
+,sum(plan_energosbyt_techservice_fact) as plan_energosbyt_techservice_fact
+,sum(plan_energosbyt_techservice_fact_not_act) as plan_energosbyt_techservice_fact_not_act
+-------------------Ремонты (Энергосбыт)-------
+,sum(plan_energosbyt_repair) as plan_energosbyt_repair
+,sum(plan_energosbyt_repair_fact) as plan_energosbyt_repair_fact
+,sum(plan_energosbyt_repair_fact_not_act) as plan_energosbyt_repair_fact_not_act
+ from (
+select sel_dep.depcode::double PRECISION , sel_dep.depname , sel_dep.rencode
+/*ремонты   */
+,  case when sel_plan.planworkstatecode in (1,5,6) and sel_plan.budgetcode <> 240000001 then 1 else 0 end as plan_repair
+/*ремонты - черновые без акта */
+,  case when sel_plan.planworkstatecode in (1,5,6) and sel_plan.budgetcode <> 240000001 then fact else 0 end as plan_repair_fact
+/*ремонты - утвержденные без акта */
+,  case when sel_plan.planworkstatecode in (1,5,6) and sel_plan.budgetcode <> 240000001 then fact_not_act else 0 end as plan_repair_fact_not_act
+
+/*Технічне обслуговування   */
+,  case when sel_plan.planworkstatecode = 3  and  sel_plan.budgetcode <> 240000001  then 1 else 0  end as plan_techservice
+/*Технічне обслуговування - черновые без акта */
+,  case when sel_plan.planworkstatecode = 3  and  sel_plan.budgetcode <> 240000001 then fact else 0 end as plan_techservice_fact
+/*Технічне обслуговування - утвержденные без акта  */
+,  case when sel_plan.planworkstatecode = 3  and  sel_plan.budgetcode <> 240000001 then fact_not_act else 0 end as plan_techservice_fact_not_act
+
+/*Присоединение Модернизация  */
+,  case when sel_plan.planworktype = 7  and sel_plan.planworkstatecode = 2 and  sel_plan.budgetcode <> 240000001  then 1 else 0  end as plan_prisoed_modernizac
+/*Присоединение Модернизация - черновые без акта */
+,  case when sel_plan.planworktype = 7  and sel_plan.planworkstatecode = 2 and  sel_plan.budgetcode <> 240000001 then fact else 0 end as plan_prisoed_modernizac_fact
+/*Присоединение Модернизация - утвержденные без акта */
+,  case when sel_plan.planworktype = 7  and sel_plan.planworkstatecode = 2 and  sel_plan.budgetcode <> 240000001 then fact_not_act else 0 end as plan_prisoed_modernizac_fact_not_act
+
+/*Присоединение Строительство */
+,  case when sel_plan.planworktype = 7  and sel_plan.planworkstatecode = 4  and  sel_plan.budgetcode <> 240000001 then 1 else 0  end as plan_prisoed_stroitelstvo
+/*Присоединение Строительство - черновые без акта */
+,  case when sel_plan.planworktype = 7  and sel_plan.planworkstatecode = 4  and  sel_plan.budgetcode <> 240000001 then fact else 0 end as plan_prisoed_stroitelstvo_fact
+/*Присоединение Строительство - утвержденные без акта */
+,  case when sel_plan.planworktype = 7  and sel_plan.planworkstatecode = 4  and  sel_plan.budgetcode <> 240000001 then fact_not_act else 0 end as plan_prisoed_stroitelstvo_fact_not_act
+
+/*Модернізація і реконструкція*/
+,  case when sel_plan.planworktype <> 7  and sel_plan.planworkstatecode = 2  and  sel_plan.budgetcode <> 240000001 then 1 else 0  end as plan_modernizac
+/*Модернізація і реконструкція - черновые без акта */
+,  case when sel_plan.planworktype <> 7  and sel_plan.planworkstatecode = 2  and  sel_plan.budgetcode <> 240000001 then fact else 0 end as plan_modernizac_fact
+/*Модернізація і реконструкція - утвержденные без акта */
+,  case when sel_plan.planworktype <> 7  and sel_plan.planworkstatecode = 2  and  sel_plan.budgetcode <> 240000001 then fact_not_act else 0 end as plan_modernizac_fact_not_act
+
+/*Модернізація (Энергосбыт)*/
+,  case when sel_plan.planworkstatecode = 2  and  sel_plan.budgetcode = 240000001 then 1 else 0  end as plan_energosbyt_modernizac
+/*Модернізація (Энергосбыт) - черновые без акта  */
+,  case when sel_plan.planworkstatecode = 2  and  sel_plan.budgetcode = 240000001 then fact else 0 end as plan_energosbyt_modernizac_fact
+/*Модернізація (Энергосбыт) - утвержденные без акта */
+,  case when sel_plan.planworkstatecode = 2  and  sel_plan.budgetcode = 240000001 then fact_not_act else 0 end as plan_energosbyt_modernizac_fact_not_act
+
+/*Техобслуживание (Энергосбыт)*/
+,  case when sel_plan.planworkstatecode = 3  and  sel_plan.budgetcode = 240000001 then 1 else 0  end as plan_energosbyt_techservice
+/*Техобслуживание (Энергосбыт) - черновые без акта */
+,  case when sel_plan.planworkstatecode = 3  and  sel_plan.budgetcode = 240000001 then fact else 0 end as plan_energosbyt_techservice_fact
+/*Техобслуживание (Энергосбыт) - утвержденные без акта */
+,  case when sel_plan.planworkstatecode = 3  and  sel_plan.budgetcode = 240000001 then fact_not_act else 0 end as plan_energosbyt_techservice_fact_not_act
+
+/*Ремонты (Энергосбыт)*/
+,  case when sel_plan.planworkstatecode in (1,5,6)  and  sel_plan.budgetcode = 240000001 then 1 else 0  end as plan_energosbyt_repair
+/*Ремонты (Энергосбыт) - черновые без акта */
+,  case when sel_plan.planworkstatecode in (1,5,6)  and  sel_plan.budgetcode = 240000001 then fact else 0 end as plan_energosbyt_repair_fact
+/*Ремонты (Энергосбыт) - утвержденные без акта */
+,  case when sel_plan.planworkstatecode in (1,5,6)  and  sel_plan.budgetcode = 240000001 then fact_not_act else 0 end as plan_energosbyt_repair_fact_not_act
+
+ from
+
+
+(
+select dep.code::double precision as depcode , dep.name as depname , dep.rencode   from endepartment dep
+where code in (481, 482, 17 , 480 , 14 , 478 , 4 , 8 , 10 , 11 , 18 , 5 , 12 , 6 , 7 , 9 ,479 ,  /*рес ы*/
+70  /*Служба ізоляції та захисту від перенапруги та випробування  (СПС) xls служба изоляции*/
+,745 /*Відділ реалізації технічних умов і видачі договорів про приєднання електроустановок замовників - xls отдел подг и выдачи ТУ*/
+,66 /*Майстерня з ремонту та технічного обслуговування обладнання - xls майстерня з ремонту та т/о обладнання*/
+,665 /*Метрологічна служба xls - Метрологія  YPM не выводить службу по ремонту счетч код = 671 так как она показывается отдельно в отечете     */
+,675 /*Ремонтно-будівельна служба xls -  ремонтно-будівельна служба*/
+,91 /*Служба високовольтних електромереж xls -  служба високовольтних мереж */
+,73 /*Служба підстанцій xls служба підстанцій*/
+,79 /*Служба релейного захисту і електроавтоматики xls служба релейного захисту*/
+,102 /*Служба транспорту xls служба транспорту*/
+,671 /*Цех з ремонту приладів обліку xls Цех з ремонту приладів обліку*/
+,775 /*Служба кабельних електромереж xls служба кабельних електромереж*/
+,657 /*Відділ капітального будівництва xls  відділ капітального будівництва*/
+,71 /*Центральна служба засобів диспетчерського та технологічного управління xls ЦЗСДТУ*/
+,63 /*Служба інформаційних технологій xls СІТ*/
+-- ,500000019 /*ПрАТ ХЕРСОНОБЛЕНЕРГО*/
+)
+Order by dep.rencode desc
+) sel_dep
+left join
+------------------------- планы -------------------------------------
+
+            (select
+            elcode,
+            finexecutorname, fincode, planworktypename,
+            planworkstatename,
+            form,
+            ( select  dep.code from enplanwork p  , endepartment dep where p.departmentrefcode = dep.code and  p.code = codemonthplan ) as department,
+            ( select  p.staterefcode from enplanwork p  where p.code = codemonthplan ) as planworkstatecode ,
+            ( select  p.typerefcode from enplanwork p  where p.code = codemonthplan ) as planworktype ,
+            ( select  p.budgetrefcode from enplanwork p  where p.code = codemonthplan ) as budgetcode ,
+             codemonthplan
+             , fact, fact_not_act
+
+            from (
+
+            select qq.elcode,
+            qq.finexecutorname, qq.fincode, qq.planworktypename,
+            qq.planworkstatename,
+            case qq.formrefcode when 1 then 'Плановые работы' when 2 then 'Неплановые работы' end as form,   edn.name as department, qq.cnn,
+            sum(day1) as d1, sum(day2) as d2, sum(day3) as d3, sum(day4) as d4, sum(day5) as d5,
+            sum(day6) as d6, sum(day7) as d7, sum(day8) as d8, sum(day9) as d9, sum(day10) as d10,
+            sum(day11) as d11, sum(day12) as d12, sum(day13) as d13, sum(day14) as d14, sum(day15) as d15,
+            sum(day16) as d16, sum(day17) as d17, sum(day18) as d18, sum(day19) as d19, sum(day20) as d20,
+            sum(day21) as d21, sum(day22) as d22, sum(day23) as d23, sum(day24) as d24, sum(day25) as d25,
+            sum(day26) as d26, sum(day27) as d27, sum(day28) as d28, sum(day29) as d29, sum(day30) as d30, sum(day31) as d31,
+                    'monthstring' as monthstring,
+                         qq.binding ,
+                         codemonthplan
+
+
+, /* черновые факты без актов */
+(select count(w.pcode) from (
+        select pl.code as pcode from enplanwork pl
+        where pl.kindcode = 4 and pl.statuscode = 1
+          and pl.code in ( select ph2.plannewrefcode from enplancorrecthistory ph  , enplancorrecthistory ph2
+                            where ph.planoldrefcode = codemonthplan
+                              and ph.reasoncode = 4
+                              and ph2.planoldrefcode = ph.plannewrefcode
+                              and ph2.reasoncode = 5  )
+          and pl.code not in (select a2p.plancode from enact2enplanwork a2p where a2p.plancode = pl.code )
+        ) as w
+)  as fact
+
+  /* утвержденные факты без актов */
+ ,  (select count(w.pcode) from (
+        select pl.code as pcode from enplanwork pl
+        where pl.kindcode = 4 and pl.statuscode = 3
+          and pl.code in ( select ph2.plannewrefcode from enplancorrecthistory ph  , enplancorrecthistory ph2
+                            where ph.planoldrefcode = codemonthplan
+                              and ph.reasoncode = 4
+                              and ph2.planoldrefcode = ph.plannewrefcode
+                              and ph2.reasoncode = 5  )
+          and pl.code not in (select a2p.plancode from enact2enplanwork a2p where a2p.plancode = pl.code )
+        ) as w
+)  as fact_not_act
+
+
+            from
+
+            (
+
+            select q1.elcode, q1.finexecutorname,
+            q1.planworktypename, q1.planworkstatename, q1.formrefcode,  q1.code,
+            q1.kind, q1.department, q1.fincode, q1.cnn,
+
+            case when (q1.day1 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day1 + 100 else q1.day1 end as day1,
+
+            case when (q1.day2 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day2 + 100 else q1.day2 end as day2,
+
+            case when (q1.day3 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day3 + 100 else q1.day3 end as day3,
+
+            case when (q1.day4 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day4 + 100 else q1.day4 end as day4,
+
+            case when (q1.day5 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day5 + 100 else q1.day5 end as day5,
+
+            case when (q1.day6 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day6 + 100 else q1.day6 end as day6,
+
+            case when (q1.day7 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day7 + 100 else q1.day7 end as day7,
+
+            case when (q1.day8 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day8 + 100 else q1.day8 end as day8,
+
+            case when (q1.day9 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day9 + 100 else q1.day9 end as day9,
+
+            case when (q1.day10 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day10 + 100 else q1.day10 end as day10,
+
+            case when (q1.day11 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day11 + 100 else q1.day11 end as day11,
+
+            case when (q1.day12 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day12 + 100 else q1.day12 end as day12,
+
+            case when (q1.day13 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day13 + 100 else q1.day13 end as day13,
+
+            case when (q1.day14 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day14 + 100 else q1.day14 end as day14,
+
+            case when (q1.day15 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day15 + 100 else q1.day15 end as day15,
+
+            case when (q1.day16 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day16 + 100 else q1.day16 end as day16,
+
+            case when (q1.day17 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day17 + 100 else q1.day17 end as day17,
+
+            case when (q1.day18 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day18 + 100 else q1.day18 end as day18,
+
+            case when (q1.day19 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day19 + 100 else q1.day19 end as day19,
+
+            case when (q1.day20 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day20 + 100 else q1.day20 end as day20,
+
+            case when (q1.day21 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day21 + 100 else q1.day21 end as day21,
+
+            case when (q1.day22 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day22 + 100 else q1.day22 end as day22,
+
+            case when (q1.day23 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day23 + 100 else q1.day23 end as day23,
+
+            case when (q1.day24 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day24 + 100 else q1.day24 end as day24,
+
+            case when (q1.day25 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day25 + 100 else q1.day25 end as day25,
+
+            case when (q1.day26 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day26 + 100 else q1.day26 end as day26,
+
+            case when (q1.day27 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day27 + 100 else q1.day27 end as day27,
+
+            case when (q1.day28 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day28 + 100 else q1.day28 end as day28,
+
+            case when (q1.day29 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day29 + 100 else q1.day29 end as day29,
+
+            case when (q1.day30 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day30 + 100 else q1.day30 end as day30,
+
+            case when (q1.day31 = 43 and
+            (select sum(case when coalesce(enpwi1.countgen,0) < coalesce(enpwi2.countgen,0) then 1 else 0 end)
+             from
+             enplanworkitem enpwi1 left join enplanworkitem enpwi2
+             on enpwi1.kartarefcode = enpwi2.kartarefcode
+            where
+            enpwi1.planrefcode = q1.code
+            and enpwi2.planrefcode = (select planoldrefcode from enplancorrecthistory enpc where enpc.plannewrefcode = q1.code and enpc.reasoncode = 5)) > 0)
+            then q1.day31 + 100 else q1.day31 end as day31
+            , q1.binding
+            , codemonthplan
+            from
+            (
+            select q.elcode,
+            q.finexecutorname, q.planworktypename, q.planworkstatename,
+            q.code, q.kind, q.formrefcode, q.department, q.fincode, q.cnn,
+            case q.d1 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day1,
+            case q.d2 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day2,
+            case q.d3 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day3,
+            case q.d4 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day4,
+            case q.d5 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day5,
+            case q.d6 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day6,
+            case q.d7 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day7,
+            case q.d8 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day8,
+            case q.d9 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day9,
+            case q.d10 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day10,
+              case q.d11 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day11,
+            case q.d12 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day12,
+            case q.d13 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day13,
+            case q.d14 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day14,
+            case q.d15 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day15,
+            case q.d16 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day16,
+            case q.d17 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day17,
+            case q.d18 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day18,
+            case q.d19 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day19,
+            case q.d20 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day20,
+              case q.d21 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day21,
+            case q.d22 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day22,
+            case q.d23 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day23,
+            case q.d24 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day24,
+            case q.d25 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day25,
+            case q.d26 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day26,
+            case q.d27 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day27,
+            case q.d28 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day28,
+            case q.d29 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day29,
+            case q.d30 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day30,
+              case q.d31 when 1 then
+            case q.kind when 2 then
+            case when q.status not in (3,7,8) then 21 else 23 end
+                        when 3 then
+            case when q.status <> 3 then 31 else 33 end
+                        when 4 then
+            case when q.status <> 3 then 41 else 43 end
+                          end
+            else 0 end as day31
+           , q.binding
+            ,codemonthplan
+
+             from
+            (select
+              p.code,
+              p.elementrefcode as elcode,
+              coalesce (f.name,'Исполнитель не указан') as finexecutorname,
+              case when f.code > 0 then 1 else 999 end as fincode,
+              pwt.shortname as planworktypename,
+              pws.shortname as planworkstatename,
+              p.formrefcode as formrefcode,
+              p.kindcode as kind,
+              p.statuscode as status,
+              p.departmentrefcode as department,
+              p.priconnectionnumber as cnn,
+              case when to_date('01.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d1,
+              case when to_date('02.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d2,
+              case when to_date('03.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d3,
+              case when to_date('04.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d4,
+              case when to_date('05.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d5 ,
+              case when to_date('06.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d6,
+              case when to_date('07.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d7,
+              case when to_date('08.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d8,
+              case when to_date('09.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d9,
+              case when to_date('10.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d10,
+              case when to_date('11.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d11,
+              case when to_date('12.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d12,
+              case when to_date('13.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d13,
+              case when to_date('14.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d14,
+              case when to_date('15.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d15,
+              case when to_date('16.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d16,
+              case when to_date('17.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d17,
+              case when to_date('18.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d18,
+              case when to_date('19.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d19,
+              case when to_date('20.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d20,
+              case when to_date('21.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d21,
+              case when to_date('22.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d22,
+              case when to_date('23.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d23,
+              case when to_date('24.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d24,
+              case when to_date('25.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d25,
+              case when to_date('26.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d26,
+              case when to_date('27.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d27,
+              case when to_date('28.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d28,
+              case when to_date('29.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d29,
+              case when to_date('30.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d30,
+              case when to_date('31.'||p.monthgen||'.'||p.yeargen, 'dd.MM.yyyy') between p.datestart and p.datefinal then 1 else 0 end as d31 ,
+              coalesce((select 'Припис № ' || bo.numbergen || ' від ' || bo.dategen || ' ' || bo.itemtext || ' ' || borg.name as binding from enbindingover bo, enbindingoverorganiztn borg
+               where  p.code = bo.planrefcode and
+                bo.organizationcode = borg.code),'Припис не введено') as binding
+           ,
+             (select * from net.get_codemonthplan_byanycodeplan(p.code::numeric) ) as codemonthplan
+           from enplanwork p left join finexecutor f on p.finexecutorcode = f.code,
+            enelement e, enplanworktype pwt, enplanworkstate pws, enelementtype et
+            where  p.yeargen = $P{yearGen} and p.monthgen = $P{monthGen}
+
+            and p.elementrefcode = e.code
+            and e.typerefcode = et.code
+            and p.kindcode in (2,3,4) and p.statuscode not in (2,6)
+            and p.staterefcode = pws.code
+            and p.typerefcode = pwt.code
+           -- and et.managementrefcode  in ( 1 ,2, 3)
+            and ((et.managementrefcode = 1) or (et.managementrefcode = 3 and p.budgetrefcode = 240000001))
+            --and p.budgetrefcode <> 240000001
+            and p.typerefcode not in (19 /*Послуги зі сторони*/ , 20 /*Послуги зі сторони (Інвест Програма)*/ )
+
+            -- SUPP-6699 не брать в отчет те планы в которых указаны работы
+            and p.code not in ( select pw.code from enplanwork pw , enplanworkitem pwi --, enplanworkstate pws
+                    where pw.code = pwi.planrefcode
+                   -- and pw.staterefcode = pws.code
+                    and pw.yeargen = $P{yearGen}
+                    and pw.monthgen = $P{monthGen}
+                    and pw.code = p.code
+                    and pwi.kartarefcode in (75001805,
+                    75001794,
+                    75001791,
+                    75001798,
+                    75001795,
+                    75001797,
+                    75001802,
+                    75001800,
+                    75001790,
+                    75001801) )
+
+            ) as q
+            ) as q1 ) as qq, enelement ed, endepartment edn
+
+            where qq.elcode = ed.code and qq.department = edn.code
+
+            group by qq.finexecutorname, qq.planworktypename, qq.planworkstatename,qq.formrefcode,  edn.name, ed.code , qq.cnn, qq.elcode, qq.fincode, qq.binding , qq.codemonthplan
+            ) as qqq
+
+) as sel_plan
+ON  sel_dep.depcode = sel_plan.department
+
+-------------- конец планы
+
+) sel_dep_plan
+group by depname ,rencode  ,depcode
+
+) as rezult_sel_dep_plan
+------------------- скручиваем с актами по департменту
+LEFT JOIN
+( Select distinct a.code as codeact , p.departmentrefcode  , a.acttyperefcode , p.typerefcode as plantyperefcode , p.budgetrefcode  , a.statusrefcode
+   from enact a  , enact2enplanwork a2p  , enplanwork p
+Where to_char(a.dategen,'yyyy')::numeric = $P{yearGen}
+and  to_char(a.dategen,'mm')::numeric = $P{monthGen}
+and a.code = a2p.actrefcode
+and a2p.plancode = p.code
+and p.kindcode = 4
+and p.typerefcode not in (19 /*Послуги зі сторони*/ , 20 /*Послуги зі сторони (Інвест Програма)*/ )
+
+/*and p.departmentrefcode::double precision =  481
+and a.statusrefcode = 4
+and a.acttyperefcode = 7 */
+
+-- SUPP-6699 не брать в отчет те планы в которых указаны работы
+            and p.code not in ( select pw.code from enplanwork pw , enplanworkitem pwi , enplanworkstate pws
+                    where pw.code = pwi.planrefcode
+                    and pw.staterefcode = pws.code
+                    and pw.yeargen = $P{yearGen}
+                    and pw.monthgen = $P{monthGen}
+                    and pw.code = p.code
+                    and pwi.kartarefcode in (75001805,
+                    75001794,
+                    75001791,
+                    75001798,
+                    75001795,
+                    75001797,
+                    75001802,
+                    75001800,
+                    75001790,
+                    75001801) )
+
+) as sel_act
+ON rezult_sel_dep_plan.depcode = sel_act.departmentrefcode
+group by depcode , depname , rencode
+,plan_repair
+,plan_repair_fact
+,plan_repair_fact_not_act
+
+,plan_techservice
+,plan_techservice_fact
+,plan_techservice_fact_not_act
+
+,plan_prisoed_modernizac
+,plan_prisoed_modernizac_fact
+,plan_prisoed_modernizac_fact_not_act
+
+,plan_prisoed_stroitelstvo
+,plan_prisoed_stroitelstvo_fact
+,plan_prisoed_stroitelstvo_fact_not_act
+
+,plan_modernizac
+,plan_modernizac_fact
+,plan_modernizac_fact_not_act
+
+,plan_energosbyt_modernizac
+,plan_energosbyt_modernizac_fact
+,plan_energosbyt_modernizac_fact_not_act
+
+,plan_energosbyt_techservice
+,plan_energosbyt_techservice_fact
+,plan_energosbyt_techservice_fact_not_act
+
+,plan_energosbyt_repair
+,plan_energosbyt_repair_fact
+,plan_energosbyt_repair_fact_not_act
+
+,sel_act.acttyperefcode
+,sel_act.budgetrefcode
+,sel_act.statusrefcode
+,sel_act.plantyperefcode
+,codeact
+order by rencode desc
+) as sel_sum
+group by depcode , depname , rencode
+,plan_repair
+,plan_repair_fact
+,plan_repair_fact_not_act
+
+,plan_techservice
+,plan_techservice_fact
+,plan_techservice_fact_not_act
+
+,plan_prisoed_modernizac
+,plan_prisoed_modernizac_fact
+,plan_prisoed_modernizac_fact_not_act
+
+,plan_prisoed_stroitelstvo
+,plan_prisoed_stroitelstvo_fact
+,plan_prisoed_stroitelstvo_fact_not_act
+
+,plan_modernizac
+,plan_modernizac_fact
+,plan_modernizac_fact_not_act
+
+,plan_energosbyt_modernizac
+,plan_energosbyt_modernizac_fact
+,plan_energosbyt_modernizac_fact_not_act
+
+,plan_energosbyt_techservice
+,plan_energosbyt_techservice_fact
+,plan_energosbyt_techservice_fact_not_act
+
+,plan_energosbyt_repair
+,plan_energosbyt_repair_fact
+,plan_energosbyt_repair_fact_not_act
+
+order by depcode_sort]]>
+	</queryString>
+	<field name="depcode_sort" class="java.lang.Integer"/>
+	<field name="depname" class="java.lang.String"/>
+	<field name="rencode" class="java.lang.Double"/>
+	<field name="plan_repair" class="java.lang.Integer"/>
+	<field name="plan_repair_fact" class="java.lang.Integer"/>
+	<field name="plan_repair_fact_not_act" class="java.lang.Integer"/>
+	<field name="plan_techservice" class="java.lang.Integer"/>
+	<field name="plan_techservice_fact" class="java.lang.Integer"/>
+	<field name="plan_techservice_fact_not_act" class="java.lang.Integer"/>
+	<field name="plan_prisoed_modernizac" class="java.lang.Integer"/>
+	<field name="plan_prisoed_modernizac_fact" class="java.lang.Integer"/>
+	<field name="plan_prisoed_modernizac_fact_not_act" class="java.lang.Integer"/>
+	<field name="plan_prisoed_stroitelstvo" class="java.lang.Integer"/>
+	<field name="plan_prisoed_stroitelstvo_fact" class="java.lang.Integer"/>
+	<field name="plan_prisoed_stroitelstvo_fact_not_act" class="java.lang.Integer"/>
+	<field name="act_move_repair" class="java.lang.Integer"/>
+	<field name="act_draft_repair" class="java.lang.Integer"/>
+	<field name="act_podpisanie_repair" class="java.lang.Integer"/>
+	<field name="act_move_workside" class="java.lang.Integer"/>
+	<field name="act_draft_workside" class="java.lang.Integer"/>
+	<field name="act_move_techobsl" class="java.lang.Integer"/>
+	<field name="act_draft_techobsl" class="java.lang.Integer"/>
+	<field name="act_podpisanie_techobsl" class="java.lang.Integer"/>
+	<field name="act_move_prisoed_modern" class="java.lang.Integer"/>
+	<field name="act_draft_prisoed_modern" class="java.lang.Integer"/>
+	<field name="act_podpisanie_prisoed_modern" class="java.lang.Integer"/>
+	<field name="act_move_prisoed_build" class="java.lang.Integer"/>
+	<field name="act_draft_prisoed_build" class="java.lang.Integer"/>
+	<field name="act_podpisanie_prisoed_build" class="java.lang.Integer"/>
+	<field name="act_move_rekostr_modern" class="java.lang.Integer"/>
+	<field name="act_draft_rekostr_modern" class="java.lang.Integer"/>
+	<field name="act_podpisanie_rekostr_modern" class="java.lang.Integer"/>
+	<field name="act_move_rekostr_modern_sbyt" class="java.lang.Integer"/>
+	<field name="act_draft_rekostr_modern_sbyt" class="java.lang.Integer"/>
+	<field name="act_podpisanie_rekostr_modern_sbyt" class="java.lang.Integer"/>
+	<field name="act_move_techobsl_sbyt" class="java.lang.Integer"/>
+	<field name="act_draft_techobsl_sbyt" class="java.lang.Integer"/>
+	<field name="act_podpisanie_techobsl_sbyt" class="java.lang.Integer"/>
+	<field name="act_move_repair_sbyt" class="java.lang.Integer"/>
+	<field name="act_draft_repair_sbyt" class="java.lang.Integer"/>
+	<field name="act_podpisanie_repair_sbyt" class="java.lang.Integer"/>
+	<field name="act_podpisanie_workside" class="java.lang.Integer"/>
+	<field name="rrr" class="java.lang.String"/>
+	<field name="plan_modernizac" class="java.lang.Integer"/>
+	<field name="plan_modernizac_fact" class="java.lang.Integer"/>
+	<field name="plan_modernizac_fact_not_act" class="java.lang.Integer"/>
+	<field name="plan_energosbyt_modernizac" class="java.lang.Integer"/>
+	<field name="plan_energosbyt_modernizac_fact" class="java.lang.Integer"/>
+	<field name="plan_energosbyt_modernizac_fact_not_act" class="java.lang.Integer"/>
+	<field name="plan_energosbyt_techservice" class="java.lang.Integer"/>
+	<field name="plan_energosbyt_techservice_fact" class="java.lang.Integer"/>
+	<field name="plan_energosbyt_techservice_fact_not_act" class="java.lang.Integer"/>
+	<field name="plan_energosbyt_repair" class="java.lang.Integer"/>
+	<field name="plan_energosbyt_repair_fact" class="java.lang.Integer"/>
+	<field name="plan_energosbyt_repair_fact_not_act" class="java.lang.Integer"/>
+	<field name="rm_chernov" class="java.lang.Integer"/>
+	<field name="rm_scladeno" class="java.lang.Integer"/>
+	<field name="rm_provedeno" class="java.lang.Integer"/>
+	<field name="act_move_workside_prev_period" class="java.lang.Integer"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="75" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="state-2" stretchType="RelativeToTallestObject" x="150" y="13" width="569" height="35" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" Зведений звіт по актам за " + new String(
+$P{monthGen}.intValue() == 1 ? " січень " :
+$P{monthGen}.intValue() == 2 ? " лютий " :
+$P{monthGen}.intValue() == 3 ? " березень " :
+$P{monthGen}.intValue() == 4 ? " квітень " :
+$P{monthGen}.intValue() == 5 ? " травень " :
+$P{monthGen}.intValue() == 6 ? " червень " :
+$P{monthGen}.intValue() == 7 ? " липень " :
+$P{monthGen}.intValue() == 8 ? " серпень " :
+$P{monthGen}.intValue() == 9 ? " вересень " :
+$P{monthGen}.intValue() == 10 ? " жовтень " :
+$P{monthGen}.intValue() == 11 ? " листопад " :
+$P{monthGen}.intValue() == 12 ? " грудень " : " ")
++ " станом  на " + $F{rrr}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="115" splitType="Stretch">
+			<staticText>
+				<reportElement key="staticText-1" x="0" y="0" width="150" height="115"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[РЕМ ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-2" x="150" y="0" width="180" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Ремонти (поточн. капітальн.)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-3" x="150" y="40" width="30" height="75"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[План]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-4" x="300" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Проведені в Фінколекції]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-5" x="240" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Черновики]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-6" x="270" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[На підписанні]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="330" y="0" width="140" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Послуги на сторону]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-9" x="390" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Проведені в Фінколекції]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-10" x="330" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Черновики]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-11" x="360" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[На підписанні]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-12" x="470" y="0" width="180" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Тех. обслуговування]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-13" x="470" y="40" width="30" height="75"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[План]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-14" x="620" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Проведені в Фінколекції]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-15" x="560" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Черновики]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-16" x="590" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[На підписанні]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-17" x="650" y="0" width="360" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Приєднання]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-18" x="650" y="40" width="30" height="75"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[План]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-19" x="800" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Проведені в Фінколекції]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-20" x="740" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Черновики]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-21" x="770" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[На підписанні]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-22" x="650" y="15" width="180" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Модернізація , реконструкція]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-23" x="830" y="40" width="30" height="75"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[План]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-24" x="980" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Проведені в Фінколекції]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-25" x="920" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Черновики]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-26" x="950" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[На підписанні]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-27" x="830" y="15" width="180" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Будівництво]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-28" x="1010" y="0" width="180" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Модернізація , реконструкція]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-29" x="1160" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Проведені в Фінколекції]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-30" x="1100" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Черновики]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="1130" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[На підписанні]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-32" x="1190" y="0" width="540" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Енергосбут]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-33" x="1340" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Проведені в Фінколекції]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-34" x="1280" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Черновики]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-35" x="1310" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[На підписанні]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-36" x="1520" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Проведені в Фінколекції]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-37" x="1460" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Черновики]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-38" x="1490" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[На підписанні]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-39" x="1700" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Проведені в Фінколекції]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-40" x="1640" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Черновики]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-41" x="1670" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[На підписанні]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-42" x="1190" y="15" width="180" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Модернізація , реконструкція]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-43" x="1370" y="15" width="180" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Тех. обслуговування]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-44" x="1550" y="15" width="180" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Ремонти (поточн. капітальн.)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-45" x="1010" y="40" width="30" height="75"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[План]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-46" x="1190" y="40" width="30" height="75"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[План]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-47" x="1370" y="40" width="30" height="75"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[План]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-48" x="1550" y="40" width="30" height="75"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[План]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-49" x="210" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[затверджені без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-50" x="180" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[чорнові без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-51" x="180" y="40" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[факти
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-52" x="240" y="40" width="90" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[акти]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-53" x="330" y="40" width="140" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[акти]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-54" x="500" y="40" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[факти
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-55" x="560" y="40" width="90" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[акти]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-56" x="500" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[чорнові без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-57" x="530" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[затверджені без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-58" x="680" y="40" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[факти
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-59" x="740" y="40" width="90" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[акти]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-60" x="680" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[чорнові без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-61" x="710" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[затверджені без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-62" x="860" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[чорнові без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-63" x="860" y="40" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[факти
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-64" x="890" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[затверджені без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-65" x="920" y="40" width="90" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[акти]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-66" x="1040" y="40" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[факти
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-67" x="1040" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[чорнові без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-68" x="1070" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[затверджені без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-69" x="1100" y="40" width="90" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[акти]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-70" x="1220" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[чорнові без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-71" x="1220" y="40" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[факти
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-72" x="1280" y="40" width="90" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[акти]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-73" x="1250" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[затверджені без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-74" x="1400" y="40" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[факти
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-75" x="1400" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[чорнові без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-76" x="1430" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[затверджені без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-77" x="1460" y="40" width="90" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[акти]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-78" x="1580" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[чорнові без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-79" x="1610" y="60" width="30" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[затверджені без акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-80" x="1580" y="40" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[факти
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-81" x="1640" y="40" width="90" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[акти]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-44" x="1730" y="0" width="160" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font size="8"/>
+				</textElement>
+				<text><![CDATA[Акти приймання-здачі відремонтованих, реконструйованих та модернізованих об`єктів за формою № ОЗ-2]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-39" x="1730" y="40" width="60" height="75"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Чорновики]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-39" x="1790" y="40" width="50" height="75"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[На підписанні]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-39" x="1840" y="40" width="50" height="75"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Проведені в Фінколекції]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-9" x="420" y="60" width="50" height="55"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" rotation="Left">
+					<font size="7"/>
+				</textElement>
+				<text><![CDATA[Проведені в Фінкол. у поточному періоді за попередні]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="state-1" stretchType="RelativeToTallestObject" x="0" y="0" width="150" height="15" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{depname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" x="150" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_repair}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-2" stretchType="RelativeToTallestObject" x="300" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_move_repair}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-3" stretchType="RelativeToTallestObject" x="240" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_draft_repair}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-4" stretchType="RelativeToTallestObject" x="270" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_podpisanie_repair}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-5" stretchType="RelativeToTallestObject" x="390" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_move_workside}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-6" stretchType="RelativeToTallestObject" x="330" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_draft_workside}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" x="360" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_podpisanie_workside}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-8" stretchType="RelativeToTallestObject" x="470" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_techservice}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" x="620" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_move_techobsl}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" stretchType="RelativeToTallestObject" x="560" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_draft_techobsl}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-11" stretchType="RelativeToTallestObject" x="590" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_podpisanie_techobsl}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" x="650" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_prisoed_modernizac}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-13" stretchType="RelativeToTallestObject" x="800" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_move_prisoed_modern}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-14" stretchType="RelativeToTallestObject" x="740" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_draft_prisoed_modern}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-15" stretchType="RelativeToTallestObject" x="770" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_podpisanie_prisoed_modern}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-16" stretchType="RelativeToTallestObject" x="830" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_prisoed_stroitelstvo}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-17" stretchType="RelativeToTallestObject" x="980" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_move_prisoed_build}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-18" stretchType="RelativeToTallestObject" x="920" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_draft_prisoed_build}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-19" stretchType="RelativeToTallestObject" x="950" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_podpisanie_prisoed_build}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" stretchType="RelativeToTallestObject" x="1160" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_move_rekostr_modern}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-21" stretchType="RelativeToTallestObject" x="1100" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_draft_rekostr_modern}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-22" stretchType="RelativeToTallestObject" x="1130" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_podpisanie_rekostr_modern}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-23" stretchType="RelativeToTallestObject" x="1340" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_move_rekostr_modern_sbyt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-24" stretchType="RelativeToTallestObject" x="1280" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_draft_rekostr_modern_sbyt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-25" stretchType="RelativeToTallestObject" x="1310" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_podpisanie_rekostr_modern_sbyt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-26" stretchType="RelativeToTallestObject" x="1520" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_move_techobsl_sbyt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-27" stretchType="RelativeToTallestObject" x="1460" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_draft_techobsl_sbyt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-28" stretchType="RelativeToTallestObject" x="1490" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_podpisanie_techobsl_sbyt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-29" stretchType="RelativeToTallestObject" x="1700" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_move_repair_sbyt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-30" stretchType="RelativeToTallestObject" x="1640" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_draft_repair_sbyt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-31" stretchType="RelativeToTallestObject" x="1670" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_podpisanie_repair_sbyt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-32" stretchType="RelativeToTallestObject" x="1010" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_modernizac}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" stretchType="RelativeToTallestObject" x="1190" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_energosbyt_modernizac}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" stretchType="RelativeToTallestObject" x="1370" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_energosbyt_techservice}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-35" stretchType="RelativeToTallestObject" x="1550" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_energosbyt_repair}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-36" stretchType="RelativeToTallestObject" x="210" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_repair_fact_not_act}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-37" stretchType="RelativeToTallestObject" x="180" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_repair_fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-38" stretchType="RelativeToTallestObject" x="500" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_techservice_fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-39" stretchType="RelativeToTallestObject" x="530" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_techservice_fact_not_act}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-40" stretchType="RelativeToTallestObject" x="680" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_prisoed_modernizac_fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-41" stretchType="RelativeToTallestObject" x="710" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_prisoed_modernizac_fact_not_act}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-42" stretchType="RelativeToTallestObject" x="860" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_prisoed_stroitelstvo_fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-43" stretchType="RelativeToTallestObject" x="890" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_prisoed_stroitelstvo_fact_not_act}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-44" stretchType="RelativeToTallestObject" x="1040" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_modernizac_fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-45" stretchType="RelativeToTallestObject" x="1070" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_modernizac_fact_not_act}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-46" stretchType="RelativeToTallestObject" x="1220" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_energosbyt_modernizac_fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-47" stretchType="RelativeToTallestObject" x="1250" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_energosbyt_modernizac_fact_not_act}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-48" stretchType="RelativeToTallestObject" x="1400" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_energosbyt_techservice_fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-49" stretchType="RelativeToTallestObject" x="1430" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_energosbyt_techservice_fact_not_act}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-50" stretchType="RelativeToTallestObject" x="1580" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_energosbyt_repair_fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-51" stretchType="RelativeToTallestObject" x="1610" y="0" width="30" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plan_energosbyt_repair_fact_not_act}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-29" stretchType="RelativeToTallestObject" x="1730" y="0" width="60" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{rm_chernov}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-29" stretchType="RelativeToTallestObject" x="1790" y="0" width="50" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{rm_scladeno}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-29" stretchType="RelativeToTallestObject" x="1840" y="0" width="50" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{rm_provedeno}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-5" stretchType="RelativeToTallestObject" x="420" y="0" width="50" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_move_workside_prev_period}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

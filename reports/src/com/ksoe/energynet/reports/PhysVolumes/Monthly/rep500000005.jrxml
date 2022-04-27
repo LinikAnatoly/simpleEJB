@@ -1,0 +1,3262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="rep500000005" pageWidth="1742" pageHeight="595" orientation="Landscape" columnWidth="1682" leftMargin="30" rightMargin="30" topMargin="20" bottomMargin="20" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="MonthGen" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="YearGen" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["D:\\Documents\\Reports\\КР\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DepartmentCode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="ReportCode" class="java.lang.Integer" isForPrompting="false">
+		<defaultValueExpression><![CDATA[new Integer(500000005)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="geoDeptCode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="geoDeptName" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select
+name.Totalcode,
+elname,
+(case
+	when name.planfact = 0 then 'план'
+	when name.planfact=1 then 'факт 1 декада'
+	when name.planfact=2 then 'факт 2 декада'
+	when name.planfact=3 then 'факт 3 декада'
+    when name.planfact=4 then 'річний план'
+    when name.planfact=6 then 'план'
+    when name.planfact=7 then 'факт'
+	else ''
+end) as plans,
+depname,
+p0_01, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12,
+p13, p14, p15, p16, p17, p18, p19, p20, p21, p22
+
+from
+
+/* Наименование и планфакт */
+(
+/* Наименование річний план */
+select distinct
+cast((cast(EL.code as varchar) || '0') as numeric) as TotalCode,
+(LI.name || ' № ' || LI.invnumber) as elname,
+4 as planfact, 0 as sort,
+de.name as depname
+from
+(((enplanwork as PW
+inner join
+endepartment as DE
+on
+DE.code = PW.departmentrefcode) inner join
+(enelement as EL inner join
+ensubstation04 as LI
+on EL.code=LI.elementcode)
+on PW.elementrefcode=EL.code) inner join
+enplanworkitem as PI on
+PW.code=PI.planrefcode) inner join
+(tktechcard as TC inner join
+(tkreportitem2techcard as RITC inner join
+(tkreportitem as RI inner join
+tkreport as RE
+on RI.reportrefcode=RE.code)
+on RITC.reportitemcode=RI.code)
+on TC.code=RITC.techcardcode)
+on PI.kartarefcode=TC.code
+where
+RE.code = $P{ReportCode} /* номер отчета */
+and PW.monthgen = $P{MonthGen} /* месяц */
+and PW.yeargen = $P{YearGen} /* год */
+and (case when $P{DepartmentCode} <> 0 then PW.departmentrefcode = $P{DepartmentCode} /* підрозділ */ when $P{DepartmentCode} = 0 then PW.departmentrefcode = PW.departmentrefcode end)
+and (case when $P{geoDeptCode} <> 0 then el.geodepartmentrefcode = $P{geoDeptCode} /* geo підрозділ */ when $P{geoDeptCode} = 0 then 1=1 end)
+and PW.kindcode in (1,2,4) /* річні, місячні, завдання факт */
+and PW.typerefcode in (1,2,3,10) /* планові, авр, припис, непланові */
+and PW.statuscode in (1,3,4,5,7,8) /* затверджені і чорнові */
+ /*SUPP-61313 Планы со статусом работы завершены берутся только те, что с актами*/
+and case when pw.statuscode = 8 then exists (select 1 from enplancorrecthistory as pco1
+inner join enplancorrecthistory as pco2 on pco1.planrefcode = pco2.planrefcode
+where
+pw.code in (pco1.planoldrefcode, pco1.plannewrefcode)
+and pco2.reasoncode = 5) else 1=1 end
+and PW.budgetrefcode = 75000001 /* СРС */
+and PW.staterefcode = 1 /* КР */
+and EL.typerefcode = 3 /* ТП 0.4 кВ */
+and (
+LI.substationtypecode = 1 /* КТП */
+or LI.substationtypecode = 3 /* Мачтові */
+or LI.substationtypecode = 4 /* Блочні */
+)
+
+union all
+
+/* Наименование план */
+select distinct
+cast((cast(EL.code as varchar) || '1') as numeric) as TotalCode,
+(LI.name || ' № ' || LI.invnumber) as elname,
+0 as planfact, 0 as sort,
+de.name as depname
+from
+(((enplanwork as PW
+inner join
+endepartment as DE
+on
+DE.code = PW.departmentrefcode) inner join
+(enelement as EL inner join
+ensubstation04 as LI
+on EL.code=LI.elementcode)
+on PW.elementrefcode=EL.code) inner join
+enplanworkitem as PI on
+PW.code=PI.planrefcode) inner join
+(tktechcard as TC inner join
+(tkreportitem2techcard as RITC inner join
+(tkreportitem as RI inner join
+tkreport as RE
+on RI.reportrefcode=RE.code)
+on RITC.reportitemcode=RI.code)
+on TC.code=RITC.techcardcode)
+on PI.kartarefcode=TC.code
+where
+RE.code = $P{ReportCode} /* номер отчета */
+and PW.monthgen = $P{MonthGen} /* месяц */
+and PW.yeargen = $P{YearGen} /* год */
+and (case when $P{DepartmentCode} <> 0 then PW.departmentrefcode = $P{DepartmentCode} /* підрозділ */ when $P{DepartmentCode} = 0 then PW.departmentrefcode = PW.departmentrefcode end)
+and (case when $P{geoDeptCode} <> 0 then el.geodepartmentrefcode = $P{geoDeptCode} /* geo підрозділ */ when $P{geoDeptCode} = 0 then 1=1 end)
+and PW.kindcode in (1,2,4) /* річні, місячні, завдання факт */
+and PW.typerefcode in (1,2,3,10) /* планові, авр, припис, непланові */
+and PW.statuscode in (1,3,4,5,7,8) /* затверджені і чорнові */
+ /*SUPP-61313 Планы со статусом работы завершены берутся только те, что с актами*/
+and case when pw.statuscode = 8 then exists (select 1 from enplancorrecthistory as pco1
+inner join enplancorrecthistory as pco2 on pco1.planrefcode = pco2.planrefcode
+where
+pw.code in (pco1.planoldrefcode, pco1.plannewrefcode)
+and pco2.reasoncode = 5) else 1=1 end
+and PW.budgetrefcode = 75000001 /* СРС */
+and PW.staterefcode = 1 /* КР */
+and EL.typerefcode = 3 /* ТП 0.4 кВ */
+and (
+LI.substationtypecode = 1 /* КТП */
+or LI.substationtypecode = 3 /* Мачтові */
+or LI.substationtypecode = 4 /* Блочні */
+)
+
+union all
+
+/* Наименование факт декада 1 */
+select distinct
+cast((cast(EL.code as varchar) || '2') as numeric) as TotalCode,
+(LI.name || ' № ' || LI.invnumber) as elname,
+1 as planfact, 0 as sort,
+de.name as depname
+from
+(((enplanwork as PW
+inner join
+endepartment as DE
+on
+DE.code = PW.departmentrefcode) inner join
+(enelement as EL inner join
+ensubstation04 as LI
+on EL.code=LI.elementcode)
+on PW.elementrefcode=EL.code) inner join
+enplanworkitem as PI on
+PW.code=PI.planrefcode) inner join
+(tktechcard as TC inner join
+(tkreportitem2techcard as RITC inner join
+(tkreportitem as RI inner join
+tkreport as RE
+on RI.reportrefcode=RE.code)
+on RITC.reportitemcode=RI.code)
+on TC.code=RITC.techcardcode)
+on PI.kartarefcode=TC.code
+where
+RE.code = $P{ReportCode} /* номер отчета */
+and PW.monthgen = $P{MonthGen} /* месяц */
+and PW.yeargen = $P{YearGen} /* год */
+and (case when $P{DepartmentCode} <> 0 then PW.departmentrefcode = $P{DepartmentCode} /* підрозділ */ when $P{DepartmentCode} = 0 then PW.departmentrefcode = PW.departmentrefcode end)
+and (case when $P{geoDeptCode} <> 0 then el.geodepartmentrefcode = $P{geoDeptCode} /* geo підрозділ */ when $P{geoDeptCode} = 0 then 1=1 end)
+and PW.kindcode in (1,2,4) /* річні, місячні, завдання факт */
+and PW.typerefcode in (1,2,3,10) /* планові, авр, припис, непланові */
+and PW.statuscode in (1,3,4,5,7,8) /* затверджені і чорнові */
+ /*SUPP-61313 Планы со статусом работы завершены берутся только те, что с актами*/
+and case when pw.statuscode = 8 then exists (select 1 from enplancorrecthistory as pco1
+inner join enplancorrecthistory as pco2 on pco1.planrefcode = pco2.planrefcode
+where
+pw.code in (pco1.planoldrefcode, pco1.plannewrefcode)
+and pco2.reasoncode = 5) else 1=1 end
+and PW.budgetrefcode = 75000001 /* СРС */
+and PW.staterefcode = 1 /* КР */
+and EL.typerefcode = 3 /* ТП 0.4 кВ */
+and (
+LI.substationtypecode = 1 /* КТП */
+or LI.substationtypecode = 3 /* Мачтові */
+or LI.substationtypecode = 4 /* Блочні */
+)
+
+union all
+
+/* Наименование факт декада 2 */
+select distinct
+cast((cast(EL.code as varchar) || '3') as numeric) as TotalCode,
+(LI.name || ' № ' || LI.invnumber) as elname,
+2 as planfact, 0 as sort,
+de.name as depname
+from
+(((enplanwork as PW
+inner join
+endepartment as DE
+on
+DE.code = PW.departmentrefcode) inner join
+(enelement as EL inner join
+ensubstation04 as LI
+on EL.code=LI.elementcode)
+on PW.elementrefcode=EL.code) inner join
+enplanworkitem as PI on
+PW.code=PI.planrefcode) inner join
+(tktechcard as TC inner join
+(tkreportitem2techcard as RITC inner join
+(tkreportitem as RI inner join
+tkreport as RE
+on RI.reportrefcode=RE.code)
+on RITC.reportitemcode=RI.code)
+on TC.code=RITC.techcardcode)
+on PI.kartarefcode=TC.code
+where
+RE.code = $P{ReportCode} /* номер отчета */
+and PW.monthgen = $P{MonthGen} /* месяц */
+and PW.yeargen = $P{YearGen} /* год */
+and (case when $P{DepartmentCode} <> 0 then PW.departmentrefcode = $P{DepartmentCode} /* підрозділ */ when $P{DepartmentCode} = 0 then PW.departmentrefcode = PW.departmentrefcode end)
+and (case when $P{geoDeptCode} <> 0 then el.geodepartmentrefcode = $P{geoDeptCode} /* geo підрозділ */ when $P{geoDeptCode} = 0 then 1=1 end)
+and PW.kindcode in (1,2,4) /* річні, місячні, завдання факт */
+and PW.typerefcode in (1,2,3,10) /* планові, авр, припис, непланові */
+and PW.statuscode in (1,3,4,5,7,8) /* затверджені і чорнові */
+ /*SUPP-61313 Планы со статусом работы завершены берутся только те, что с актами*/
+and case when pw.statuscode = 8 then exists (select 1 from enplancorrecthistory as pco1
+inner join enplancorrecthistory as pco2 on pco1.planrefcode = pco2.planrefcode
+where
+pw.code in (pco1.planoldrefcode, pco1.plannewrefcode)
+and pco2.reasoncode = 5) else 1=1 end
+and PW.budgetrefcode = 75000001 /* СРС */
+and PW.staterefcode = 1 /* КР */
+and EL.typerefcode = 3 /* ТП 0.4 кВ */
+and (
+LI.substationtypecode = 1 /* КТП */
+or LI.substationtypecode = 3 /* Мачтові */
+or LI.substationtypecode = 4 /* Блочні */
+)
+
+union all
+
+/* Наименование факт декада 3 */
+select distinct
+cast((cast(EL.code as varchar) || '4') as numeric) as TotalCode,
+(LI.name || ' № ' || LI.invnumber) as elname,
+3 as planfact, 0 as sort,
+de.name as depname
+from
+(((enplanwork as PW
+inner join
+endepartment as DE
+on
+DE.code = PW.departmentrefcode) inner join
+(enelement as EL inner join
+ensubstation04 as LI
+on EL.code=LI.elementcode)
+on PW.elementrefcode=EL.code) inner join
+enplanworkitem as PI on
+PW.code=PI.planrefcode) inner join
+(tktechcard as TC inner join
+(tkreportitem2techcard as RITC inner join
+(tkreportitem as RI inner join
+tkreport as RE
+on RI.reportrefcode=RE.code)
+on RITC.reportitemcode=RI.code)
+on TC.code=RITC.techcardcode)
+on PI.kartarefcode=TC.code
+where
+RE.code = $P{ReportCode} /* номер отчета */
+and PW.monthgen = $P{MonthGen} /* месяц */
+and PW.yeargen = $P{YearGen} /* год */
+and (case when $P{DepartmentCode} <> 0 then PW.departmentrefcode = $P{DepartmentCode} /* підрозділ */ when $P{DepartmentCode} = 0 then PW.departmentrefcode = PW.departmentrefcode end)
+and (case when $P{geoDeptCode} <> 0 then el.geodepartmentrefcode = $P{geoDeptCode} /* geo підрозділ */ when $P{geoDeptCode} = 0 then 1=1 end)
+and PW.kindcode in (1,2,4) /* річні, місячні, завдання факт */
+and PW.typerefcode in (1,2,3,10) /* планові, авр, припис, непланові */
+and PW.statuscode in (1,3,4,5,7,8) /* затверджені і чорнові */
+ /*SUPP-61313 Планы со статусом работы завершены берутся только те, что с актами*/
+and case when pw.statuscode = 8 then exists (select 1 from enplancorrecthistory as pco1
+inner join enplancorrecthistory as pco2 on pco1.planrefcode = pco2.planrefcode
+where
+pw.code in (pco1.planoldrefcode, pco1.plannewrefcode)
+and pco2.reasoncode = 5) else 1=1 end
+and PW.budgetrefcode = 75000001 /* СРС */
+and PW.staterefcode = 1 /* КР */
+and EL.typerefcode = 3 /* ТП 0.4 кВ */
+and (
+LI.substationtypecode = 1 /* КТП */
+or LI.substationtypecode = 3 /* Мачтові */
+or LI.substationtypecode = 4 /* Блочні */
+)
+
+union all
+
+/* Наименование Всього річний план */
+select distinct
+(-27) as TotalCode,
+('Всього річний план') as elname,
+5 as planfact, 1 as sort,
+null as depname
+
+union all
+
+/* Наименование Всього місячний план */
+select distinct
+(-26) as TotalCode,
+('Всього місячний план') as elname,
+5 as planfact, 1 as sort,
+null as depname
+
+union all
+
+/* Наименование Всього факт */
+select distinct
+(-25) as TotalCode,
+('Всього факт') as elname,
+5 as planfact, 1 as sort,
+null as depname
+
+union all
+
+/* Наименование За рік */
+select distinct
+(-24) as TotalCode,
+('За рік') as elname,
+5 as planfact, 1 as sort,
+null as depname
+
+union all
+
+/* Наименование З початку року План */
+select distinct
+(-23) as TotalCode,
+('З початку року') as elname,
+6 as planfact, 1 as sort,
+null as depname
+
+union all
+
+/* Наименование З початку року Факт */
+select distinct
+(-22) as TotalCode,
+('З початку року') as elname,
+7 as planfact, 1 as sort,
+null as depname
+
+
+
+) as name
+
+left join
+
+/* Данные */
+(select
+(CASE
+	WHEN PW.kindcode=1 THEN
+		CASE
+        	WHEN PW.typerefcode=1 THEN cast((cast(EL.code as varchar) || '0') as numeric)
+        	ELSE null
+        END
+	ELSE
+    	(CASE
+        	WHEN (PW.kindcode=4) THEN
+            	CASE
+                WHEN PW.statuscode = 3 THEN
+				CASE
+                	WHEN PW.datestart between to_date(cast('01.'||PW.monthgen||'.'||PW.yeargen as varchar),'dd.MM.yyyy') and to_date(cast('10.'||PW.monthgen||'.'||PW.yeargen as varchar),'dd.MM.yyyy') THEN cast((cast(EL.code as varchar) || '2') as numeric)
+					WHEN PW.datestart between to_date(cast('11.'||PW.monthgen||'.'||PW.yeargen as varchar),'dd.MM.yyyy') and to_date(cast('20.'||PW.monthgen||'.'||PW.yeargen as varchar),'dd.MM.yyyy') THEN cast((cast(EL.code as varchar) || '3') as numeric)
+					WHEN PW.datestart between to_date(cast('21.'||PW.monthgen||'.'||PW.yeargen as varchar),'dd.MM.yyyy') and last_day(to_date(cast('21.'||PW.monthgen||'.'||PW.yeargen as varchar),'dd.MM.yyyy')) THEN cast((cast(EL.code as varchar) || '4') as numeric) END
+ 				ELSE null
+                END
+                    ELSE
+                    	CASE
+                        	WHEN PW.typerefcode = 1 THEN cast((cast(EL.code as varchar) || '1') as numeric)
+                            ELSE null
+        				END
+
+        END)
+END) as TotalCode,
+/*  500000197	0.01 Комплекс робіт з капітального ремонту */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000197)) as p0_01,
+/*  500000117	1 Огляд ТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000117)) as p1,
+/*  500000118	2 Заміна шаф */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000118)) as p2,
+/*  500000119	3 Заміна (ремонт) трансформаторів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000119)) as p3,
+/* 500000120	4 Заміна (ремонт) роз'єднувачів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000120)) as p4,
+/* 500000121	5 Заміна (ремонт) вимикачів навантаження */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000121)) as p5,
+/*  500000122	6 Заміна АВ - 0,4 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000122)) as p6,
+/*  500000123	7 Заміна рубильників */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000123)) as p7,
+/*  500000124	8 Заміна прохідних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000124)) as p8,
+/*  500000125	9 Заміна опорних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000125)) as p9,
+/*  500000126	10 Заміна запобіжників 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000126)) as p10,
+/*  500000127	11 Заміна запобіжників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000127)) as p11,
+/*  500000128	12 Заміна розрядників 6 - 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000128)) as p12,
+/*  500000129	13 Заміна розрядників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000129)) as p13,
+/*  500000130	14 Заміна виводів повітряних ЛЕП до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000130)) as p14,
+/*  500000131	15 Заміна шлейфів 6- 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000131)) as p15,
+/*  500000132	16 Монтаж скоби - уловлювача тяги роз'єднувача */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000132)) as p16,
+/*  500000133	17 Заміна контуру заземлення */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000133)) as p17,
+/*  500000134	18 Ущільнення дверей */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000134)) as p18,
+/* 500000135	19 Установка механічних замків */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000135)) as p19,
+/*  500000136	20 Фарбування металоконструкцій та обладнання */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000136)) as p20,
+/* 500000137	21 Виправлення конструкцій КТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000137)) as p21,
+/* 500000138	22 Перевірка габаритів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000138)) as p22
+
+from
+
+(enplanwork as PW inner join
+(enelement as EL inner join
+ensubstation04 as LI
+on EL.code=LI.elementcode)
+on PW.elementrefcode=EL.code) inner join
+enplanworkitem as PI on
+PW.code=PI.planrefcode
+where
+PW.monthgen = $P{MonthGen} /* месяц */
+and PW.yeargen = $P{YearGen} /* год */
+and (case when $P{DepartmentCode} <> 0 then PW.departmentrefcode = $P{DepartmentCode} /* підрозділ */ when $P{DepartmentCode} = 0 then PW.departmentrefcode = PW.departmentrefcode end)
+and (case when $P{geoDeptCode} <> 0 then el.geodepartmentrefcode = $P{geoDeptCode} /* geo підрозділ */ when $P{geoDeptCode} = 0 then 1=1 end)
+and PW.kindcode in (1,2,4) /* річні, місячні, завдання факт */
+and PW.typerefcode in (1,2,3,10) /* планові, авр, припис, непланові */
+and PW.statuscode in (1,3,4,5,7,8) /* затверджені і чорнові */
+ /*SUPP-61313 Планы со статусом работы завершены берутся только те, что с актами*/
+and case when pw.statuscode = 8 then exists (select 1 from enplancorrecthistory as pco1
+inner join enplancorrecthistory as pco2 on pco1.planrefcode = pco2.planrefcode
+where
+pw.code in (pco1.planoldrefcode, pco1.plannewrefcode)
+and pco2.reasoncode = 5) else 1=1 end
+and PW.budgetrefcode = 75000001 /* СРС */
+and PW.staterefcode = 1 /* КР */
+and EL.typerefcode = 3 /* ТП 0.4 кВ */
+and (
+LI.substationtypecode = 1 /* КТП */
+or LI.substationtypecode = 3 /* Мачтові */
+or LI.substationtypecode = 4 /* Блочні */
+)
+
+group by totalcode
+
+union all
+
+/* Всього річний план */
+select
+(-27) as TotalCode,
+/*  500000197	0.01 Комплекс робіт з капітального ремонту */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000197)) as p0_01,
+/*  500000117	1 Огляд ТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000117)) as p1,
+/*  500000118	2 Заміна шаф */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000118)) as p2,
+/*  500000119	3 Заміна (ремонт) трансформаторів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000119)) as p3,
+/* 500000120	4 Заміна (ремонт) роз'єднувачів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000120)) as p4,
+/* 500000121	5 Заміна (ремонт) вимикачів навантаження */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000121)) as p5,
+/*  500000122	6 Заміна АВ - 0,4 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000122)) as p6,
+/*  500000123	7 Заміна рубильників */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000123)) as p7,
+/*  500000124	8 Заміна прохідних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000124)) as p8,
+/*  500000125	9 Заміна опорних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000125)) as p9,
+/*  500000126	10 Заміна запобіжників 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000126)) as p10,
+/*  500000127	11 Заміна запобіжників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000127)) as p11,
+/*  500000128	12 Заміна розрядників 6 - 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000128)) as p12,
+/*  500000129	13 Заміна розрядників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000129)) as p13,
+/*  500000130	14 Заміна виводів повітряних ЛЕП до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000130)) as p14,
+/*  500000131	15 Заміна шлейфів 6- 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000131)) as p15,
+/*  500000132	16 Монтаж скоби - уловлювача тяги роз'єднувача */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000132)) as p16,
+/*  500000133	17 Заміна контуру заземлення */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000133)) as p17,
+/*  500000134	18 Ущільнення дверей */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000134)) as p18,
+/* 500000135	19 Установка механічних замків */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000135)) as p19,
+/*  500000136	20 Фарбування металоконструкцій та обладнання */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000136)) as p20,
+/* 500000137	21 Виправлення конструкцій КТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000137)) as p21,
+/* 500000138	22 Перевірка габаритів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000138)) as p22
+
+from
+
+(enplanwork as PW inner join
+(enelement as EL inner join
+ensubstation04 as LI
+on EL.code=LI.elementcode)
+on PW.elementrefcode=EL.code) inner join
+enplanworkitem as PI on
+PW.code=PI.planrefcode
+where
+PW.monthgen = $P{MonthGen} /* месяц */
+and PW.yeargen = $P{YearGen} /* год */
+and (case when $P{DepartmentCode} <> 0 then PW.departmentrefcode = $P{DepartmentCode} /* підрозділ */ when $P{DepartmentCode} = 0 then PW.departmentrefcode = PW.departmentrefcode end)
+and (case when $P{geoDeptCode} <> 0 then el.geodepartmentrefcode = $P{geoDeptCode} /* geo підрозділ */ when $P{geoDeptCode} = 0 then 1=1 end)
+and PW.kindcode in (1) /* річні */
+and PW.typerefcode in (1) /* планові */
+and PW.statuscode in (1,3,4,5,7,8) /* затверджені і чорнові */
+ /*SUPP-61313 Планы со статусом работы завершены берутся только те, что с актами*/
+and case when pw.statuscode = 8 then exists (select 1 from enplancorrecthistory as pco1
+inner join enplancorrecthistory as pco2 on pco1.planrefcode = pco2.planrefcode
+where
+pw.code in (pco1.planoldrefcode, pco1.plannewrefcode)
+and pco2.reasoncode = 5) else 1=1 end
+and PW.budgetrefcode = 75000001 /* СРС */
+and PW.staterefcode = 1 /* КР */
+and EL.typerefcode = 3 /* ТП 0.4 кВ */
+and (
+LI.substationtypecode = 1 /* КТП */
+or LI.substationtypecode = 3 /* Мачтові */
+or LI.substationtypecode = 4 /* Блочні */
+)
+
+union all
+
+/* Всього місячний план */
+select
+(-26) as TotalCode,
+/*  500000197	0.01 Комплекс робіт з капітального ремонту */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000197)) as p0_01,
+/*  500000117	1 Огляд ТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000117)) as p1,
+/*  500000118	2 Заміна шаф */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000118)) as p2,
+/*  500000119	3 Заміна (ремонт) трансформаторів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000119)) as p3,
+/* 500000120	4 Заміна (ремонт) роз'єднувачів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000120)) as p4,
+/* 500000121	5 Заміна (ремонт) вимикачів навантаження */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000121)) as p5,
+/*  500000122	6 Заміна АВ - 0,4 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000122)) as p6,
+/*  500000123	7 Заміна рубильників */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000123)) as p7,
+/*  500000124	8 Заміна прохідних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000124)) as p8,
+/*  500000125	9 Заміна опорних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000125)) as p9,
+/*  500000126	10 Заміна запобіжників 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000126)) as p10,
+/*  500000127	11 Заміна запобіжників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000127)) as p11,
+/*  500000128	12 Заміна розрядників 6 - 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000128)) as p12,
+/*  500000129	13 Заміна розрядників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000129)) as p13,
+/*  500000130	14 Заміна виводів повітряних ЛЕП до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000130)) as p14,
+/*  500000131	15 Заміна шлейфів 6- 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000131)) as p15,
+/*  500000132	16 Монтаж скоби - уловлювача тяги роз'єднувача */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000132)) as p16,
+/*  500000133	17 Заміна контуру заземлення */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000133)) as p17,
+/*  500000134	18 Ущільнення дверей */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000134)) as p18,
+/* 500000135	19 Установка механічних замків */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000135)) as p19,
+/*  500000136	20 Фарбування металоконструкцій та обладнання */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000136)) as p20,
+/* 500000137	21 Виправлення конструкцій КТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000137)) as p21,
+/* 500000138	22 Перевірка габаритів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000138)) as p22
+
+from
+
+(enplanwork as PW inner join
+(enelement as EL inner join
+ensubstation04 as LI
+on EL.code=LI.elementcode)
+on PW.elementrefcode=EL.code) inner join
+enplanworkitem as PI on
+PW.code=PI.planrefcode
+where
+PW.monthgen = $P{MonthGen} /* месяц */
+and PW.yeargen = $P{YearGen} /* год */
+and (case when $P{DepartmentCode} <> 0 then PW.departmentrefcode = $P{DepartmentCode} /* підрозділ */ when $P{DepartmentCode} = 0 then PW.departmentrefcode = PW.departmentrefcode end)
+and (case when $P{geoDeptCode} <> 0 then el.geodepartmentrefcode = $P{geoDeptCode} /* geo підрозділ */ when $P{geoDeptCode} = 0 then 1=1 end)
+and PW.kindcode in (2) /* місячні */
+and PW.typerefcode in (1) /* планові */
+and PW.statuscode in (1,3,4,5,7,8) /* затверджені і чорнові */
+ /*SUPP-61313 Планы со статусом работы завершены берутся только те, что с актами*/
+and case when pw.statuscode = 8 then exists (select 1 from enplancorrecthistory as pco1
+inner join enplancorrecthistory as pco2 on pco1.planrefcode = pco2.planrefcode
+where
+pw.code in (pco1.planoldrefcode, pco1.plannewrefcode)
+and pco2.reasoncode = 5) else 1=1 end
+and PW.budgetrefcode = 75000001 /* СРС */
+and PW.staterefcode = 1 /* КР */
+and EL.typerefcode = 3 /* ТП 0.4 кВ */
+and (
+LI.substationtypecode = 1 /* КТП */
+or LI.substationtypecode = 3 /* Мачтові */
+or LI.substationtypecode = 4 /* Блочні */
+)
+
+union all
+
+/* Всього факт */
+select
+(-25) as TotalCode,
+/*  500000197	0.01 Комплекс робіт з капітального ремонту */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000197)) as p0_01,
+/*  500000117	1 Огляд ТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000117)) as p1,
+/*  500000118	2 Заміна шаф */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000118)) as p2,
+/*  500000119	3 Заміна (ремонт) трансформаторів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000119)) as p3,
+/* 500000120	4 Заміна (ремонт) роз'єднувачів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000120)) as p4,
+/* 500000121	5 Заміна (ремонт) вимикачів навантаження */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000121)) as p5,
+/*  500000122	6 Заміна АВ - 0,4 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000122)) as p6,
+/*  500000123	7 Заміна рубильників */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000123)) as p7,
+/*  500000124	8 Заміна прохідних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000124)) as p8,
+/*  500000125	9 Заміна опорних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000125)) as p9,
+/*  500000126	10 Заміна запобіжників 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000126)) as p10,
+/*  500000127	11 Заміна запобіжників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000127)) as p11,
+/*  500000128	12 Заміна розрядників 6 - 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000128)) as p12,
+/*  500000129	13 Заміна розрядників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000129)) as p13,
+/*  500000130	14 Заміна виводів повітряних ЛЕП до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000130)) as p14,
+/*  500000131	15 Заміна шлейфів 6- 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000131)) as p15,
+/*  500000132	16 Монтаж скоби - уловлювача тяги роз'єднувача */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000132)) as p16,
+/*  500000133	17 Заміна контуру заземлення */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000133)) as p17,
+/*  500000134	18 Ущільнення дверей */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000134)) as p18,
+/* 500000135	19 Установка механічних замків */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000135)) as p19,
+/*  500000136	20 Фарбування металоконструкцій та обладнання */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000136)) as p20,
+/* 500000137	21 Виправлення конструкцій КТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000137)) as p21,
+/* 500000138	22 Перевірка габаритів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000138)) as p22
+
+
+from
+
+(enplanwork as PW inner join
+(enelement as EL inner join
+ensubstation04 as LI
+on EL.code=LI.elementcode)
+on PW.elementrefcode=EL.code) inner join
+enplanworkitem as PI on
+PW.code=PI.planrefcode
+where
+PW.monthgen = $P{MonthGen} /* месяц */
+and PW.yeargen = $P{YearGen} /* год */
+and (case when $P{DepartmentCode} <> 0 then PW.departmentrefcode = $P{DepartmentCode} /* підрозділ */ when $P{DepartmentCode} = 0 then PW.departmentrefcode = PW.departmentrefcode end)
+and (case when $P{geoDeptCode} <> 0 then el.geodepartmentrefcode = $P{geoDeptCode} /* geo підрозділ */ when $P{geoDeptCode} = 0 then 1=1 end)
+and PW.kindcode in (4) /* завдання факт */
+and PW.typerefcode in (1,2,3,10) /* планові, авр, припис, непланові */
+and PW.statuscode = 3 /* затверджені */
+and PW.budgetrefcode = 75000001 /* СРС */
+and PW.staterefcode = 1 /* КР */
+and EL.typerefcode = 3 /* ТП 0.4 кВ */
+and (
+LI.substationtypecode = 1 /* КТП */
+or LI.substationtypecode = 3 /* Мачтові */
+or LI.substationtypecode = 4 /* Блочні */
+)
+
+union all
+
+/* За рік */
+select
+(-24) as TotalCode,
+/*  500000197	0.01 Комплекс робіт з капітального ремонту */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000197)) as p0_01,
+/*  500000117	1 Огляд ТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000117)) as p1,
+/*  500000118	2 Заміна шаф */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000118)) as p2,
+/*  500000119	3 Заміна (ремонт) трансформаторів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000119)) as p3,
+/* 500000120	4 Заміна (ремонт) роз'єднувачів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000120)) as p4,
+/* 500000121	5 Заміна (ремонт) вимикачів навантаження */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000121)) as p5,
+/*  500000122	6 Заміна АВ - 0,4 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000122)) as p6,
+/*  500000123	7 Заміна рубильників */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000123)) as p7,
+/*  500000124	8 Заміна прохідних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000124)) as p8,
+/*  500000125	9 Заміна опорних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000125)) as p9,
+/*  500000126	10 Заміна запобіжників 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000126)) as p10,
+/*  500000127	11 Заміна запобіжників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000127)) as p11,
+/*  500000128	12 Заміна розрядників 6 - 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000128)) as p12,
+/*  500000129	13 Заміна розрядників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000129)) as p13,
+/*  500000130	14 Заміна виводів повітряних ЛЕП до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000130)) as p14,
+/*  500000131	15 Заміна шлейфів 6- 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000131)) as p15,
+/*  500000132	16 Монтаж скоби - уловлювача тяги роз'єднувача */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000132)) as p16,
+/*  500000133	17 Заміна контуру заземлення */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000133)) as p17,
+/*  500000134	18 Ущільнення дверей */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000134)) as p18,
+/* 500000135	19 Установка механічних замків */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000135)) as p19,
+/*  500000136	20 Фарбування металоконструкцій та обладнання */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000136)) as p20,
+/* 500000137	21 Виправлення конструкцій КТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000137)) as p21,
+/* 500000138	22 Перевірка габаритів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000138)) as p22
+
+from
+
+(enplanwork as PW inner join
+(enelement as EL inner join
+ensubstation04 as LI
+on EL.code=LI.elementcode)
+on PW.elementrefcode=EL.code) inner join
+enplanworkitem as PI on
+PW.code=PI.planrefcode
+where
+PW.yeargen = $P{YearGen} /* год */
+and (case when $P{DepartmentCode} <> 0 then PW.departmentrefcode = $P{DepartmentCode} /* підрозділ */ when $P{DepartmentCode} = 0 then PW.departmentrefcode = PW.departmentrefcode end)
+and (case when $P{geoDeptCode} <> 0 then el.geodepartmentrefcode = $P{geoDeptCode} /* geo підрозділ */ when $P{geoDeptCode} = 0 then 1=1 end)
+and PW.kindcode in (1) /* річні */
+and PW.typerefcode in (1) /* планові */
+and PW.statuscode in (1,3,4,5,7,8) /* затверджені і чорнові */
+ /*SUPP-61313 Планы со статусом работы завершены берутся только те, что с актами*/
+and case when pw.statuscode = 8 then exists (select 1 from enplancorrecthistory as pco1
+inner join enplancorrecthistory as pco2 on pco1.planrefcode = pco2.planrefcode
+where
+pw.code in (pco1.planoldrefcode, pco1.plannewrefcode)
+and pco2.reasoncode = 5) else 1=1 end
+and PW.budgetrefcode = 75000001 /* СРС */
+and PW.staterefcode = 1 /* КР */
+and EL.typerefcode = 3 /* ТП 0.4 кВ */
+and (
+LI.substationtypecode = 1 /* КТП */
+or LI.substationtypecode = 3 /* Мачтові */
+or LI.substationtypecode = 4 /* Блочні */
+)
+
+union all
+
+/* З початку року План */
+select
+(-23) as TotalCode,
+/*  500000197	0.01 Комплекс робіт з капітального ремонту */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000197)) as p0_01,
+/*  500000117	1 Огляд ТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000117)) as p1,
+/*  500000118	2 Заміна шаф */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000118)) as p2,
+/*  500000119	3 Заміна (ремонт) трансформаторів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000119)) as p3,
+/* 500000120	4 Заміна (ремонт) роз'єднувачів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000120)) as p4,
+/* 500000121	5 Заміна (ремонт) вимикачів навантаження */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000121)) as p5,
+/*  500000122	6 Заміна АВ - 0,4 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000122)) as p6,
+/*  500000123	7 Заміна рубильників */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000123)) as p7,
+/*  500000124	8 Заміна прохідних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000124)) as p8,
+/*  500000125	9 Заміна опорних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000125)) as p9,
+/*  500000126	10 Заміна запобіжників 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000126)) as p10,
+/*  500000127	11 Заміна запобіжників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000127)) as p11,
+/*  500000128	12 Заміна розрядників 6 - 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000128)) as p12,
+/*  500000129	13 Заміна розрядників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000129)) as p13,
+/*  500000130	14 Заміна виводів повітряних ЛЕП до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000130)) as p14,
+/*  500000131	15 Заміна шлейфів 6- 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000131)) as p15,
+/*  500000132	16 Монтаж скоби - уловлювача тяги роз'єднувача */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000132)) as p16,
+/*  500000133	17 Заміна контуру заземлення */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000133)) as p17,
+/*  500000134	18 Ущільнення дверей */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000134)) as p18,
+/* 500000135	19 Установка механічних замків */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000135)) as p19,
+/*  500000136	20 Фарбування металоконструкцій та обладнання */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000136)) as p20,
+/* 500000137	21 Виправлення конструкцій КТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000137)) as p21,
+/* 500000138	22 Перевірка габаритів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000138)) as p22
+
+
+from
+
+(enplanwork as PW inner join
+(enelement as EL inner join
+ensubstation04 as LI
+on EL.code=LI.elementcode)
+on PW.elementrefcode=EL.code) inner join
+enplanworkitem as PI on
+PW.code=PI.planrefcode
+where
+PW.monthgen <= $P{MonthGen} /* месяц */
+and PW.yeargen = $P{YearGen} /* год */
+and (case when $P{DepartmentCode} <> 0 then PW.departmentrefcode = $P{DepartmentCode} /* підрозділ */ when $P{DepartmentCode} = 0 then PW.departmentrefcode = PW.departmentrefcode end)
+and (case when $P{geoDeptCode} <> 0 then el.geodepartmentrefcode = $P{geoDeptCode} /* geo підрозділ */ when $P{geoDeptCode} = 0 then 1=1 end)
+and PW.kindcode in (1) /* річні */
+and PW.typerefcode in (1) /* планові */
+and PW.statuscode in (1,3,4,5,7,8) /* затверджені і чорнові */
+ /*SUPP-61313 Планы со статусом работы завершены берутся только те, что с актами*/
+and case when pw.statuscode = 8 then exists (select 1 from enplancorrecthistory as pco1
+inner join enplancorrecthistory as pco2 on pco1.planrefcode = pco2.planrefcode
+where
+pw.code in (pco1.planoldrefcode, pco1.plannewrefcode)
+and pco2.reasoncode = 5) else 1=1 end
+and PW.budgetrefcode = 75000001 /* СРС */
+and PW.staterefcode = 1 /* КР */
+and EL.typerefcode = 3 /* ТП 0.4 кВ */
+and (
+LI.substationtypecode = 1 /* КТП */
+or LI.substationtypecode = 3 /* Мачтові */
+or LI.substationtypecode = 4 /* Блочні */
+)
+
+union all
+
+/* З початку року Факт */
+select
+(-22) as TotalCode,
+/*  500000197	0.01 Комплекс робіт з капітального ремонту */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000197)) as p0_01,
+/*  500000117	1 Огляд ТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000117)) as p1,
+/*  500000118	2 Заміна шаф */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000118)) as p2,
+/*  500000119	3 Заміна (ремонт) трансформаторів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000119)) as p3,
+/* 500000120	4 Заміна (ремонт) роз'єднувачів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000120)) as p4,
+/* 500000121	5 Заміна (ремонт) вимикачів навантаження */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000121)) as p5,
+/*  500000122	6 Заміна АВ - 0,4 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000122)) as p6,
+/*  500000123	7 Заміна рубильників */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000123)) as p7,
+/*  500000124	8 Заміна прохідних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000124)) as p8,
+/*  500000125	9 Заміна опорних ізоляторів 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000125)) as p9,
+/*  500000126	10 Заміна запобіжників 6-20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000126)) as p10,
+/*  500000127	11 Заміна запобіжників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000127)) as p11,
+/*  500000128	12 Заміна розрядників 6 - 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000128)) as p12,
+/*  500000129	13 Заміна розрядників до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000129)) as p13,
+/*  500000130	14 Заміна виводів повітряних ЛЕП до 1000 В */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000130)) as p14,
+/*  500000131	15 Заміна шлейфів 6- 20 кВ */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000131)) as p15,
+/*  500000132	16 Монтаж скоби - уловлювача тяги роз'єднувача */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000132)) as p16,
+/*  500000133	17 Заміна контуру заземлення */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000133)) as p17,
+/*  500000134	18 Ущільнення дверей */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000134)) as p18,
+/* 500000135	19 Установка механічних замків */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000135)) as p19,
+/*  500000136	20 Фарбування металоконструкцій та обладнання */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000136)) as p20,
+/* 500000137	21 Виправлення конструкцій КТП */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000137)) as p21,
+/* 500000138	22 Перевірка габаритів */
+sum((select PI1.countgen
+from enplanworkitem as PI1 inner join
+(tktechcard as TC1 inner join
+tkreportitem2techcard as RITC1
+on TC1.code=RITC1.techcardcode)
+on PI1.kartarefcode=TC1.code
+where
+PI1.code=PI.code
+and RITC1.reportitemcode = 500000138)) as p22
+
+from
+
+(enplanwork as PW inner join
+(enelement as EL inner join
+ensubstation04 as LI
+on EL.code=LI.elementcode)
+on PW.elementrefcode=EL.code) inner join
+enplanworkitem as PI on
+PW.code=PI.planrefcode
+where
+PW.monthgen <= $P{MonthGen} /* месяц */
+and PW.yeargen = $P{YearGen} /* год */
+and (case when $P{DepartmentCode} <> 0 then PW.departmentrefcode = $P{DepartmentCode} /* підрозділ */ when $P{DepartmentCode} = 0 then PW.departmentrefcode = PW.departmentrefcode end)
+and (case when $P{geoDeptCode} <> 0 then el.geodepartmentrefcode = $P{geoDeptCode} /* geo підрозділ */ when $P{geoDeptCode} = 0 then 1=1 end)
+and PW.kindcode in (4) /* завдання факт */
+and PW.typerefcode in (1,2,3,10) /* планові, авр, припис, непланові */
+and PW.statuscode = 3 /* затверджені */
+and PW.budgetrefcode = 75000001 /* СРС */
+and PW.staterefcode = 1 /* КР */
+and EL.typerefcode = 3 /* ТП 0.4 кВ */
+and
+(
+LI.substationtypecode = 1 /* КТП */
+or LI.substationtypecode = 3 /* Мачтові */
+or LI.substationtypecode = 4 /* Блочні */
+)
+) as summary
+
+on name.totalcode=summary.totalcode
+
+order by name.sort, name.totalcode asc]]>
+	</queryString>
+	<field name="totalcode" class="java.math.BigDecimal"/>
+	<field name="elname" class="java.lang.String"/>
+	<field name="plans" class="java.lang.String"/>
+	<field name="depname" class="java.lang.String"/>
+	<field name="p0_01" class="java.lang.Double"/>
+	<field name="p1" class="java.lang.Double"/>
+	<field name="p2" class="java.lang.Double"/>
+	<field name="p3" class="java.lang.Double"/>
+	<field name="p4" class="java.lang.Double"/>
+	<field name="p5" class="java.lang.Double"/>
+	<field name="p6" class="java.lang.Double"/>
+	<field name="p7" class="java.lang.Double"/>
+	<field name="p8" class="java.lang.Double"/>
+	<field name="p9" class="java.lang.Double"/>
+	<field name="p10" class="java.lang.Double"/>
+	<field name="p11" class="java.lang.Double"/>
+	<field name="p12" class="java.lang.Double"/>
+	<field name="p13" class="java.lang.Double"/>
+	<field name="p14" class="java.lang.Double"/>
+	<field name="p15" class="java.lang.Double"/>
+	<field name="p16" class="java.lang.Double"/>
+	<field name="p17" class="java.lang.Double"/>
+	<field name="p18" class="java.lang.Double"/>
+	<field name="p19" class="java.lang.Double"/>
+	<field name="p20" class="java.lang.Double"/>
+	<field name="p21" class="java.lang.Double"/>
+	<field name="p22" class="java.lang.Double"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="100" splitType="Stretch">
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" x="232" y="0" width="1000" height="100"/>
+				<subreportParameter name="geoDeptName">
+					<subreportParameterExpression><![CDATA[$P{geoDeptName}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="ReportCode">
+					<subreportParameterExpression><![CDATA[$P{ReportCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="MonthGen">
+					<subreportParameterExpression><![CDATA[$P{MonthGen}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="geoDeptCode">
+					<subreportParameterExpression><![CDATA[$P{geoDeptCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DepartmentCode">
+					<subreportParameterExpression><![CDATA[$P{DepartmentCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="YearGen">
+					<subreportParameterExpression><![CDATA[$P{YearGen}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/PhysVolumes/Monthly/Header.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="169" splitType="Stretch">
+			<staticText>
+				<reportElement key="staticText-1" x="0" y="0" width="232" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[Найменування об'єкту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-5" x="232" y="0" width="100" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[План/Факт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-6" x="382" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Огляд ТП]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="432" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна шаф]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-8" x="482" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна (ремонт) трансформаторів]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-9" x="532" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна (ремонт) роз'єднувачів]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-10" x="582" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна (ремонт) вимикачів навантаження]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-11" x="632" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна АВ - 0,4 кВ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-12" x="682" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна рубильників]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-13" x="732" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна прохідних ізоляторів 6-20 кВ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-14" x="782" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна опорних ізоляторів 6-20 кВ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-15" x="832" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна запобіжників 6-20 кВ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-16" x="882" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна запобіжників до 1000 В]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-17" x="932" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна розрядників 6 - 20 кВ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-18" x="982" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна розрядників до 1000 В]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-19" x="1032" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна виводів повітряних ЛЕП до 1000 В]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-20" x="1082" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна шлейфів 6- 20 кВ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-21" x="1132" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Монтаж скоби - уловлювача тяги роз'єднувача]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-22" x="1182" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Заміна контуру заземлення]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-23" x="1232" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Ущільнення дверей]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-24" x="1282" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Установка механічних замків]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-25" x="1332" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Фарбування металоконструкцій та обладнання]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-26" x="1382" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Виправлення конструкцій КТП]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-27" x="1432" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Перевірка габаритів]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-32" x="332" y="0" width="50" height="152"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Комплекс робіт з капітального ремонту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-33" x="0" y="152" width="232" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-34" x="232" y="152" width="100" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-35" x="332" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-36" x="382" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-37" x="432" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-38" x="482" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-39" x="532" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-40" x="582" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-41" x="632" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-42" x="682" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-43" x="732" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-44" x="782" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-45" x="832" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-46" x="882" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-47" x="932" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-48" x="982" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-49" x="1032" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-50" x="1082" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-51" x="1132" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-52" x="1182" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-53" x="1232" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-54" x="1282" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-55" x="1332" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-56" x="1382" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[ШТ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-57" x="1432" y="152" width="50" height="17"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None"/>
+				<text><![CDATA[разів]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-58" x="1482" y="0" width="200" height="152">
+					<printWhenExpression><![CDATA[new Boolean($P{DepartmentCode}.intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement rotation="Left"/>
+				<text><![CDATA[Підрозділ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-59" x="1482" y="152" width="200" height="17">
+					<printWhenExpression><![CDATA[new Boolean($P{DepartmentCode}.intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font pdfFontName="Times-Roman" pdfEncoding="Cp1251"/>
+				</textElement>
+				<text><![CDATA[]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="17" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="0" y="0" width="232" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{elname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="232" y="0" width="100" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{plans}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="382" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p1}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="432" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p2}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="482" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p3}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="532" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p4}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="582" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p5}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="632" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p6}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="682" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p7}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="732" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p8}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="782" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p9}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="832" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p10}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="882" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p11}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="932" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p12}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="982" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p13}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="1032" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p14}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="1082" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p15}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="1132" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p16}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="1182" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p17}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="1232" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p18}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="1282" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p19}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="1332" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p20}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="1382" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p21}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField" stretchType="RelativeToTallestObject" x="1432" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p22}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" x="332" y="0" width="50" height="17" forecolor="#000000"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{p0_01}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-2" stretchType="RelativeToTallestObject" x="1482" y="0" width="200" height="17" forecolor="#000000">
+					<printWhenExpression><![CDATA[new Boolean($P{DepartmentCode}.intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{depname}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

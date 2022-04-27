@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="graph_benz_dt_notgroup_manag" pageWidth="430" pageHeight="30" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="430" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="pyeargen" class="java.lang.Integer"/>
+	<parameter name="pmonthgen" class="java.lang.Integer"/>
+	<parameter name="pmanagementcode" class="java.lang.String"/>
+	<parameter name="prencode" class="java.lang.Integer"/>
+	<queryString>
+		<![CDATA[/*расшифровка для свернутого отчета  по дирекциям */
+
+select namecol
+,(approved_pmm_dek1)::numeric(15,2) as approved_pmm_dek1
+,(approved_pmm_dek2)::numeric(15,2) as approved_pmm_dek2
+,(approved_pmm_dek3)::numeric(15,2) as approved_pmm_dek3
+
+from (
+      select
+      'Затверджені суми, грн. з ПДВ'  as namecol
+      ,sum(gr.totalsum/3 * gr.koefdekada1 )::numeric(15,2)  as approved_pmm_dek1
+      ,sum(gr.totalsum/3 * gr.koefdekada2 )::numeric(15,2)  as approved_pmm_dek2
+      ,sum(gr.totalsum/3 * gr.koefdekada3 )::numeric(15,2)  as approved_pmm_dek3
+       from enplangraphfinancingfl gr
+      where gr.monthgen = $P{pmonthgen}
+        and gr.yeargen = $P{pyeargen}
+
+      union all
+
+      select
+      'ПММ з планів. Технічна дирекція' as namecol
+      , ( /*бенз*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 1
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '1'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000001
+          ))
+          + /*дп*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 1
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '1'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000003
+          )) ) *1.2 as plan_pmm_dek1
+
+         , ( /*бенз*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 2
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '1'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000001
+          ))
+          + /*дп*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 2
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '1'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000003
+          )) ) *1.2 as plan_pmm_dek2
+
+        , ( /*бенз*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 3
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '1'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000001
+          ))
+          + /*дп*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 3
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '1'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000003
+          )) ) *1.2 as plan_pmm_dek3
+
+         where position('1' in $P{pmanagementcode} ) >  0
+      union all
+
+      select
+      'ПММ з планів. Виконавча дирекція' as namecol
+      , ( /*бенз*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 1
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '2'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000001
+          ))
+          + /*дп*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 1
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '2'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000003
+          )) ) *1.2 as plan_pmm_dek1
+
+         , ( /*бенз*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 2
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '2'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000001
+          ))
+          + /*дп*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 2
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '2'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000003
+          )) ) *1.2 as plan_pmm_dek2
+
+        , ( /*бенз*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 3
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '2'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000001
+          ))
+          + /*дп*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 3
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '2'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000003
+          )) ) *1.2 as plan_pmm_dek3
+              where position('2' in $P{pmanagementcode} ) >  0
+      union all
+
+      select
+      'ПММ з планів. Комерційна дирекція' as namecol
+      , ( /*бенз*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 1
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '3'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000001
+          ))
+          + /*дп*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 1
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '3'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000003
+          )) ) *1.2 as plan_pmm_dek1
+
+         , (  /*бенз*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 2
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '3'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000001
+          ))
+          + /*дп*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 2
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '3'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000003
+          ))  ) *1.2 as plan_pmm_dek2
+
+        , (  /*бенз*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 3
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '3'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000001
+          ))
+          + /*дп*/ (select * from get_sum_pmm_from_npw(
+            /*pdecade integer*/ 3
+            /*pmonthgen integer*/,$P{pmonthgen}
+            /*pyeargen integer*/,$P{pyeargen}
+            /*pmanagementcode varchar*/,  '3'
+            /*prencode integer*/, $P{prencode}
+            /*ptkfueltype integer*/, 75000003
+          )) ) *1.2 as plan_pmm_dek3
+          where position('3' in $P{pmanagementcode} ) >  0
+
+ ) as query1 ]]>
+	</queryString>
+	<field name="namecol" class="java.lang.String"/>
+	<field name="approved_pmm_dek1" class="java.math.BigDecimal"/>
+	<field name="approved_pmm_dek2" class="java.math.BigDecimal"/>
+	<field name="approved_pmm_dek3" class="java.math.BigDecimal"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="15">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" mode="Transparent" x="158" y="0" width="90" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Декада 1, грн. з ПДВ"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" mode="Transparent" x="338" y="0" width="90" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Декада 3, грн. з ПДВ"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" mode="Transparent" x="0" y="0" width="158" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Детально"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" mode="Transparent" x="248" y="0" width="90" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Декада 2, грн. з ПДВ"]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" mode="Transparent" x="0" y="0" width="158" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{namecol}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" mode="Transparent" x="158" y="0" width="90" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{approved_pmm_dek1}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" mode="Transparent" x="248" y="0" width="90" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{approved_pmm_dek2}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" mode="Transparent" x="338" y="0" width="90" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{approved_pmm_dek3}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

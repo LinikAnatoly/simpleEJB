@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="InspectionSheet" pageWidth="610" pageHeight="842" whenNoDataType="BlankPage" columnWidth="582" leftMargin="14" rightMargin="14" topMargin="14" bottomMargin="14" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.1"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="inspectionSheetCode" class="java.lang.Integer"/>
+	<queryString>
+		<![CDATA[select --ish.*,
+case ish.inspectionkind
+when 1 then 'Плановий'
+when 2 then 'Післяаварійний'
+when 3 then 'Позаплановий' end as inspectionKindName
+
+, (select et.name from enelementtype et where et.code = enelement.typerefcode) as elementType
+, (select d.invnumber from enelementdata d where d.ecode = enelement.code) as elementInvNumber
+, (select d.ename from enelementdata d where d.ecode = enelement.code) as elementName
+
+-- , epren.code as renCode
+, epren.name as renName
+, enelement.typerefcode as eTypeCode
+, (case when enelement.typerefcode = 1
+    then (select coalesce(l10.linelength, 0)
+            from enline10 l10 where l10.elementcode = enelement.code)
+     when enelement.typerefcode = 2
+       then (select coalesce(l04.linelength, 0)
+              from enline04 l04 where l04.elementcode = enelement.code) else 0 end)::numeric(15,2) as linelength,
+coalesce(ish.executor,'-----') as executor,
+coalesce(ish.accepted,'-----') as accepted,
+coalesce(finexecutor.name,'-----') as xeqtr
+
+from eninspectionsheet ish,
+enelement left join epren on epren.code = enelement.renrefcode
+left join finexecutor on enelement.finexecutorcode = finexecutor.code
+
+where enelement.code = ish.elementrefcode
+and ish.code = $P{inspectionSheetCode}]]>
+	</queryString>
+	<field name="inspectionkindname" class="java.lang.String"/>
+	<field name="elementtype" class="java.lang.String"/>
+	<field name="elementinvnumber" class="java.lang.String"/>
+	<field name="elementname" class="java.lang.String"/>
+	<field name="renname" class="java.lang.String"/>
+	<field name="eTypeCode" class="java.lang.Integer"/>
+	<field name="linelength" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Будівельна довжина лінії, км]]></fieldDescription>
+	</field>
+	<field name="executor" class="java.lang.String">
+		<fieldDescription><![CDATA[Огляд зробив]]></fieldDescription>
+	</field>
+	<field name="accepted" class="java.lang.String">
+		<fieldDescription><![CDATA[Листок огляду прийняв]]></fieldDescription>
+	</field>
+	<field name="xeqtr" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="87">
+			<textField isStretchWithOverflow="true">
+				<reportElement x="370" y="20" width="212" height="20" isPrintWhenDetailOverflows="true"/>
+				<textElement markup="none">
+					<font fontName="Times New Roman" size="10" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Ділянка майстра - " + $F{xeqtr}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="81" y="0" width="410" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman" size="10" isBold="true" pdfFontName="Times-Roman" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ЛИСТОК ОГЛЯДУ " + $F{elementname}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="20" width="300" height="20"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman" size="10" isBold="true" pdfFontName="Times-Roman" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{renname}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="40" width="300" height="20"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman" size="10" isBold="true" pdfFontName="Times-Roman" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Вид огляду - " + $F{inspectionkindname}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="60" width="300" height="20"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman" size="10" isBold="true" pdfFontName="Times-Roman" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA["інв. № " + $F{elementinvnumber}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="371" y="59" width="209" height="20">
+					<printWhenExpression><![CDATA[$F{eTypeCode} == 1 || $F{eTypeCode} == 2]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Left" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman" size="10" isBold="true" pdfFontName="Times-Roman" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Протяжність:  " + $F{linelength} + " км."]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="35" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="31" height="35"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Код"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="31" y="0" width="269" height="35"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Найменування (характеристика) дефекту"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="356" y="0" width="225" height="35"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Примітка"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="300" y="0" width="56" height="35"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Результат"]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<subreport isUsingCache="false">
+				<reportElement stretchType="RelativeToBandHeight" x="0" y="0" width="582" height="15"/>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="sheetCode">
+					<subreportParameterExpression><![CDATA[$P{inspectionSheetCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/InspectionSheet/inspectionSheetItems.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="90" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="1" width="581" height="12"/>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false"/>
+				</textElement>
+				<text><![CDATA[* Робота повинна виконуватися негайно]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="30" width="81" height="20"/>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Огляд зробив:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="391" y="30" width="103" height="20"/>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false"/>
+				</textElement>
+				<text><![CDATA[підпис___________]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="494" y="30" width="86" height="20"/>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Дата___________]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="391" y="70" width="103" height="20"/>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false"/>
+				</textElement>
+				<text><![CDATA[підпис___________]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="70" width="81" height="20"/>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Листок огляду прийняв:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="494" y="70" width="86" height="20"/>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="false"/>
+				</textElement>
+				<text><![CDATA[Дата___________]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="80" y="30" width="311" height="20"/>
+				<textElement textAlignment="Left" verticalAlignment="Top" markup="none">
+					<font fontName="Times New Roman" size="8" isBold="false" pdfFontName="Times-Roman" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{executor}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="80" y="70" width="311" height="20"/>
+				<textElement textAlignment="Left" verticalAlignment="Top" markup="none">
+					<font fontName="Times New Roman" size="8" isBold="false" pdfFontName="Times-Roman" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{accepted}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

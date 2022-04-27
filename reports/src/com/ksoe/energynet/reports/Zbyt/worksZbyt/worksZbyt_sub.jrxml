@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="worksZbyt_sub" pageWidth="1000" pageHeight="555" orientation="Landscape" columnWidth="1000" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="0.75"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="plancode" class="java.lang.Integer"/>
+	<parameter name="statusplanfact" class="java.lang.Integer"/>
+	<queryString>
+		<![CDATA[select 0 as isservices ,
+        case when q_npw.podrcode is null then q_fact.podrcode else q_npw.podrcode end as npwpodrcode,
+        case when q_npw.podrname is null then q_fact.podrname else q_npw.podrname end as npwpodrname,
+        q_npw.plancodes as npwplancodes,
+        case when q_npw.kartarefcode is null then q_fact.kartarefcode else q_npw.kartarefcode end as npwkartarefcode ,
+        case when q_npw.tktechcardname is null then q_fact.tktechcardname else q_npw.tktechcardname end as npwtktechcardname,
+        case when q_npw.tktechcardtkmeasurement is null then q_fact.tktechcardtkmeasurement else q_npw.tktechcardtkmeasurement end as npwtktechcardtkmeasurement,
+        q_npw.countgen as npwcountgen,
+        q_npw.timegen::numeric(15,2) as npwtimegen,
+        to_char(q_npw.mindate,'dd.mm.yyyy') as npwmindate,
+        to_char(q_npw.maxdate,'dd.mm.yyyy') as npwmaxdate,
+        q_npw.materials as npwmaterials,
+        personal,
+        q_fact.podrcode as factpodrcode,
+        q_fact.podrname as factpodrname,
+        q_fact.plancodes as factplancodes,
+        q_fact.kartarefcode as factkartarefcode,
+        q_fact.tktechcardname as facttktechcardname,
+        q_fact.tktechcardtkmeasurement as facttktechcardtkmeasurement ,
+        coalesce(q_fact.countgen,0) as factcountgen ,
+        q_fact.timegen::numeric(15,2) as facttimegen ,
+        to_char(q_fact.mindate,'dd.mm.yyyy') as factmindate,
+        to_char(q_fact.maxdate,'dd.mm.yyyy') as factmaxdate,
+        q_fact.materials as factmaterials
+ from
+ (   --не услуги
+    select dep.code as podrcode,  dep.name as podrname , string_agg(pw.code::text,',') as plancodes , pwi.kartarefcode , tc.techkartnumber ||' '|| tc.name as tktechcardname , tmeas.name as tktechcardtkmeasurement,
+           sum(pwi.countgen) as countgen , sum(pwi.timegen) as timegen , min(pw.datestart) as mindate , max(pw.datestart) maxdate ,
+           (select string_agg(name||'='||countfact||' '|| mesname , ' ,') from  (select tm.name , sum(ei.countfact)::numeric(15,6) as countfact , mes.name as mesname
+           from enestimateitem ei , tkmaterials tm , tkmeasurement mes
+           where tm.measurementcode = mes.code
+           and ei.materialrefcode = tm.code
+           and  ei.planitemrefcode = pwi.code
+           and ei.countfact > 0
+		   and ei.kindrefcode = 1
+           group by tm.name ,  mes.name ) as mat ) as materials ,
+           ( select string_agg(human , ' ,') from  (
+              select distinct fw.tabnumber ||' '|| fw.name as human from enhumenitem hi , finworker fw where hi.finworkercode = fw.code and hi.planitemrefcode = pwi.code
+              ) as hum
+
+            ) as personal
+
+    from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas
+    where pw.departmentrefcode = dep.code
+    and pw.code = pwi.planrefcode
+    and pwi.kartarefcode = tc.code
+    and tc.measurementcode = tmeas.code
+    and pwi.countgen <> 0
+    and pw.budgetrefcode = 240000001 --только енергосбыт
+    and pw.kindcode = 3
+    and pw.code = $P{plancode}
+    and pw.typerefcode <> 8 --услуги отдельно
+	and tc.techcardsourcecode not  in (500000039,1000000004,1000000003) -- не берем работы взятые из калькуляций
+    group by dep.code , dep.name,  pwi.kartarefcode, tc.name, tmeas.name , pwi.code , tc.techkartnumber
+
+) q_npw
+full join
+(   --не услуги
+    select dep.code as podrcode,  dep.name as podrname , string_agg(pw.code::text,',') as plancodes , pwi.kartarefcode , tc.techkartnumber||' '|| tc.name as tktechcardname , tmeas.name as tktechcardtkmeasurement,
+           sum(pwi.countgen) as countgen , sum(pwi.timegen) as timegen , min(pw.datestart) as mindate , max(pw.datestart) maxdate ,
+           ''::text as materials
+    from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas
+    where pw.departmentrefcode = dep.code
+    and pw.code = pwi.planrefcode
+    and pwi.kartarefcode = tc.code
+    and tc.measurementcode = tmeas.code
+    and pwi.countgen <> 0
+	and tc.techcardsourcecode not  in (500000039,1000000004,1000000003) -- не берем работы взятые из калькуляций
+	and ( pw.statuscode = $P{statusplanfact} or $P{statusplanfact} = 0   )
+    and pw.code in ( select eh1.plannewrefcode from enplanwork pw , enplancorrecthistory eh1
+                    where pw.budgetrefcode = 240000001 --только енергосбыт
+                      and pw.kindcode = 3
+                      and pw.code = $P{plancode}
+                      and pw.typerefcode <> 8 --услуги отдельно
+                      and eh1.planoldrefcode = pw.code
+                      and eh1.reasoncode = 5
+
+                   )
+
+    group by dep.code ,  dep.name,  pwi.kartarefcode, tc.name, tmeas.name , tc.techkartnumber
+) q_fact
+ on  (q_npw.podrcode = q_fact.podrcode and q_npw.kartarefcode = q_fact.kartarefcode )
+
+UNION ALL
+
+ select 1 as isservices ,
+        case when q_npw.podrcode is null then q_fact.podrcode else q_npw.podrcode end as npwpodrcode,
+        case when q_npw.podrname is null then q_fact.podrname else q_npw.podrname end as npwpodrname,
+        q_npw.plancodes as npwplancodes,
+        case when q_npw.kartarefcode is null then q_fact.kartarefcode else q_npw.kartarefcode end as npwkartarefcode ,
+        case when q_npw.tktechcardname is null then q_fact.tktechcardname else q_npw.tktechcardname end as npwtktechcardname,
+        case when q_npw.tktechcardtkmeasurement is null then q_fact.tktechcardtkmeasurement else q_npw.tktechcardtkmeasurement end as npwtktechcardtkmeasurement,
+        q_npw.countgen as npwcountgen,
+        q_npw.timegen as npwtimegen,
+        to_char(q_npw.mindate,'dd.mm.yyyy') as npwmindate,
+        to_char(q_npw.maxdate,'dd.mm.yyyy') as npwmaxdate,
+        q_npw.materials as npwmaterials,
+        personal ,
+
+        q_fact.podrcode as factpodrcode,
+        q_fact.podrname as factpodrname,
+        q_fact.plancodes as factplancodes,
+        q_fact.kartarefcode as factkartarefcode,
+        q_fact.tktechcardname as facttktechcardname,
+        q_fact.tktechcardtkmeasurement as facttktechcardtkmeasurement ,
+        coalesce(q_fact.countgen,0) as factcountgen ,
+        q_fact.timegen::numeric(15,2) as facttimegen ,
+         to_char(q_fact.mindate,'dd.mm.yyyy') as factmindate,
+        to_char(q_fact.maxdate,'dd.mm.yyyy') as factmaxdate,
+        q_fact.materials as factmaterials
+ from
+ (   -- услуги - картарефкоде - это код классификации
+    select podrcode,  podrname , string_agg(plancode::text,',') as plancodes, kartarefcode , tktechcardname , tktechcardtkmeasurement,
+           sum(countgen) as countgen , sum(timegen) as timegen , min(mindate) as mindate , max(maxdate) as maxdate ,
+
+           (select string_agg(name||'='||countfact||' '|| mesname , ' ,') from  (select tm.name , sum(ei.countfact)::numeric(15,6) as countfact , mes.name as mesname
+           from enestimateitem ei , tkmaterials tm , tkmeasurement mes
+           where tm.measurementcode = mes.code
+           and ei.materialrefcode = tm.code
+           and ei.planitemrefcode in (select ii.code from enplanworkitem ii , tktechcard tk where ii.kartarefcode = tk.code and ii.planrefcode = $P{plancode} and tk.classificationtypecode = q_npw_in.kartarefcode  )
+           and ei.countfact > 0
+           and ei.kindrefcode = 1
+           group by tm.name ,  mes.name ) as mat ) as materials ,
+
+           ( select string_agg(human , ' ,') from  (
+              select distinct fw.tabnumber ||' '|| fw.name as human from enhumenitem hi , finworker fw
+              where hi.finworkercode = fw.code
+              and hi.planitemrefcode in (select ii.code from enplanworkitem ii , tktechcard tk where ii.kartarefcode = tk.code and ii.planrefcode = $P{plancode} and tk.classificationtypecode = q_npw_in.kartarefcode  )
+              ) as hum
+
+            ) as personal
+
+            from (
+              select dep.code as podrcode,  dep.name as podrname , pw.code as plancode, tkcl.code as kartarefcode ,
+                     tkcl.kod ||' '|| tkcl.name as tktechcardname , 'ШТ'::text as tktechcardtkmeasurement,
+                    -- если услуга то кол-во берем со связки калькуляция-план
+                    case when pw.typerefcode = 8 then
+                     ( select p2c.countgen from enplanwork2classfctntp p2c
+                        where p2c.classificationtyperfcd = tkcl.code
+                          and p2c.planrefcode in (select pcalc.code from enplanwork p , enplanwork pcalc
+                                                   where p.code = pw.code /*заходит код факта*/
+													 and p.elementrefcode = pcalc.elementrefcode
+													 and pcalc.kindcode = 5 )
+                          limit 1
+                        )
+                    else
+                    ( select max(pi.countgen) from enplanwork p , enplanworkitem pi , tktechcard tkd
+                       where p.code = pi.planrefcode
+                       and   pi.kartarefcode = tkd.code
+                       and   tkd.classificationtypecode = tkcl.code
+                       and   p.code = pw.code  ) end as countgen ,
+
+                     sum(pwi.timegen) as timegen ,
+                     pw.datestart as mindate , pw.datestart maxdate ,
+
+                     '' as materials
+
+              from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas , tkclassificationtype tkcl
+              where pw.departmentrefcode = dep.code
+              and pw.code = pwi.planrefcode
+              and pwi.kartarefcode = tc.code
+              and tc.measurementcode = tmeas.code
+              and pwi.countgen <> 0
+              and tc.classificationtypecode = tkcl.code
+              and pw.budgetrefcode = 240000001 --только енергосбыт
+              and pw.kindcode = 3
+              and pw.code = $P{plancode}
+              and ( pw.typerefcode = 8 or ( pw.typerefcode <> 8 and  tc.techcardsourcecode in (500000039,1000000004,1000000003) )  ) -- услуги или работы из источника калькуляции
+
+              group by dep.code, dep.name ,pw.code, tkcl.code,tkcl.name,pw.datestart ,pw.datestart,tkcl.kod
+              order by tkcl.name
+            ) q_npw_in
+     group by  podrcode,  podrname , kartarefcode , tktechcardname , tktechcardtkmeasurement
+) q_npw
+full join
+(   select podrcode,  podrname , string_agg(plancode::text,',') as plancodes, kartarefcode , tktechcardname , tktechcardtkmeasurement,
+           sum(countgen) as countgen , sum(timegen) as timegen , min(mindate) as mindate , max(maxdate) as maxdate, ''::text as materials
+            from (
+              select dep.code as podrcode,  dep.name as podrname , pw.code as plancode, tkcl.code as kartarefcode ,
+                    tkcl.kod ||' '|| tkcl.name as tktechcardname , 'ШТ'::text as tktechcardtkmeasurement,
+                    -- если услуга, то по факту кол-во = кол-во работ по калькуляции делить на кол-фактов (типа когда сделают два факта по услуге
+                    -- то выполнена будет равна всеравно кому количеству работ скоко заказывали)
+                    case when pw.typerefcode = 8 then
+                    ( select p2c.countgen from enplanwork2classfctntp p2c
+                        where p2c.classificationtyperfcd = tkcl.code
+                          and p2c.planrefcode in
+                          (select pcalc.code from enplanwork p , enplanwork pcalc
+                            where p.code = pw.code /*заходит код факта*/
+                            and p.elementrefcode = pcalc.elementrefcode
+                            and pcalc.kindcode = 5 )
+                            limit 1
+                        )
+                        /
+                        /*(
+                        select count(pf.code) from enplanwork p , enplanwork pcalc , enplanwork pf
+                        where p.code = pw.code --заходит код факта
+                        and p.elementrefcode = pcalc.elementrefcode
+                        and pcalc.kindcode = 5
+                        and pf.elementrefcode = pcalc.elementrefcode
+                        and pf.elementrefcode = p.elementrefcode
+                        and pf.kindcode = 4
+                        )*/ 1
+                   else
+                   ( select max(pi.countgen) from enplanwork p , enplanworkitem pi , tktechcard tkd
+                       where p.code = pi.planrefcode
+                       and   pi.kartarefcode = tkd.code
+                       and   tkd.classificationtypecode = tkcl.code
+                       and   p.code = pw.code  ) end as countgen ,
+                     sum(pwi.timegen) as timegen ,
+                     pw.datestart as mindate , pw.datestart maxdate , ''::text as materials
+              from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas , tkclassificationtype tkcl
+              where pw.departmentrefcode = dep.code
+              and pw.code = pwi.planrefcode
+              and pwi.kartarefcode = tc.code
+              and tc.measurementcode = tmeas.code
+              and pwi.countgen <> 0
+              and tc.classificationtypecode = tkcl.code
+			  and ( pw.typerefcode = 8 or ( pw.typerefcode <> 8 and  tc.techcardsourcecode in (500000039,1000000004,1000000003) )  ) -- услуги или работы из источника калькуляции
+			  and ( pw.statuscode = $P{statusplanfact} or $P{statusplanfact} = 0   )
+              and pw.code in (
+                              select eh1.plannewrefcode from enplanwork pw , enplancorrecthistory eh1
+                            where pw.budgetrefcode = 240000001 --только енергосбыт
+                              and pw.kindcode = 3
+                              and pw.code = $P{plancode}
+                              and pw.typerefcode = 8 --услуги отдельно
+                              and eh1.planoldrefcode = pw.code
+                              and eh1.reasoncode = 5
+                   )
+              group by dep.code, dep.name ,pw.code, tkcl.code,tkcl.name,pw.datestart ,pw.datestart,tkcl.kod
+              order by tkcl.name
+            ) q_fact_in
+     group by  podrcode,  podrname , kartarefcode , tktechcardname , tktechcardtkmeasurement
+) q_fact
+ on  (q_npw.podrcode = q_fact.podrcode and q_npw.kartarefcode = q_fact.kartarefcode )
+order by isservices , npwpodrname , npwtktechcardname]]>
+	</queryString>
+	<field name="isservices" class="java.lang.Integer"/>
+	<field name="npwpodrcode" class="java.lang.Double"/>
+	<field name="npwpodrname" class="java.lang.String"/>
+	<field name="npwplancodes" class="java.lang.String"/>
+	<field name="npwkartarefcode" class="java.lang.Double"/>
+	<field name="npwtktechcardname" class="java.lang.String"/>
+	<field name="npwtktechcardtkmeasurement" class="java.lang.String"/>
+	<field name="npwcountgen" class="java.lang.Double"/>
+	<field name="npwtimegen" class="java.lang.Double"/>
+	<field name="npwmindate" class="java.lang.String"/>
+	<field name="npwmaxdate" class="java.lang.String"/>
+	<field name="npwmaterials" class="java.lang.String"/>
+	<field name="factpodrcode" class="java.lang.Double"/>
+	<field name="factpodrname" class="java.lang.String"/>
+	<field name="factplancodes" class="java.lang.String"/>
+	<field name="factkartarefcode" class="java.lang.Double"/>
+	<field name="facttktechcardname" class="java.lang.String"/>
+	<field name="facttktechcardtkmeasurement" class="java.lang.String"/>
+	<field name="factcountgen" class="java.lang.Double"/>
+	<field name="facttimegen" class="java.math.BigDecimal"/>
+	<field name="factmindate" class="java.lang.String"/>
+	<field name="factmaxdate" class="java.lang.String"/>
+	<field name="factmaterials" class="java.lang.String"/>
+	<field name="personal" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="300" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement markup="none"/>
+				<textFieldExpression><![CDATA[$F{npwmaterials}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="500" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement markup="none"/>
+				<textFieldExpression><![CDATA[$F{npwmindate}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="300" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement markup="none"/>
+				<textFieldExpression><![CDATA[$F{npwtktechcardname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="560" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement markup="none"/>
+				<textFieldExpression><![CDATA[$F{npwmaxdate}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="750" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement markup="none"/>
+				<textFieldExpression><![CDATA[$F{factmaxdate}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="620" y="0" width="130" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement markup="none"/>
+				<textFieldExpression><![CDATA[$F{personal}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="810" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement markup="none"/>
+				<textFieldExpression><![CDATA[$F{npwcountgen}-$F{factcountgen}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

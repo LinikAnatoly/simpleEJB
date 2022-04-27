@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="getPays" pageWidth="80" pageHeight="802" whenNoDataType="AllSectionsNoDetail" columnWidth="80" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="partnerid" class="java.lang.Integer" isForPrompting="false"/>
+	<parameter name="contractid" class="java.lang.Integer" isForPrompting="false"/>
+	<queryString>
+		<![CDATA[select
+ sum(summabillitem_approved)::numeric(15,2)  - sum(summaoplata_approved)::numeric(15,2) as summabill_rest_neoploch_approved , /*остаток суммы по счетам не оплоченое по утвержденным счетам */
+ sum(summabillitem_other)::numeric(15,2)  - sum(summaoplata_other)::numeric(15,2) as summabill_rest_neoploch_other /*остаток суммы по счетам не оплоченое по НЕ утвержденным счетам */
+
+,(sum(summaoplata_approved)+sum(summaoplata_other))::numeric(15,2) as summaoplata
+,coalesce(prih_order.summa_prih,0) as summa_prih
+from (
+    select
+   case when b.statusrefcode = 3 then sum(bi.sumgen) else 0 end  as summabillitem_approved  , /*сумма с ндс по утвержденным счетам */
+
+   case when b.statusrefcode <> 3 then sum(bi.sumgen) else 0 end  as summabillitem_other  , /*сумма с ндс НЕ по утвержденным счетам */
+
+   case when b.statusrefcode = 3 then COALESCE((
+    select sum(pi.summagen) from  rqpaydocitem pi , rqpaydocitem2billitem pi2bi
+    where pi2bi.paydocitemcode = pi.code
+    and pi2bi.billitemcode = bi.code
+     ),0) else 0  end as summaoplata_approved ,  /*оплата по утвержденным счетам*/
+
+   case when b.statusrefcode <> 3 then COALESCE((
+    select sum(pi.summagen) from  rqpaydocitem pi , rqpaydocitem2billitem pi2bi
+    where pi2bi.paydocitemcode = pi.code
+    and pi2bi.billitemcode = bi.code
+     ),0) else 0  end as summaoplata_other  /*оплата по НЕ утвержденным счетам*/
+ , b.findocid
+    from rqbill b , rqbillitem bi , rqorg org
+    where b.code = bi.billrefcode
+    and b.orgcode = org.code
+    /*and b.statusrefcode = 3 SUPP-35397 */
+    and org.id = $P{partnerid}
+    and b.findocid  = $P{contractid}  /*айди договора*/
+    group by bi.code , b.statusrefcode, b.findocid
+) as hhh left join
+/*сумма по приходным ордерам с ндс */
+(select sum(q.sumwithoutnds)+(case when coalesce(qq.ndspercent,0)>0 then sum(q.sumwithoutnds)*coalesce(qq.ndspercent,0)/100 else 0 end)::numeric(15,2) as summa_prih , q.findocid
+ from rqfkorderitem q , rqfkorder qq
+  where q.findocid = $P{contractid}  /*айди договора*/
+    and q.fkorderrefcode = qq.code
+    and qq.kindcode in (1,15)
+    group by coalesce(qq.ndspercent,0) , q.findocid    ) as prih_order on prih_order.findocid= hhh.findocid
+group by prih_order.summa_prih
+
+
+
+
+
+
+
+
+
+
+
+
+/* запрос с разделениям по кол-вц оплат если нада будет*/
+/*select
+sum(pay1)::numeric(15,2) as pay1,
+sum(pay2)::numeric(15,2) as pay2,
+sum(pay3)::numeric(15,2) as pay3,
+sum(pay4)::numeric(15,2) as pay4,
+sum(pay5)::numeric(15,2) as pay5,
+sum(pay6)::numeric(15,2) as pay6,
+sum(pay7)::numeric(15,2) as pay7,
+sum(pay8)::numeric(15,2) as pay8,
+sum(pay9)::numeric(15,2) as pay9,
+sum(pay10)::numeric(15,2) as pay10,
+sum(pay11)::numeric(15,2) as pay11,
+sum(pay12)::numeric(15,2) as pay12,
+sum(pay13)::numeric(15,2) as pay13,
+sum(pay14)::numeric(15,2) as pay14,
+sum(pay15)::numeric(15,2) as pay15,
+sum(pay16)::numeric(15,2) as pay16,
+sum(pay17)::numeric(15,2) as pay17,
+sum(pay18)::numeric(15,2) as pay18,
+sum(pay19)::numeric(15,2) as pay19,
+sum(pay20)::numeric(15,2) as pay20,
+sum(pay21)::numeric(15,2) as pay21,
+sum(pay22)::numeric(15,2) as pay22,
+sum(pay23)::numeric(15,2) as pay23,
+sum(pay24)::numeric(15,2) as pay24,
+sum(pay25)::numeric(15,2) as pay25,
+sum(pay26)::numeric(15,2) as pay26,
+sum(pay27)::numeric(15,2) as pay27,
+sum(pay28)::numeric(15,2) as pay28,
+sum(pay29)::numeric(15,2) as pay29,
+sum(pay30)::numeric(15,2) as pay30,
+sum(pay31)::numeric(15,2) as pay31,
+sum(pay32)::numeric(15,2) as pay32,
+sum(pay33)::numeric(15,2) as pay33,
+sum(pay34)::numeric(15,2) as pay34,
+sum(pay35)::numeric(15,2) as pay35,
+sum(pay36)::numeric(15,2) as pay36,
+sum(pay37)::numeric(15,2) as pay37,
+sum(pay38)::numeric(15,2) as pay38,
+sum(pay39)::numeric(15,2) as pay39,
+sum(pay40)::numeric(15,2) as pay40,
+sum(pay41)::numeric(15,2) as pay41,
+sum(pay42)::numeric(15,2) as pay42,
+sum(pay43)::numeric(15,2) as pay43,
+sum(pay44)::numeric(15,2) as pay44,
+sum(pay45)::numeric(15,2) as pay45,
+sum(pay46)::numeric(15,2) as pay46,
+sum(pay47)::numeric(15,2) as pay47,
+sum(pay48)::numeric(15,2) as pay48,
+sum(pay49)::numeric(15,2) as pay49,
+sum(pay50)::numeric(15,2) as pay50 ,
+max(row_num) as row_num
+from (
+
+select
+case when row_num = 1 then COALESCE(summaoplata,0) else 0 end as pay1,
+case when row_num = 2 then COALESCE(summaoplata,0) else 0 end as pay2,
+case when row_num = 3 then COALESCE(summaoplata,0) else 0 end as pay3,
+case when row_num = 4 then COALESCE(summaoplata,0) else 0 end as pay4,
+case when row_num = 5 then COALESCE(summaoplata,0) else 0 end as pay5,
+case when row_num = 6 then COALESCE(summaoplata,0) else 0 end as pay6,
+case when row_num = 7 then COALESCE(summaoplata,0) else 0 end as pay7,
+case when row_num = 8 then COALESCE(summaoplata,0) else 0 end as pay8,
+case when row_num = 9 then COALESCE(summaoplata,0) else 0 end as pay9,
+case when row_num = 10 then COALESCE(summaoplata,0) else 0 end as pay10,
+case when row_num = 11 then COALESCE(summaoplata,0) else 0 end as pay11,
+case when row_num = 12 then COALESCE(summaoplata,0) else 0 end as pay12,
+case when row_num = 13 then COALESCE(summaoplata,0) else 0 end as pay13,
+case when row_num = 14 then COALESCE(summaoplata,0) else 0 end as pay14,
+case when row_num = 15 then COALESCE(summaoplata,0) else 0 end as pay15,
+case when row_num = 16 then COALESCE(summaoplata,0) else 0 end as pay16,
+case when row_num = 17 then COALESCE(summaoplata,0) else 0 end as pay17,
+case when row_num = 18 then COALESCE(summaoplata,0) else 0 end as pay18,
+case when row_num = 19 then COALESCE(summaoplata,0) else 0 end as pay19,
+case when row_num = 20 then COALESCE(summaoplata,0) else 0 end as pay20,
+case when row_num = 21 then COALESCE(summaoplata,0) else 0 end as pay21,
+case when row_num = 22 then COALESCE(summaoplata,0) else 0 end as pay22,
+case when row_num = 23 then COALESCE(summaoplata,0) else 0 end as pay23,
+case when row_num = 24 then COALESCE(summaoplata,0) else 0 end as pay24,
+case when row_num = 25 then COALESCE(summaoplata,0) else 0 end as pay25,
+case when row_num = 26 then COALESCE(summaoplata,0) else 0 end as pay26,
+case when row_num = 27 then COALESCE(summaoplata,0) else 0 end as pay27,
+case when row_num = 28 then COALESCE(summaoplata,0) else 0 end as pay28,
+case when row_num = 29 then COALESCE(summaoplata,0) else 0 end as pay29,
+case when row_num = 30 then COALESCE(summaoplata,0) else 0 end as pay30,
+case when row_num = 31 then COALESCE(summaoplata,0) else 0 end as pay31,
+case when row_num = 32 then COALESCE(summaoplata,0) else 0 end as pay32,
+case when row_num = 33 then COALESCE(summaoplata,0) else 0 end as pay33,
+case when row_num = 34 then COALESCE(summaoplata,0) else 0 end as pay34,
+case when row_num = 35 then COALESCE(summaoplata,0) else 0 end as pay35,
+case when row_num = 36 then COALESCE(summaoplata,0) else 0 end as pay36,
+case when row_num = 37 then COALESCE(summaoplata,0) else 0 end as pay37,
+case when row_num = 38 then COALESCE(summaoplata,0) else 0 end as pay38,
+case when row_num = 39 then COALESCE(summaoplata,0) else 0 end as pay39,
+case when row_num = 40 then COALESCE(summaoplata,0) else 0 end as pay40,
+case when row_num = 41 then COALESCE(summaoplata,0) else 0 end as pay41,
+case when row_num = 42 then COALESCE(summaoplata,0) else 0 end as pay42,
+case when row_num = 43 then COALESCE(summaoplata,0) else 0 end as pay43,
+case when row_num = 44 then COALESCE(summaoplata,0) else 0 end as pay44,
+case when row_num = 45 then COALESCE(summaoplata,0) else 0 end as pay45,
+case when row_num = 46 then COALESCE(summaoplata,0) else 0 end as pay46,
+case when row_num = 47 then COALESCE(summaoplata,0) else 0 end as pay47,
+case when row_num = 48 then COALESCE(summaoplata,0) else 0 end as pay48,
+case when row_num = 49 then COALESCE(summaoplata,0) else 0 end as pay49,
+case when row_num = 50 then COALESCE(summaoplata,0) else 0 end as pay50
+, row_num
+from (
+select /*numberbill , datebill ,  */
+sum(summaoplata) as summaoplata  , nextval('row_count_seq') AS row_num
+from (
+select b.numberdoc as numberbill ,
+b.dategen as datebill,
+org.name as contragentname ,
+(
+select sum(pi.summagen) from  rqpaydocitem pi , rqpaydocitem2billitem pi2bi
+where pi2bi.paydocitemcode = pi.code
+and pi2bi.billitemcode = bi.code
+
+ ) as summaoplata
+  from rqbill b , rqbillitem bi , rqorg org
+where b.code = bi.billrefcode
+and b.orgcode = org.code
+/*and b.statusrefcode = 3 SUPP-35397 */
+and org.id = partnerid /*97611*/
+and b.findocid  = contractid /*in( 28557 , 28674)*/ /*айди договора*/
+order by b.dategen  , summaoplata desc
+) as ddd
+where (SELECT setval('row_count_seq', 1, false) =1)
+group by numberbill , datebill
+order by  row_num  , datebill
+) sel_opl
+) sel_sum_dogovor*/]]>
+	</queryString>
+	<field name="summaoplata" class="java.math.BigDecimal"/>
+	<field name="summabill_rest_neoploch_approved" class="java.math.BigDecimal"/>
+	<field name="summa_prih" class="java.math.BigDecimal"/>
+	<field name="summabill_rest_neoploch_other" class="java.math.BigDecimal"/>
+	<variable name="summaPays" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$F{summaoplata}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="summabill_rest_neoploch_approved" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$F{summabill_rest_neoploch_approved}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="summaPrih" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$F{summa_prih}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="summabill_rest_neoploch_other" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$F{summabill_rest_neoploch_other}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="80" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{summaoplata}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

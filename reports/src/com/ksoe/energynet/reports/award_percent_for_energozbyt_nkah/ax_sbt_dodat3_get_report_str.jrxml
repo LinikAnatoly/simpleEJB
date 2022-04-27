@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="sbt_dodat3_get_report_str" pageWidth="820" pageHeight="535" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="820" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="2"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="0.9090909090909091"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="Ppodrkod" class="java.lang.String"/>
+	<parameter name="Ppodr_name" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="pdate1" class="java.lang.String"/>
+	<parameter name="pdate2" class="java.lang.String"/>
+	<parameter name="sumhoursotpusk" class="java.math.BigDecimal"/>
+	<parameter name="fio_fin" class="java.lang.String"/>
+	<parameter name="post_fin" class="java.lang.String"/>
+	<parameter name="tabn_fin" class="java.lang.String"/>
+	<parameter name="plankind" class="java.lang.Integer"/>
+	<parameter name="podr_nazv" class="java.lang.String"/>
+	<parameter name="vv_count_personal" class="java.math.BigDecimal">
+		<defaultValueExpression><![CDATA[new BigDecimal(1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="podr_nazv_main" class="java.lang.String"/>
+	<parameter name="tabn" class="java.lang.String"/>
+	<parameter name="fio" class="java.lang.String"/>
+	<parameter name="norma_vrem_hours" class="java.math.BigDecimal"/>
+	<queryString>
+		<![CDATA[select
+fio_worker ,
+name_position_fin ,
+sum(work_epr) as work_plan ,
+sum(work_enr) as work_not_plan ,
+sum(coalesce(deliverytimefact , 0)) as delivery_all_work ,
+period
+
+      From (
+
+
+select (select  case when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '01' then 'Січень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '02' then 'Лютий'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '03' then 'Березень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '04' then 'Квітень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '05' then 'Травень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '06' then 'Червень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '07' then 'Липень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '08' then 'Серпень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '09' then 'Вересень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '10' then 'Жовтень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '11' then 'Листопад'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '12' then 'Грудень'
+            end  ) as period ,
+   $P{fio_fin}  as fio_worker ,
+   $P{post_fin} as name_position_fin  ,
+
+sum(work_epr) as work_epr ,
+sum(work_enr) as work_enr ,
+sum(deliverytimefact) as deliverytimefact
+
+
+
+From (
+Select
+baz_sel.fio_worker , baz_sel.positionname ,
+
+-------------------- работы в энергозбыте плановые и не плановые работы  ------------------------------------------
+/*колонка 14  */ case When baz_sel.formrefcode = 1 /* плановые работы  енергозбыт */
+                       Then coalesce(baz_sel.countfact,0 ) else 0 end as work_epr ,
+/*колонка 15 */  case When baz_sel.formrefcode = 2   /* неплановые  работы енергозбыт */
+                       Then coalesce(baz_sel.countfact,0 ) else 0 end as work_enr
+ ,
+ baz_sel.deliverytimefact
+
+ From (
+
+SELECT  enplanwork.code ,
+        enhumenitem.countfact ,
+        enplanwork.typerefcode as enp_typerefcode ,
+        enplanwork.staterefcode ,
+        finworker.name as fio_worker ,
+        finworker.positionname ,
+        sum( endeliverytime.deliverytimefact) as deliverytimefact ,
+        enhumenitem.code as humanitemcode ,
+        enplanwork.formrefcode
+
+          from enhumenitem   left join endeliverytime on (endeliverytime.humenitemrefcode = enhumenitem.code  )
+              , enplanworkitem , finworker , enplanwork
+                   Where  enhumenitem.planitemrefcode = enplanworkitem.code
+                     and  enplanworkitem.planrefcode = enplanwork.code
+                     and  coalesce(enhumenitem.countfact  , 0 ) <> 0
+                     and  enhumenitem.finworkercode = finworker.code
+                     and  enplanwork.datestart between to_date($P{pdate1} , 'dd.mm.yyyy') and to_date($P{pdate2},'dd.mm.yyyy')
+                     and  enplanwork.statuscode NOT IN (2,6)
+                     and  enplanwork.kindcode = $P{plankind}
+                     and  enplanworkitem.countgen <> 0
+                     and  enhumenitem.planrefcode = enplanwork.code
+                     and  finworker.tabnumber = $P{tabn_fin}
+
+group by enplanwork.code ,
+        enhumenitem.countfact ,
+        enplanwork.typerefcode ,
+        enplanwork.staterefcode ,
+        finworker.name ,
+        finworker.positionname ,
+        enhumenitem.code  ,
+        enplanwork.formrefcode
+) baz_sel
+) baz_sum
+group by baz_sum.fio_worker , baz_sum.positionname
+
+
+UNION
+select
+(select  case when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '01' then 'Січень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '02' then 'Лютий'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '03' then 'Березень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '04' then 'Квітень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '05' then 'Травень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '06' then 'Червень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '07' then 'Липень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '08' then 'Серпень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '09' then 'Вересень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '10' then 'Жовтень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '11' then 'Листопад'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '12' then 'Грудень'
+            end  ) as period  ,
+  $P{fio_fin} as fio_worker ,
+  $P{post_fin} as name_position_fin  ,
+
+
+0 as work_epr ,
+0 as work_enr ,
+0 as deliverytimefact
+  where not exists ( select finworker.code from
+             enhumenitem , finworker , enplanwork
+                   Where  enhumenitem.planrefcode = enplanwork.code
+                     and  coalesce(enhumenitem.countfact  , 0 ) <> 0
+                     and  enhumenitem.finworkercode = finworker.code
+                     and  enplanwork.datestart between to_date($P{pdate1}, 'dd.mm.yyyy') and to_date($P{pdate2},'dd.mm.yyyy')
+                     and  enplanwork.statuscode NOT IN (2,6)
+                     and  enplanwork.kindcode = $P{plankind}
+                     and  finworker.tabnumber = $P{tabn_fin}
+
+               )
+
+
+) sel_zag
+
+group by period , fio_worker , name_position_fin
+
+
+order by fio_worker , name_position_fin]]>
+	</queryString>
+	<field name="work_plan" class="java.math.BigDecimal"/>
+	<field name="work_not_plan" class="java.math.BigDecimal"/>
+	<field name="fio_worker" class="java.lang.String"/>
+	<field name="name_position_fin" class="java.lang.String"/>
+	<field name="delivery_all_work" class="java.math.BigDecimal"/>
+	<variable name="v_countworkhours" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$P{norma_vrem_hours}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="v_counthoursotpusk" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$P{sumhoursotpusk}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_z_vr" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[($V{v_countworkhours}.subtract($P{sumhoursotpusk})).doubleValue() > 0 ?
+(((($V{v_countworkhours}.subtract($P{sumhoursotpusk}))
+.multiply(new BigDecimal(0.05))).
+add($F{delivery_all_work}).
+add($F{work_plan}).add($F{work_not_plan})
+).setScale(2, BigDecimal.ROUND_HALF_UP).divide($V{v_countworkhours}.subtract($P{sumhoursotpusk}),6, BigDecimal.ROUND_HALF_UP)
+).multiply(new BigDecimal(100)).setScale(2, BigDecimal.ROUND_HALF_UP)
+: new BigDecimal(0)]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_pb" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[$V{var_z_vr}.compareTo(new BigDecimal(100)) == 1 ? new BigDecimal(50) :
+(($V{var_z_vr}.compareTo(new BigDecimal(98)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(98)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(100)) == -1) ? new BigDecimal(45) :
+(($V{var_z_vr}.compareTo(new BigDecimal(96)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(96)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(98)) == -1) ? new BigDecimal(35) :
+(($V{var_z_vr}.compareTo(new BigDecimal(94)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(94)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(96)) == -1) ? new BigDecimal(30) :
+(($V{var_z_vr}.compareTo(new BigDecimal(92)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(92)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(94)) == -1) ? new BigDecimal(25) :
+(($V{var_z_vr}.compareTo(new BigDecimal(90)) == 1 || $V{var_z_vr}.compareTo(new BigDecimal(90)) == 0) && $V{var_z_vr}.compareTo(new BigDecimal(92)) == -1) ? new BigDecimal(20) :
+$V{var_z_vr}.compareTo(new BigDecimal(90)) == -1 ? new BigDecimal(0) : new BigDecimal(0)]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="v_hours_without_otpusk" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{v_countworkhours}.subtract($P{sumhoursotpusk})]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="delivery_all_work" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$F{delivery_all_work}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="work_plan" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$F{work_plan}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="work_not_plan" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$F{work_not_plan}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band splitType="Stretch"/>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+</jasperReport>

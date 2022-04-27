@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="powerReserve_sub_summary" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.6105100000000008"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<style name="color" mode="Opaque">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[new Boolean($P{is_color_red}.intValue() > 0)]]></conditionExpression>
+			<style mode="Opaque" backcolor="#FF0000"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[new Boolean($P{is_color_yellow}.intValue() > 0)]]></conditionExpression>
+			<style mode="Opaque" backcolor="#FFFF00"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="soCode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="substationCode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select q_b.gvalue, q_b.gdate, q_b.trnominalpower, q_b.trnominalpower_pow, q_b.trname,
+q_b.gvalue_pow ,
+((q_b.gvalue_pow/q_b.trnominalpower_pow)*100)::numeric(15,2) as percent_without_links,
+(q_b.gvalue_pow+q_b.s2n_power_sum_without_contragent)::numeric(15,2) as power_with_links_without_contragent,
+(((q_b.gvalue_pow+q_b.s2n_power_sum_without_contragent)/q_b.trnominalpower_pow)*100)::numeric(15,2) as percent_with_links_without_contragent,
+(q_b.gvalue_pow+q_b.s2n_power_sum_with_contragent)::numeric(15,2) as power_with_links,
+(((q_b.gvalue_pow+q_b.s2n_power_sum_with_contragent)/q_b.trnominalpower_pow)*100)::numeric(15,2) as percent_with_links
+ from
+(select pr.code, pr.gaugerefcode, ((case when LEAST(fig.currentphasegreen , fig.currentphasered , fig.currentphaseyellow) / greatest(fig.currentphasegreen , fig.currentphasered , fig.currentphaseyellow)<0.8
+then ((fig.currentphasegreen + fig.currentphasered + fig.currentphaseyellow)/3)::numeric(15,2)
+else greatest(fig.currentphasegreen , fig.currentphasered , fig.currentphaseyellow) end)*1.73*0.38*0.92)::numeric(15,2) as gvalue_pow,
+
+case when LEAST(fig.currentphasegreen , fig.currentphasered , fig.currentphaseyellow) / greatest(fig.currentphasegreen , fig.currentphasered , fig.currentphaseyellow)<0.8
+then ((fig.currentphasegreen + fig.currentphasered + fig.currentphaseyellow)/3)::numeric(15,2)
+else greatest(fig.currentphasegreen , fig.currentphasered , fig.currentphaseyellow) end as gvalue, to_char(fig.dateguage,'dd.MM.yyyy') as gdate,
+ tr.nominalpower as trnominalpower, tr.nominalpower*0.92 as trnominalpower_pow,
+coalesce((select sum(s2n.power)::double precision as power
+from  encalcpowerreserveitem pri, enso2node s2n
+where pri.so2noderefcode = s2n.code
+and pri.calcpowerreserverefcod = pr.code ),0) as s2n_power_sum_with_contragent,
+COALESCE((select sum(s2n.power)::double precision as power
+from  encalcpowerreserveitem pri, enso2node s2n
+where pri.so2noderefcode = s2n.code
+and (pri.calcpowerreserverefcod = pr.code and pri.code not in
+(select pri.code from
+encalcpowerreserve pr, encalcpowerreserveitem pri, enso2node s2n
+where pr.servicesobjectrefcode = $P{soCode}
+and pr.code = pri.calcpowerreserverefcod
+and pri.so2noderefcode = s2n.code
+and s2n.servicesobjectcode = $P{soCode}))),0) as s2n_power_sum_without_contragent,
+tr.name as trname
+from encalcpowerreserve pr
+left join enfiderguage fig on (pr.gaugerefcode = fig.code)
+left join entransformer tr on (fig.transformercode = tr.code)
+left join entransformertype trt on (tr.transformertypecode = trt.code)
+left join ensubstation04 s04 on (s04.code = fig.substation04code)
+left join enservicesobject so on (pr.servicesobjectrefcode = so.code)
+left join entechconditionsobjcts tco on (so.techconobjectscode = tco.code)
+left join enso2node so2n on (so.code = so2n.servicesobjectcode)
+where s04.code = $P{substationCode}
+and pr.servicesobjectrefcode = $P{soCode}
+) as q_b
+order by q_b.trname]]>
+	</queryString>
+	<field name="gvalue" class="java.lang.Double"/>
+	<field name="gdate" class="java.lang.String"/>
+	<field name="trnominalpower" class="java.lang.Double"/>
+	<field name="trnominalpower_pow" class="java.lang.Double"/>
+	<field name="trname" class="java.lang.String"/>
+	<field name="gvalue_pow" class="java.math.BigDecimal"/>
+	<field name="percent_without_links" class="java.math.BigDecimal"/>
+	<field name="power_with_links_without_contragent" class="java.math.BigDecimal"/>
+	<field name="percent_with_links_without_contragent" class="java.math.BigDecimal"/>
+	<field name="power_with_links" class="java.math.BigDecimal"/>
+	<field name="percent_with_links" class="java.math.BigDecimal"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<columnHeader>
+		<band height="68">
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="271" y="0" width="324" height="20" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Завантаження силових трансформаторів"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="30" y="0" width="79" height="68" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Максимальний струм I виміру, А"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="379" y="20" width="108" height="30" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["З урахуванням нереалізованих ТУ та без Замовника"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="487" y="20" width="108" height="30" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["З урахування нереалізованих ТУ та Замовника"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="163" y="0" width="108" height="68" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Максимальне навантаження, кВт: \n" +
+"Pвим.=1.73 х Uном. х Івим. х cosF"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="0" y="0" width="30" height="68" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["№ тр-ру"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="271" y="20" width="108" height="30" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Без урахування нереалізованих ТУ та без Замовника"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="109" y="0" width="54" height="68" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Дата виміру"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="271" y="50" width="54" height="18" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["кВт"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="325" y="50" width="54" height="18" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["%"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="379" y="50" width="54" height="18" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["кВт"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="433" y="50" width="54" height="18" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["%"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="487" y="50" width="54" height="18" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["кВт"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="541" y="50" width="54" height="18" isPrintWhenDetailOverflows="true"/>
+				<box leftPadding="0">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA["%"]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField>
+				<reportElement x="30" y="0" width="79" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{gvalue}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="109" y="0" width="54" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{gdate}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="0" width="30" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{trname}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="163" y="0" width="108" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{gvalue_pow}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="325" y="0" width="54" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{percent_without_links}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="379" y="0" width="54" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{power_with_links_without_contragent}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="433" y="0" width="54" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{percent_with_links_without_contragent}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="487" y="0" width="54" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{power_with_links}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="541" y="0" width="54" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{percent_with_links}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="271" y="0" width="54" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{gvalue_pow}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="55">
+			<textField>
+				<reportElement positionType="Float" x="109" y="0" width="324" height="55"/>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" \n"+
+"Розрахунок виконав:       _______________________\n\n"+
+"Розрахунок перевірив:     _______________________"]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageFooter>
+</jasperReport>

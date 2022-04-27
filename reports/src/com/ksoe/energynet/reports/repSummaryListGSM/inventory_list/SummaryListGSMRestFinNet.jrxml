@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="SummaryListGSMRestFinNet" pageWidth="1000" pageHeight="555" orientation="Landscape" columnWidth="1000" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="2.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="molcode" class="java.lang.String"/>
+	<parameter name="typefuel" class="java.lang.Integer"/>
+	<parameter name="dateend" class="java.lang.String"/>
+	<parameter name="actstatus" class="java.lang.Integer"/>
+	<parameter name="DateStart" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("01.03.2011")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DateEnd" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("31.03.2011")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="netConnection" class="java.lang.Object" isForPrompting="false"/>
+	<queryString>
+		<![CDATA[SELECT div,
+             m_id,
+             mat_name,
+             q_end ,
+             s_end
+ ,   max(rownum) as kolvo
+
+From (
+SELECT код_поставщика  as div,
+             код_материала  as  m_id,
+             m.name as mat_name,
+             sum(количество) as q_end,
+             sum(сумма)      as s_end,
+             max(дата_документа) last_date
+       FROM umc_dba.v_revert_str, umc_dba.tmatherial m
+       WHERE дата_документа <= Last_Day(TO_DATE($P{dateend}, 'dd.mm.yyyy')) and
+             код_поставщика = $P{molcode} and
+             код_материала = m.id
+             and ( (m.name like ('БЕНЗИН%') and  $P{typefuel} = 1 )
+                 or
+                   (m.name like ('ДИЗПАЛИВО%') and  $P{typefuel} = 2 )
+                 )
+       GROUP BY код_поставщика,
+                код_материала ,
+                m.name
+                )
+Where q_end <> 0
+group by div,
+             m_id,
+             mat_name,
+             q_end ,
+             s_end
+order by  mat_name]]>
+	</queryString>
+	<field name="kolvo" class="java.lang.Integer"/>
+	<field name="s_end" class="java.math.BigDecimal"/>
+	<field name="mat_name" class="java.lang.String"/>
+	<field name="q_end" class="java.math.BigDecimal"/>
+	<field name="div" class="java.lang.String"/>
+	<variable name="v_kolvo" class="java.lang.Integer">
+		<variableExpression><![CDATA[$V{REPORT_COUNT}.intValue() == 1 ? $F{kolvo} : $V{v_kolvo}]]></variableExpression>
+		<initialValueExpression><![CDATA[$V{REPORT_COUNT}.intValue() == 1 ? $F{kolvo} : $V{v_kolvo}]]></initialValueExpression>
+	</variable>
+	<variable name="backsumquantityrashod" class="java.math.BigDecimal" resetType="Group" resetGroup="fueltype">
+		<variableExpression><![CDATA[$V{backsumquantityrashod}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sumcountin" class="java.math.BigDecimal" resetType="Group" resetGroup="fueltype" calculation="System">
+		<variableExpression><![CDATA[$V{sumcountin}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="countgenstartbyfuel" class="java.math.BigDecimal" resetType="Group" resetGroup="fueltype">
+		<variableExpression><![CDATA[$V{countgenstartbyfuel}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="temp" class="java.math.BigDecimal" resetType="Group" resetGroup="fueltype">
+		<variableExpression><![CDATA[$V{temp}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<group name="fueltype">
+		<groupExpression><![CDATA[$F{mat_name}]]></groupExpression>
+		<groupHeader>
+			<band splitType="Stretch"/>
+		</groupHeader>
+		<groupFooter>
+			<band splitType="Stretch"/>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="15" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" positionType="Float" x="0" y="0" width="270" height="15"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" Топливо в талонах, емкостях и пр." +
+new String($P{typefuel}.intValue() == 1 ? " (Бензин) " : " (Дизтопливо) ") + " : "]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-2" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="150" height="15" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{mat_name}]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" positionType="Float" x="150" y="0" width="10" height="15"/>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="molcode">
+					<subreportParameterExpression><![CDATA[$P{molcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="typefuel">
+					<subreportParameterExpression><![CDATA[$P{typefuel}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="dateend">
+					<subreportParameterExpression><![CDATA[$P{dateend}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="actstatus">
+					<subreportParameterExpression><![CDATA[$P{actstatus}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DateStart">
+					<subreportParameterExpression><![CDATA[$P{DateStart}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DateEnd">
+					<subreportParameterExpression><![CDATA[$P{DateEnd}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="typeFuelNet">
+					<subreportParameterExpression><![CDATA[new Integer(
+($F{mat_name}.equals("БЕНЗИН А-92")) ? 75000001 :
+($F{mat_name}.equals("БЕНЗИН А-95")) ? 75000000 :
+($F{mat_name}.equals("БЕНЗИН А 76")) ? 0 :
+($F{mat_name}.equals("БЕНЗИН А-80")) ? 75000002 :
+($F{mat_name}.equals("ДИЗПАЛИВО")) ? 75000003 :
+($F{mat_name}.equals("ДИЗТОПЛИВО")) ? 75000003 : 0  )]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[(java.sql.Connection)$P{netConnection}]]></connectionExpression>
+				<returnValue subreportVariable="sumcountgenstart" toVariable="countgenstartbyfuel" calculation="StandardDeviation"/>
+				<returnValue subreportVariable="sumcountin" toVariable="sumcountin" calculation="Sum"/>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/repSummaryListGSM/inventory_list/SummaryListGSMRestFinNetPrih.jasper")
+/*"C://iReport-3.0.0//tmp//SummaryListGSMRestFinNetPrih.jasper"*/]]></subreportExpression>
+			</subreport>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-2" positionType="Float" mode="Transparent" x="160" y="0" width="10" height="15"/>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="DateStart">
+					<subreportParameterExpression><![CDATA[$P{DateStart}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DateEnd">
+					<subreportParameterExpression><![CDATA[$P{DateEnd}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="codefueltype">
+					<subreportParameterExpression><![CDATA[new Integer(
+($F{mat_name}.equals("БЕНЗИН А-92")) ? 75000001 :
+($F{mat_name}.equals("БЕНЗИН А-95")) ? 75000000 :
+($F{mat_name}.equals("БЕНЗИН А 76")) ? 0 :
+($F{mat_name}.equals("БЕНЗИН А-80")) ? 75000002 :
+($F{mat_name}.equals("ДИЗПАЛИВО")) ? 75000003 :
+($F{mat_name}.equals("ДИЗТОПЛИВО")) ? 75000003 : 0  )]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="typefuel">
+					<subreportParameterExpression><![CDATA[$P{typefuel}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="molcode">
+					<subreportParameterExpression><![CDATA[$P{molcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="actstatus">
+					<subreportParameterExpression><![CDATA[$P{actstatus}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="dateend">
+					<subreportParameterExpression><![CDATA[$P{dateend}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="netConnection">
+					<subreportParameterExpression><![CDATA[$P{netConnection}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[(java.sql.Connection)$P{netConnection}]]></connectionExpression>
+				<returnValue subreportVariable="sumquantityrashod" toVariable="backsumquantityrashod"/>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/repSummaryListGSM/inventory_list/SummaryListGSMRestFinNetRash.jasper")
+/*"C://iReport-3.0.0//tmp//SummaryListGSMRestFinNetRash.jasper"*/]]></subreportExpression>
+			</subreport>
+			<textField evaluationTime="Group" evaluationGroup="fueltype" pattern="#,##0.00" isBlankWhenNull="false">
+				<reportElement key="textField" positionType="Float" x="170" y="0" width="100" height="15" printWhenGroupChanges="fueltype"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{q_end}.subtract($V{countgenstartbyfuel}.subtract($V{backsumquantityrashod}))).setScale(2, BigDecimal.ROUND_HALF_UP) + " л."]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

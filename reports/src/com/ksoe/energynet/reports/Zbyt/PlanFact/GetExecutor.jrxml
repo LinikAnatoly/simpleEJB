@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="GetExecutor" pageWidth="2267" pageHeight="535" orientation="Landscape" columnWidth="2267" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" scriptletClass="com.ksoe.energynet.reports.common.mDaxScriptlet">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="1015"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.scriptlethandling" value="2"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String">
+		<defaultValueExpression><![CDATA["C:\\iReport-3.0.0\\tmp\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pdate1" class="java.lang.String"/>
+	<parameter name="rencode" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="netConnection" class="java.lang.Object" isForPrompting="false"/>
+	<parameter name="pdate2" class="java.lang.String"/>
+	<parameter name="plankind" class="java.lang.Integer"/>
+	<parameter name="countByStaffing" class="java.lang.Integer">
+		<parameterDescription><![CDATA[1 - кол-во работников по штатному расписанию (без привязки к работникам)
+0- кол-во работников по  назначеным на штатные единицы]]></parameterDescription>
+	</parameter>
+	<parameter name="hrmorganizationid" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[select distinct r_in.HRMORGANIZATIONID as podr_id , r_in.DESCRIPTION as podr_nazv ,
+r_in.PARENTORGANIZATIONID as main_podr_id,  r_in.PARENTDESCRIPTION as podr_nazv_main
+ , coalesce( LEFT(empidlstr,LEN(empidlstr) - 1) ,'000000')  AS empidlstr
+, ( select q.AZT_MAINORGANIZATIONID
+		 from dbo.RPAYHRMORGANIZATION q
+		where q.DATAAREAID = 'KSOE'
+		  and q.HRMORGANIZATIONID = r_in.HRMORGANIZATIONID
+		  and q.AZT_STARTDATE =
+		(SELECT TOP 1 AZT_STARTDATE
+		 	FROM RPAYHRMORGANIZATION
+			WHERE DATAAREAID = 'KSOE'
+		AND AZT_STARTDATE <= $P{pdate2}
+		ORDER BY AZT_STARTDATE DESC)) as cehid
+, ( select (CASE WHEN q.AZT_MAINORGANIZATIONID = '' THEN ''
+	       ELSE (SELECT DESCRIPTION FROM dbo.ENERGYNET_FN_ORGANIZATION_STRUCTURE('KSOE', $P{pdate2}, q.AZT_MAINORGANIZATIONID, 0)) END)
+       	AZT_MAINORGANIZATIONNAME
+		 from dbo.RPAYHRMORGANIZATION q
+		where q.DATAAREAID = 'KSOE'
+		  and q.HRMORGANIZATIONID = r_in.HRMORGANIZATIONID
+		  and q.AZT_STARTDATE =
+		(SELECT TOP 1 AZT_STARTDATE
+		 	FROM RPAYHRMORGANIZATION
+			WHERE DATAAREAID = 'KSOE'
+		AND AZT_STARTDATE <= $P{pdate2}
+		ORDER BY AZT_STARTDATE DESC)) as cehname
+from dbo.ENERGYNET_FN_STAFFLIST_ALL(
+	                      /*@DATAAREAID =*/ 'KSOE'
+	                    , /*@ACTUALITYDATE =*/ $P{pdate2}
+	                    , /*@ORGANIZATIONLIST =*/ $P{hrmorganizationid}
+	                    , /*@ORGCHILD = */ 1
+	                    , /*@EMPLOYMENTLIST =*/ ''
+	                    , /*@EMPLOYMENTNAMELIST =*/ ''
+	                    , /*@STAFFPOSITIONLIST =*/ ''
+	                    , /*@RATELIST*/ 'НВЗ_Е_Д3'
+	                    , /*@SHOWVACANCY*/ 1
+	    ) as r_in
+	    CROSS APPLY (select distinct emplid + ','
+				  FROM dbo.ENERGYNET_FN_EMPL_HISTORY(
+				    /*@DATAAREAID*/ 'KSOE'
+				   ,/*@FROMDATE*/ $P{pdate1}
+				   ,/*@TODATE*/ $P{pdate2}
+				   ,/*@ORGANIZATIONLIST*/ r_in.HRMORGANIZATIONID
+				   ,/*@CHILDORG*/ 0
+				   ,/*@EMPLOYMENTLIST*/  ''
+				   ,/*@EMPLOYMENTNAMELIST*/ ''
+				   ,/*@STAFFPOSITIONLIST*/''
+				   ,/*@RATELIST*/   'НВЗ_Е_Д3'
+				   ,/*@ONLYLAST*/ 1 ) as intern
+                    where ( PAYRESIGNEDDATE_RU = '01.01.1900'  or  PAYRESIGNEDDATE_RU >$P{pdate2} ) -- не уволенные
+				   FOR XML PATH('')
+                   ) r_empl (empidlstr)
+ group by r_in.HRMORGANIZATIONID , r_in.DESCRIPTION , r_in.PARENTORGANIZATIONID ,  r_in.PARENTDESCRIPTION , empidlstr
+ order by cehid , r_in.PARENTDESCRIPTION , r_in.DESCRIPTION]]>
+	</queryString>
+	<field name="podr_nazv" class="java.lang.String"/>
+	<field name="podr_id" class="java.lang.String"/>
+	<field name="main_podr_id" class="java.lang.String"/>
+	<field name="podr_nazv_main" class="java.lang.String"/>
+	<field name="empidlstr" class="java.lang.String"/>
+	<field name="cehid" class="java.lang.String"/>
+	<field name="cehname" class="java.lang.String"/>
+	<variable name="monthtimegen" class="java.math.BigDecimal" resetType="Group" resetGroup="ee" calculation="Sum"/>
+	<variable name="facttimegen" class="java.math.BigDecimal" resetType="Group" resetGroup="ee" calculation="Sum"/>
+	<variable name="monthtimegen_sum" class="java.math.BigDecimal" calculation="Sum"/>
+	<variable name="facttimegen_sum" class="java.math.BigDecimal" calculation="Sum"/>
+	<group name="ee">
+		<groupExpression><![CDATA[$F{podr_id}]]></groupExpression>
+		<groupHeader>
+			<band splitType="Stretch"/>
+		</groupHeader>
+		<groupFooter>
+			<band splitType="Stretch"/>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band splitType="Stretch">
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" stretchType="RelativeToTallestObject" x="0" y="0" width="1584" height="0"/>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="pdate1">
+					<subreportParameterExpression><![CDATA[$P{pdate1}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="podrname">
+					<subreportParameterExpression><![CDATA[$F{podr_nazv}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="cehname">
+					<subreportParameterExpression><![CDATA[$F{cehname}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="axexecutorcode">
+					<subreportParameterExpression><![CDATA[$F{podr_id}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pdate2">
+					<subreportParameterExpression><![CDATA[$P{pdate2}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="Ppodrkod">
+					<subreportParameterExpression><![CDATA[$F{podr_id}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="plankind">
+					<subreportParameterExpression><![CDATA[$P{plankind}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="countByStaffing">
+					<subreportParameterExpression><![CDATA[$P{countByStaffing}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="empidlstr">
+					<subreportParameterExpression><![CDATA[$F{empidlstr}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[(java.sql.Connection)$P{netConnection}]]></connectionExpression>
+				<returnValue subreportVariable="monthtimegen" toVariable="monthtimegen" calculation="Sum"/>
+				<returnValue subreportVariable="facttimegen" toVariable="facttimegen" calculation="Sum"/>
+				<returnValue subreportVariable="monthtimegen" toVariable="monthtimegen_sum" calculation="Sum"/>
+				<returnValue subreportVariable="facttimegen" toVariable="facttimegen_sum" calculation="Sum"/>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/Zbyt/PlanFact/planFactWorkZbyt.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

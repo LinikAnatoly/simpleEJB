@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ax_drivers_percent_load_sub" pageWidth="2200" pageHeight="555" orientation="Landscape" whenNoDataType="NoDataSection" columnWidth="2200" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="0.9982500000000007"/>
+	<property name="ireport.x" value="0"/>
+	<property name="Print Order" value="Vertical"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="worked_time_in_month" class="java.math.BigDecimal"/>
+	<parameter name="tabnumber" class="java.lang.String">
+		<parameterDescription><![CDATA[Табельный номер водителя]]></parameterDescription>
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="start" class="java.util.Date">
+		<parameterDescription><![CDATA[Дата начала периода]]></parameterDescription>
+	</parameter>
+	<parameter name="end" class="java.util.Date">
+		<parameterDescription><![CDATA[Дата окончания периода]]></parameterDescription>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT tabnumber
+	, name
+	, position
+	, departmentname
+	, sum(distance_covered) AS distance_covered
+	, sum(machinehours) AS machinehours
+	, sum(hours_in_move) AS hours_in_move
+	, sum(act_hours_technician + act_hours_technician_not_in_travel_sheet) AS act_hours_technician
+	, sum(act_hours_repairer) AS act_hours_repairer
+	, sum(hours_wait_on_object) AS hours_wait_on_object
+	, sum(performance_time) AS performance_time
+	, round(cast(sum(performance_time)
+		/ (CASE WHEN $P{worked_time_in_month} = 0 THEN 1
+		ELSE $P{worked_time_in_month} END) * 100 AS decimal), 2) AS performance_rate_percentage
+	, $P{worked_time_in_month} AS worked_time_in_month
+FROM
+(SELECT finworker_info.tabnumber
+	, finworker_info.name
+	, finworker_info.position
+	, finworker_info.departmentname
+	, coalesce(data_on_date_by_travel_sheets.data_date, acts_data.data_date) AS data_date
+	, coalesce(distance_covered, 0) AS distance_covered
+	, coalesce(machinehours, 0) AS machinehours
+	, coalesce(hours_in_move, 0) AS hours_in_move
+	, coalesce(data_on_date_by_travel_sheets.act_hours_technician, 0) AS act_hours_technician
+	, coalesce(hours_wait_on_object, 0) AS hours_wait_on_object
+	, coalesce(acts_data.act_hours_technician, 0) AS act_hours_technician_not_in_travel_sheet
+	, coalesce(acts_data.act_hours_repairer, 0) AS act_hours_repairer
+	, coalesce(machinehours, 0) + coalesce(hours_in_move, 0) + coalesce(data_on_date_by_travel_sheets.act_hours_technician, 0)
+		+ coalesce(acts_data.act_hours_technician, 0) + coalesce(acts_data.act_hours_repairer, 0)
+		+ coalesce(hours_wait_on_object, 0) AS performance_time
+FROM
+(SELECT f.tabnumber
+	, string_agg(DISTINCT f.name, ',') AS name
+	, string_agg(DISTINCT f.positionname, chr(10)||' + ') AS position
+	, string_agg(DISTINCT f.departmentname, chr(10)||',') AS departmentname
+FROM finworker f
+WHERE
+f.tabnumber = $P{tabnumber}
+AND (EXISTS (SELECT FROM entravelsheet AS ts1
+	WHERE ts1.datefinal BETWEEN $P{start} AND $P{end}
+	AND ts1.finworkercode = f.code)
+OR position('ВОДІЙ' IN upper(f.positionname)) > 0
+OR position('ТРАКТОРИСТ' IN upper(f.positionname)) > 0
+OR position('МАШИНІСТ' IN upper(f.positionname)) > 0
+)
+GROUP BY f.tabnumber) AS finworker_info
+INNER JOIN ((
+SELECT data_by_travel_sheets.tabnumber
+	, data_by_travel_sheets.data_date
+	, sum(coalesce(distance_covered, 0)) AS distance_covered
+	, sum(coalesce(machinehours, 0)) AS machinehours
+	, sum(coalesce(hours_in_move, 0)) AS hours_in_move
+	, sum(coalesce(data_by_travel_sheets.act_hours_technician, 0)) AS act_hours_technician
+	, sum(CASE WHEN (coalesce(machinehours, 0) + coalesce(data_by_travel_sheets.act_hours_technician, 0)) = 0
+		THEN coalesce(hours_wait_on_object, 0)
+		ELSE 0 END) AS hours_wait_on_object
+	FROM
+(SELECT f.tabnumber
+	, ts.code AS travel_sheet_code
+	, ts.datefinal AS data_date
+	, sum(round(cast(EXTRACT(epoch FROM tsi.timefinal - tsi.timestart) / 3600 AS decimal), 2)) AS hours_wait_on_object
+	, sum(coalesce(CASE WHEN coalesce(tsi.speedometerfinal,0) - coalesce(tsi.speedometerstart,0) = 0
+		THEN  tsi.sumdistances
+		ELSE coalesce(tsi.speedometerfinal,0) - coalesce(tsi.speedometerstart,0)
+		END, 0)) AS distance_covered
+	, coalesce(sum(tsi.summachinehours),0) AS machinehours
+	, round(cast(sum(coalesce( CASE WHEN coalesce(tsi.hoursinmotionbygps, 0) <> 0
+			THEN tsi.hoursinmotionbygps
+			ELSE coalesce(CASE WHEN coalesce(tsi.speedometerfinal,0) - coalesce(tsi.speedometerstart,0) = 0
+				THEN  tsi.sumdistances
+				ELSE coalesce(tsi.speedometerfinal,0) - coalesce(tsi.speedometerstart,0)
+				END, 0) / 30
+			END, 0)) AS DECIMAL), 2) AS hours_in_move
+	, sum(coalesce((SELECT sum(coalesce(hu1.timeworkfact, 0)) FROM
+		enact2humen AS hu1 WHERE hu1.tabnumber = f.tabnumber AND hu1.humenkindrefcode = 1
+			AND hu1.actrefcode = a.code), 0)) AS act_hours_technician
+FROM entravelsheet AS ts
+INNER JOIN finworker AS f ON ts.finworkercode = f.code
+INNER JOIN entravelsheetitem AS tsi ON ts.code = tsi.travelsheetrefcode
+LEFT JOIN (enact2enplanwork AS acpw
+	INNER JOIN enact AS a ON acpw.actrefcode = a.code)
+	ON (tsi.planrefcode = acpw.plancode)
+WHERE ts.datefinal BETWEEN $P{start} AND $P{end}
+AND tsi.kindrefcode = 2
+AND f.tabnumber = $P{tabnumber}
+GROUP BY f.tabnumber, ts.code) AS data_by_travel_sheets
+GROUP BY data_by_travel_sheets.tabnumber, data_by_travel_sheets.data_date) AS data_on_date_by_travel_sheets
+
+FULL JOIN
+(
+	SELECT hu.tabnumber
+		, a.dateact AS data_date
+		, coalesce(sum(CASE WHEN NOT (a.acttyperefcode IN (3, 5, 19) AND el.typerefcode = 12)
+				THEN hu.timeworkfact
+			ELSE 0 END), 0) AS act_hours_technician
+		, coalesce(sum(CASE WHEN a.acttyperefcode IN (3, 5, 19) AND el.typerefcode = 12
+				THEN hu.timeworkfact
+			ELSE 0 END), 0) AS act_hours_repairer
+	FROM enact AS a
+		INNER JOIN enact2humen AS hu ON a.code = hu.actrefcode
+		INNER JOIN enelement AS el ON a.elementcode = el.code
+	WHERE
+		a.dateact BETWEEN $P{start} AND $P{end}
+		AND hu.humenkindrefcode = 1
+		AND hu.tabnumber = $P{tabnumber}
+		AND NOT EXISTS (
+			SELECT FROM enact2enplanwork AS acpw1
+				INNER JOIN entransportitem as ti1 ON acpw1.plancode = ti1.planrefcode
+				INNER JOIN entravlshttm2trnsprttm AS tvti1 ON ti1.code = tvti1.transportitemrefcode
+				INNER JOIN entravelsheetitem AS tv1 ON tvti1.travelsheetitemrefcode = tv1.code
+				INNER JOIN entravelsheet AS ts1 ON tv1.travelsheetrefcode = ts1.code
+				INNER JOIN finworker AS fw1 ON ts1.finworkercode = fw1.code
+				WHERE acpw1.actrefcode = a.code AND fw1.tabnumber = hu.tabnumber
+		)
+		GROUP BY hu.tabnumber, data_date) AS acts_data
+			ON (data_on_date_by_travel_sheets.data_date= acts_data.data_date)) ON finworker_info.tabnumber = coalesce(data_on_date_by_travel_sheets.tabnumber, acts_data.tabnumber)
+) AS data_on_dates
+GROUP BY tabnumber, name, position, departmentname]]>
+	</queryString>
+	<field name="tabnumber" class="java.lang.String">
+		<fieldDescription><![CDATA[Табельний номер водителя]]></fieldDescription>
+	</field>
+	<field name="name" class="java.lang.String">
+		<fieldDescription><![CDATA[ФИО водителя]]></fieldDescription>
+	</field>
+	<field name="position" class="java.lang.String">
+		<fieldDescription><![CDATA[Должность водителя]]></fieldDescription>
+	</field>
+	<field name="departmentname" class="java.lang.String">
+		<fieldDescription><![CDATA[Подразделение водителя]]></fieldDescription>
+	</field>
+	<field name="worked_time_in_month" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Месячная норма рабочего времени, ч.]]></fieldDescription>
+	</field>
+	<field name="distance_covered" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Пройденное расстояние, км]]></fieldDescription>
+	</field>
+	<field name="machinehours" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Отработанные машиночасы, ч.]]></fieldDescription>
+	</field>
+	<field name="hours_in_move" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Время за вождением автотранспорта, ч.]]></fieldDescription>
+	</field>
+	<field name="act_hours_technician" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Время работы электромонтером, ч.]]></fieldDescription>
+	</field>
+	<field name="act_hours_repairer" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Время работы в ремонте транспорта, ч.]]></fieldDescription>
+	</field>
+	<field name="hours_wait_on_object" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Время простоя на объекте]]></fieldDescription>
+	</field>
+	<field name="performance_time" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Время для расчета процента загрузки, %]]></fieldDescription>
+	</field>
+	<field name="performance_rate_percentage" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Процент загрузки, %]]></fieldDescription>
+	</field>
+	<variable name="worked_time_in_month" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{worked_time_in_month}]]></variableExpression>
+		<initialValueExpression><![CDATA[$F{worked_time_in_month}]]></initialValueExpression>
+	</variable>
+	<variable name="distance_covered" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{distance_covered}]]></variableExpression>
+		<initialValueExpression><![CDATA[$F{distance_covered}]]></initialValueExpression>
+	</variable>
+	<variable name="machinehours" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{machinehours}]]></variableExpression>
+		<initialValueExpression><![CDATA[$F{machinehours}]]></initialValueExpression>
+	</variable>
+	<variable name="hours_in_move" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{hours_in_move}]]></variableExpression>
+		<initialValueExpression><![CDATA[$F{hours_in_move}]]></initialValueExpression>
+	</variable>
+	<variable name="act_hours_technician" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{act_hours_technician}]]></variableExpression>
+		<initialValueExpression><![CDATA[$F{act_hours_technician}]]></initialValueExpression>
+	</variable>
+	<variable name="act_hours_repairer" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{act_hours_repairer}]]></variableExpression>
+		<initialValueExpression><![CDATA[$F{act_hours_repairer}]]></initialValueExpression>
+	</variable>
+	<variable name="hours_wait_on_object" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{hours_wait_on_object}]]></variableExpression>
+		<initialValueExpression><![CDATA[$F{hours_wait_on_object}]]></initialValueExpression>
+	</variable>
+	<variable name="performance_time" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{performance_time}]]></variableExpression>
+		<initialValueExpression><![CDATA[$F{performance_time}]]></initialValueExpression>
+	</variable>
+	<variable name="performance_rate_percentage" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{performance_rate_percentage}]]></variableExpression>
+		<initialValueExpression><![CDATA[$F{performance_rate_percentage}]]></initialValueExpression>
+	</variable>
+	<variable name="sum_distance_covered_by_transport" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_distance_covered_by_transport}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_machinehours_by_transport" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_machinehours_by_transport}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_performance_rate_percentage_by_transport" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_performance_rate_percentage_by_transport}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="sum_hours_in_move_by_transport" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_hours_in_move_by_transport}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<subreport>
+				<reportElement stretchType="RelativeToTallestObject" x="750" y="0" width="595" height="20"/>
+				<subreportParameter name="start">
+					<subreportParameterExpression><![CDATA[$P{start}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="tabnumber">
+					<subreportParameterExpression><![CDATA[$F{tabnumber}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="worked_time_in_month">
+					<subreportParameterExpression><![CDATA[$F{worked_time_in_month}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="end">
+					<subreportParameterExpression><![CDATA[$P{end}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<returnValue subreportVariable="distance_covered" toVariable="sum_distance_covered_by_transport" calculation="Sum"/>
+				<returnValue subreportVariable="hours_in_move" toVariable="sum_hours_in_move_by_transport" calculation="Sum"/>
+				<returnValue subreportVariable="machinehours" toVariable="sum_machinehours_by_transport" calculation="Sum"/>
+				<returnValue subreportVariable="performance_rate_percentage" toVariable="sum_performance_rate_percentage_by_transport" calculation="Sum"/>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/transport/ax_drivers_percent_load_sub_transport.jasper")]]></subreportExpression>
+			</subreport>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="80" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1715" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{performance_time}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1345" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{distance_covered}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1445" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{machinehours}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="680" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{worked_time_in_month}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="80" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{tabnumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="280" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{position}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="480" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{departmentname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1595" y="0" width="120" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{hours_wait_on_object}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1495" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{act_hours_repairer}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1395" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{hours_in_move}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1545" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{act_hours_technician}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1785" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{performance_rate_percentage}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1855" y="0" width="120" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{performance_rate_percentage}.doubleValue() > 60 ? "1" :
+  $F{performance_rate_percentage}.doubleValue() >40 && $F{performance_rate_percentage}.doubleValue() <= 60 ? "0,75" :
+  $F{performance_rate_percentage}.doubleValue() >30 && $F{performance_rate_percentage}.doubleValue() <= 40 ? "0,5" :
+  $F{performance_rate_percentage}.doubleValue() >20 && $F{performance_rate_percentage}.doubleValue() <= 30 ? "0,25" :
+  "0"]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

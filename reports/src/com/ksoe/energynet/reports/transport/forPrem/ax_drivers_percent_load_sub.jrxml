@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ax_drivers_percent_load_sub" pageWidth="1085" pageHeight="555" orientation="Landscape" whenNoDataType="NoDataSection" columnWidth="1085" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="235"/>
+	<property name="Print Order" value="Vertical"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="yearGen" class="java.lang.String"/>
+	<parameter name="monthGen" class="java.lang.String"/>
+	<parameter name="worked_time_in_month" class="java.math.BigDecimal"/>
+	<parameter name="finworker_tabnumber" class="java.lang.String"/>
+	<parameter name="fio" class="java.lang.String"/>
+	<parameter name="post_fin" class="java.lang.String"/>
+	<parameter name="norma_vrem_hours" class="java.math.BigDecimal"/>
+	<parameter name="sumhoursotpusk" class="java.math.BigDecimal"/>
+	<parameter name="AZT_FIXEDSALARY" class="java.math.BigDecimal"/>
+	<queryString>
+		<![CDATA[select sum(mh_putevie)::numeric(15,2) as mh_putevie ,
+       case when $P{norma_vrem_hours} > 0 then sum(summhTarr_putevie)/$P{norma_vrem_hours}::numeric(15,2) else 0 end as summhTarr_putevie  ,
+
+       sum(mh_plan_work)::numeric(15,2) as mh_plan_work  ,
+       case when $P{norma_vrem_hours} > 0 then sum(summhTarr_plan_work)/$P{norma_vrem_hours}::numeric(15,2) else 0 end as summhTarr_plan_work ,
+
+     case when $P{norma_vrem_hours} > 0 then  (sum(mh_putevie)::numeric(15,2) * (sum(summhTarr_putevie)/$P{norma_vrem_hours})::numeric(15,2) )  +
+       sum(mh_plan_work)::numeric(15,2) * (sum(summhTarr_plan_work)/$P{norma_vrem_hours})::numeric(15,2) else 0 end as sumPayNorm
+from
+(
+
+
+-- mh_putevie = отработанное время + время в пути (30- средн скорость )
+select sum(query3.mh)+ (sum(query3.km)/30) as mh_putevie,
+       case when sum(query3.mh) > 0 then (sum(query3.summhTarr ) / sum(query3.mh) ) else 0 end as summhTarr_putevie  ,
+
+       0 as mh_plan_work ,
+       0 as summhTarr_plan_work
+ from
+ (
+select second_query.name,
+       second_query.km,
+       second_query.mh,
+       second_query.percent_load,
+       (case when second_query.s1 <> 0 then
+                  case when second_query.s2 = 0
+                  then 0
+                  else case when second_query.s2 > 0 then ( second_query.s1 / second_query.s2 ) else 0 end
+                  end
+        else 0 end
+                    ) as norm_time,
+       second_query.fin_code_string
+       , salaryworkerplanned
+       , salaryworkerplanned*(mh + (second_query.km / 30 ) ) as summhTarr
+ from
+ (
+		select base_query.name, sum(base_query.km) as km,
+
+   -- mh =  чистое -- -- машино часы из путевого листа  (mh)
+   -- + если легковушка или грузовой трансп - по класификации  то сумируем еще -- отработанное время на объекте - среднее значение на одного человека (mh_brigade)
+		sum(case when base_query.classification in (5,7)
+		     then base_query.mh + base_query.mh_brigade
+		     else base_query.mh end) as mh,
+
+		     sum(case when norm_time > 0 then (base_query.km/30 +
+		    (case when base_query.classification in (5,7)
+		     then base_query.mh + base_query.mh_brigade
+		     else base_query.mh end )
+		     ) / norm_time  * 100  else 0 end ) as percent_load,
+
+		sum(base_query.km/30 +
+		    (case when base_query.classification in (5,7)
+		     then base_query.mh + base_query.mh_brigade
+		     else base_query.mh end )) as s1,
+
+		  sum( case when norm_time > 0 then (base_query.km/30 +
+		    (case when base_query.classification in (5,7)
+		     then base_query.mh + base_query.mh_brigade
+		     else base_query.mh end )
+		     ) / norm_time  else 0 end )   as s2,
+		     group_concat(distinct fin_code_string,',') as fin_code_string
+		     , salaryworkerplanned
+		      from
+		(
+			select   fin.name || ' (таб.№' || fin.tabnumber || ', ' || fin.positionname || ')'   as name,
+					    coalesce((case when coalesce(sum(ts.speedometerfinal-ts.speedometerstart),0) = 0
+					     then sum((select sum(entravelsheetitem.sumdistances)
+					   from entravelsheetitem
+					  where entravelsheetitem.travelsheetrefcode = ts.code
+					    and entravelsheetitem.kindrefcode = 2))
+					     else sum(ts.speedometerfinal-ts.speedometerstart) end),0)  as km,
+
+					COALESCE(sum((select sum(entravelsheetitem.summachinehours)
+					   from entravelsheetitem
+					  where entravelsheetitem.travelsheetrefcode = ts.code
+					    and entravelsheetitem.kindrefcode = 2)),0) as mh, -- машино часы из путевого листа
+
+					COALESCE(sum((select   case when count(hi.code) > 0 then  sum(pwi.timegen) / count(hi.code) else 0 end
+					from  entravelsheetitem tsi, enplanworkitem pwi, enhumenitem hi
+					where tsi.planrefcode = pwi.planrefcode
+					and tsi.kindrefcode = 2
+					and tsi.travelsheetrefcode = ts.code
+					and pwi.code = hi.planitemrefcode
+					and pwi.timegen > 0
+					and pwi.countgen > 0)),0) as mh_brigade, -- отработанное время на объекте - среднее значение на одного человека ()
+
+					 1 * tcl.koef as norm_time, tcl.code as classification,
+					  group_concat(distinct fin.code::varchar,',') as fin_code_string ,
+					-- нормативнй оклад
+					  coalesce(( select coalesce(posh.salaryworkerplanned,0) from tkpositionhistory posh
+					     where posh.positioncode = tr.positionrefcode
+					     and ts.datestart between posh.datefrom and coalesce(posh.dateto,'31.12.9999') ),0) as salaryworkerplanned
+					  , ts.datestart
+					from entravelsheet ts, finworker fin, tktransportreal tr, tktransport tk, tktransportclassifictn tcl
+					where  ts.datestart between to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy')
+					                       and last_day(to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy'))
+					and fin.tabnumber = $P{finworker_tabnumber}
+					and fin.code = ts.finworkercode
+					and ts.transportrealcode = tr.code
+					and tr.transportcode = tk.code
+					and tk.transportclassifictncd = tcl.code
+					group by fin.name, fin.tabnumber, fin.positionname, tcl.koef, tcl.code , tr.positionrefcode  , ts.datestart
+					order by fin.name
+		) as base_query
+		group by base_query.name  , salaryworkerplanned
+) as second_query
+) as query3
+
+union all
+
+select 0 as mh_putevie,
+       0 as summhTarr_putevie  ,
+
+       sum(query_plan_work.mh) as mh_plan_work ,
+       case when sum(query_plan_work.mh)>0 then  sum(query_plan_work.summhTarr ) / sum(query_plan_work.mh) else 0 end as summhTarr_plan_work
+from
+(
+  select sum(mh) as mh , salaryworkerplanned * sum(mh) as summhTarr
+  from
+  (
+  SELECT enhumenitem.planrefcode ,
+         enhumenitem.code as enhumenitemcode ,
+         enhumenitem.countfact as mh ,
+         finworker.name as fio_worker,
+         finworker.tabnumber  ,
+         -- нормативнй оклад
+         coalesce(( select coalesce(posh.salaryworkerplanned,0) from tkpositionhistory posh
+					     where posh.positioncode = enhumenitem.positiongencode
+					     and enplanwork.datestart between posh.datefrom and coalesce(posh.dateto,'31.12.9999') ),0) as salaryworkerplanned
+           from enhumenitem   , enplanworkitem , finworker , enplanwork
+                   Where  enhumenitem.planitemrefcode = enplanworkitem.code
+                     and  enplanworkitem.planrefcode = enplanwork.code
+                     and  coalesce(enhumenitem.countfact  , 0 ) <> 0
+                     and  enhumenitem.finworkercode = finworker.code
+                     and  enplanwork.datestart between to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy')
+					                               and last_day(to_date('01.' || $P{monthGen} || '.' || $P{yearGen},'dd.MM.yyyy'))
+                     and  enplanwork.statuscode NOT IN (2,6)
+                     and  enplanwork.kindcode = 4
+                     and  enplanworkitem.countgen <> 0
+                     and  enhumenitem.planrefcode = enplanwork.code
+                     and  finworker.tabnumber = $P{finworker_tabnumber}
+     ) as sel_pl1
+     group by salaryworkerplanned
+) as query_plan_work
+
+) as query_all]]>
+	</queryString>
+	<field name="mh_putevie" class="java.math.BigDecimal"/>
+	<field name="summhTarr_putevie" class="java.math.BigDecimal"/>
+	<field name="mh_plan_work" class="java.math.BigDecimal"/>
+	<field name="summhTarr_plan_work" class="java.math.BigDecimal"/>
+	<field name="sumPayNorm" class="java.math.BigDecimal"/>
+	<variable name="percent" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$P{AZT_FIXEDSALARY}.doubleValue() > 0 ?
+(($F{sumPayNorm}.subtract($P{AZT_FIXEDSALARY}).setScale(2, BigDecimal.ROUND_HALF_UP)).divide($P{AZT_FIXEDSALARY} , 2) )
+.multiply(new BigDecimal(100)).setScale(2,java.math.BigDecimal.ROUND_HALF_UP)
+: new BigDecimal(0)]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="300" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$P{fio} + " " + $P{finworker_tabnumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="300" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$P{norma_vrem_hours}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="370" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$P{AZT_FIXEDSALARY}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="440" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{mh_plan_work}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="510" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{summhTarr_plan_work}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="580" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{mh_putevie}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="650" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{summhTarr_putevie}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="720" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{sumPayNorm}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="790" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$V{percent}.doubleValue() < 0 ? 0 :
+$V{percent}.doubleValue() > 50 ? new BigDecimal(50)
+: $V{percent}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

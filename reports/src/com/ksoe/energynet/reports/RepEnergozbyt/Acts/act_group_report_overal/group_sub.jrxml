@@ -1,0 +1,918 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="group_sub" pageWidth="2580" pageHeight="802" orientation="Landscape" columnWidth="2580" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="0.683013455365072"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="dateStart" class="java.lang.String"/>
+	<parameter name="dateEnd" class="java.lang.String"/>
+	<parameter name="includeByt" class="java.lang.String">
+		<defaultValueExpression><![CDATA["1"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="includeProm" class="java.lang.String">
+		<defaultValueExpression><![CDATA["1"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select
+source,
+case when source=0 then 'Побутовий сектор'
+	 when source=1 then 'Юридичний сектор' else '' end as sourcename,
+case when source=0 then
+      (select count(distinct a.code) from workorderentryraid we, blanc a
+      where we.resultcode is not null
+      and we.actrefcode = a.code
+      and we.dategen between to_date($P{dateStart},'dd.MM.yyyy')
+                         and to_date($P{dateEnd},'dd.MM.yyyy')
+      and coalesce(we.isprom,0)=0)
+when source=1 then
+      (select count(distinct a.code) from workorderentryraid we, epblank a
+      where we.resultcode is not null
+      and we.actrefcode = a.code
+      and we.dategen between to_date($P{dateStart},'dd.MM.yyyy')
+                         and to_date($P{dateEnd},'dd.MM.yyyy')
+      and coalesce(we.isprom,0)=1)
+     end as raidact_cnt,
+case when source=0 then
+       (select  coalesce(sum(p.value),0)
+       from  paymentdocument pd
+       inner join payment p on p.pymntdcmntrfcode=pd.code
+       inner join bill b on b.code=p.billrefcode
+       inner join act a on a.code=b.actcode
+       where  pd.paymenttypecode in (1,14)
+       and pd.statuscode <>1
+       and pd.typecode not in (5,3,7)
+       and pd.paydate between to_date($P{dateStart},'dd.MM.yyyy')
+          	            and to_date($P{dateEnd},'dd.MM.yyyy')
+       and (a.dategen between to_date($P{dateStart},'dd.MM.yyyy')
+          	            and to_date($P{dateEnd},'dd.MM.yyyy')))
+when source=1 then
+      (select coalesce(sum(p.sumgen),0)+coalesce(sum(p.vat),0)
+      from epcustomercredit c
+      inner join eppaymentdocumnt pd on pd.code=c.documentrefcode
+      inner join epcustomerpass p on p.creditrefcode=c.code
+      inner join epcustomerdebt d on d.code=p.debtrefcode
+      inner join epactdebt ad on ad.debtrefcode=d.code
+      inner join epact a on a.code=ad.actrefcode
+      where
+      c.statuscode<>2 and p.statuscode<>1
+      and pd.paiddate between to_date($P{dateStart},'dd.MM.yyyy')
+          	            and to_date($P{dateEnd},'dd.MM.yyyy')
+      and (a.datemake between to_date($P{dateStart},'dd.MM.yyyy')
+          	            and to_date($P{dateEnd},'dd.MM.yyyy')))
+     end as pay_curr_sum,
+case when source=0 then
+       (select  coalesce(sum(p.value),0)
+       from  paymentdocument pd,payment p
+       where  pd.paymenttypecode in (1,14)
+       and pd.statuscode <>1
+       and pd.typecode not in (5,3,7)
+       and pd.code=p.pymntdcmntrfcode
+       and pd.paydate between to_date($P{dateStart},'dd.MM.yyyy')
+          	            and to_date($P{dateEnd},'dd.MM.yyyy'))
+       -
+       (select  coalesce(sum(p.value),0)
+       from  paymentdocument pd
+       inner join payment p on p.pymntdcmntrfcode=pd.code
+       inner join bill b on b.code=p.billrefcode
+       inner join act a on a.code=b.actcode
+       where  pd.paymenttypecode in (1,14)
+       and pd.statuscode <>1
+       and pd.typecode not in (5,3,7)
+       and pd.paydate between to_date($P{dateStart},'dd.MM.yyyy')
+          	            and to_date($P{dateEnd},'dd.MM.yyyy')
+       and a.dategen between to_date($P{dateStart},'dd.MM.yyyy')
+          	            and to_date($P{dateEnd},'dd.MM.yyyy'))
+       -
+       (select  coalesce(sum(p.value),0)
+       from  paymentdocument pd
+       inner join payment p on p.pymntdcmntrfcode=pd.code
+       inner join bill b on b.code=p.billrefcode
+       inner join act a on a.code=b.actcode
+       where  pd.paymenttypecode in (1,14)
+       and pd.statuscode <>1
+       and pd.typecode not in (5,3,7)
+       and pd.paydate between to_date($P{dateStart},'dd.MM.yyyy')
+          	            and to_date($P{dateEnd},'dd.MM.yyyy')
+       and a.dategen > to_date($P{dateEnd},'dd.MM.yyyy'))
+when source=1 then
+      (select coalesce(sum(p.sumgen),0)+coalesce(sum(p.vat),0)
+      from epcustomercredit c
+      inner join eppaymentdocumnt pd on pd.code=c.documentrefcode
+      inner join epcustomerpass p on p.creditrefcode=c.code
+      inner join epcustomerdebt d on d.code=p.debtrefcode
+      inner join epactdebt ad on ad.debtrefcode=d.code
+      where
+      c.statuscode<>2 and p.statuscode<>1
+      and pd.paiddate between to_date($P{dateStart},'dd.MM.yyyy')
+          	            and to_date($P{dateEnd},'dd.MM.yyyy'))
+      -
+      (select coalesce(sum(p.sumgen),0)+coalesce(sum(p.vat),0)
+      from epcustomercredit c
+      inner join eppaymentdocumnt pd on pd.code=c.documentrefcode
+      inner join epcustomerpass p on p.creditrefcode=c.code
+      inner join epcustomerdebt d on d.code=p.debtrefcode
+      inner join epactdebt ad on ad.debtrefcode=d.code
+      inner join epact a on a.code=ad.actrefcode
+      where
+      c.statuscode<>2 and p.statuscode<>1
+      and pd.paiddate between to_date($P{dateStart},'dd.MM.yyyy')
+          	            and to_date($P{dateEnd},'dd.MM.yyyy')
+      and a.datemake between to_date($P{dateStart},'dd.MM.yyyy')
+          	            and to_date($P{dateEnd},'dd.MM.yyyy'))
+      -
+      (select coalesce(sum(p.sumgen),0)+coalesce(sum(p.vat),0)
+      from epcustomercredit c
+      inner join eppaymentdocumnt pd on pd.code=c.documentrefcode
+      inner join epcustomerpass p on p.creditrefcode=c.code
+      inner join epcustomerdebt d on d.code=p.debtrefcode
+      inner join epactdebt ad on ad.debtrefcode=d.code
+      inner join epact a on a.code=ad.actrefcode
+      where
+      c.statuscode<>2 and p.statuscode<>1
+      and pd.paiddate between to_date($P{dateStart},'dd.MM.yyyy')
+          	            and to_date($P{dateEnd},'dd.MM.yyyy')
+      and a.datemake > to_date($P{dateEnd},'dd.MM.yyyy'))
+     end as pay_prev_sum,
+(select name from epren) as renname,
+sum(coalesce(newact,0)) as  newact, sum(coalesce(newact_sum,0)) as newact_sum,
+sum(coalesce(given,0)) as given, sum(coalesce(given_sum,0)) as given_sum,
+sum(coalesce(annul,0)) as annul,sum(coalesce(annul_sum,0)) as annul_sum,
+sum(coalesce(sendmail,0)) as sendmail, sum(coalesce(sendmail_sum,0)) as sendmail_sum,
+sum(coalesce(sendexp,0)) as sendexp,sum(coalesce(sendexp_sum,0)) as sendexp_sum ,
+sum(coalesce(sendexpd,0)) as sendexpd,sum(coalesce(sendexpd_sum,0)) as sendexpd_sum ,
+sum(coalesce(isk,0)) as isk, sum(coalesce(isk_sum,0)) as isk_sum,
+sum(coalesce(agreebypay,0)) as agreebypay,sum(coalesce(agreebypay_sum,0)) as agreebypay_sum,
+sum(coalesce(agreebygpz,0)) as agreebygpz, sum(coalesce(agreebygpz_sum,0)) as agreebygpz_sum,
+sum(coalesce(agreebyterm,0)) as agreebyterm, sum(coalesce(agreebyterm_sum,0)) as agreebyterm_sum,
+sum(coalesce(agreebycourt,0)) as agreebycourt, sum(coalesce(agreebycourt_sum,0)) as agreebycourt_sum,
+sum(coalesce(annulbycourt,0)) as annulbycourt,sum(coalesce(annulbycourt_sum,0)) as annulbycourt_sum,
+sum(coalesce(agreebybuh,0)) as agreebybuh, sum(coalesce(agreebybuh_sum,0)) as agreebybuh_sum,
+
+case when source=0 then
+      (select count(distinct a.code) from act a
+      where a.dategen between to_date($P{dateStart},'dd.MM.yyyy')
+                         and to_date($P{dateEnd},'dd.MM.yyyy')
+       )
+when source=1 then
+      (select count(distinct a.code) from epact a
+      where a.datemake between to_date($P{dateStart},'dd.MM.yyyy')
+                         and to_date($P{dateEnd},'dd.MM.yyyy')
+      and not exists
+          (select * from epact aa where
+          aa.numbergen=a.numbergen
+          and aa.datemake=a.datemake
+          and aa.code>a.code))
+end as act_created_cnt,
+
+case when source=0 then
+(select
+sum(case when (select count(ca.code) from commission2act ca where ca.actcode=a.CODE) >0 then 1 else 0 end) as recalculated_comm
+ from  act a
+where a.dategen between to_date($P{dateStart} ,'dd.MM.yyyy') and to_date($P{dateEnd} ,'dd.MM.yyyy') )
+when source=1 then
+( select
+ sum(case when (select count(c.code) from epcomissioninvitation ci, epcommission c
+        where ci.commissioncode=c.code and ci.actcode = a.code) >0 then 1 else 0 end) as recalculated_comm
+ from  epact a
+where  a.datemake between to_date($P{dateStart} ,'dd.MM.yyyy') and to_date($P{dateEnd} ,'dd.MM.yyyy')
+and not exists
+	(select * from epact aa where
+	aa.numbergen=a.numbergen
+	and aa.datemake=a.datemake
+	and aa.code>a.code)) end
+as recalculated_comm,
+
+case when source=0 then
+ ( select
+sum(case when (select count(ca.code) from commission2act ca where ca.actcode=a.CODE)>0 then
+case when a.DATEGEN<'01.04.2016' then a.CALCVALUE else
+      (case when (select count(ca.code) from commission2act ca where ca.actcode=a.CODE)>0 then a.CALCVALUE  else 0 end) end
+       -
+     coalesce( (select ah.calcvalue from acthistory ah where ah.code=(select min(ahi.code) from acthistory ahi where ahi.actrefcode=a.CODE)),a.calcvalue)
+      else 0 end) as recalculated_diff
+ from  act a
+where  a.dategen between to_date($P{dateStart} ,'dd.MM.yyyy') and to_date($P{dateEnd} ,'dd.MM.yyyy') )
+when source=1 then
+(select sum(
+        case when (select count(c.code) from epcomissioninvitation ci, epcommission c
+        where ci.commissioncode=c.code and ci.actcode = a.code) >0 then
+         a.sumgen - coalesce(a.sumfirst,a.sumgen) else 0 end) as recalculated_diff
+
+ from  epact a
+where  a.datemake between to_date($P{dateStart} ,'dd.MM.yyyy') and to_date($P{dateEnd} ,'dd.MM.yyyy')
+and not exists
+	(select * from epact aa where
+	aa.numbergen=a.numbergen
+	and aa.datemake=a.datemake
+	and aa.code>a.code))
+end
+as recalculated_diff
+
+
+from (
+
+
+select distinct 0 as source, cast(a.blanknumber as varchar),
+
+       case when ash.actreportcolumncode in (12, 4) then 1 end as newact,
+       case when ash.actreportcolumncode in (12, 4) then (select sum (b.topayaftercrrctn) from  bill b
+       where b.invstatuscode<>2
+       and b.billtypecode=2
+       and b.actcode is not null
+       and b.actcode = ash.actrefcode) end as  newact_sum,
+
+       case ash.actreportcolumncode when 0 then 1 end as given,
+       case ash.actreportcolumncode when 0 then (select sum (b.topayaftercrrctn) from  bill b
+       where b.invstatuscode<>2
+       and b.billtypecode=2
+       and b.actcode is not null
+       and b.actcode = ash.actrefcode) end as  given_sum,
+
+       case ash.actreportcolumncode when 1 then 1 end as annul,
+       case ash.actreportcolumncode when 1 then (select sum (b.topayaftercrrctn) from  bill b
+       where b.invstatuscode<>2
+       and b.billtypecode=2
+       and b.actcode is not null
+       and b.actcode = ash.actrefcode) end as  annul_sum,
+
+       case ash.actreportcolumncode when 2 then 1 end as sendmail,
+       case ash.actreportcolumncode when 2 then (select sum (b.topayaftercrrctn) from  bill b
+       where b.invstatuscode<>2
+       and b.billtypecode=2
+       and b.actcode is not null
+       and b.actcode = ash.actrefcode) end as  sendmail_sum,
+
+       case ash.actreportcolumncode when 3 then 1 end as sendexp,
+       case ash.actreportcolumncode when 3 then (select sum (b.topayaftercrrctn) from  bill b
+       where b.invstatuscode<>2
+       and b.billtypecode=2
+       and b.actcode is not null
+       and b.actcode = ash.actrefcode) end as  sendexp_sum,
+
+
+       case ash.actreportcolumncode when 14 then 1 end as sendexpd,
+       case ash.actreportcolumncode when 14 then (select sum (b.topayaftercrrctn) from  bill b
+       where b.invstatuscode<>2
+       and b.billtypecode=2
+       and b.actcode is not null
+       and b.actcode = ash.actrefcode) end as  sendexpd_sum,
+
+
+	   case when ash.actreportcolumncode in (5, 6) then 1 end as isk,
+       case when ash.actreportcolumncode in (5, 6) then (select sum (b.topayaftercrrctn) from  bill b
+       where b.invstatuscode<>2
+       and b.billtypecode=2
+       and b.actcode is not null
+       and b.actcode = ash.actrefcode) end as  isk_sum,
+
+	   case ash.actreportcolumncode when 7 then 1 end as agreebypay,
+       case ash.actreportcolumncode when 7 then (select sum (b.topayaftercrrctn) from  bill b
+       where b.invstatuscode<>2
+       and b.billtypecode=2
+       and b.actcode is not null
+       and b.actcode = ash.actrefcode) end as  agreebypay_sum,
+
+	   case ash.actreportcolumncode when 8 then 1 end as agreebygpz,
+       case ash.actreportcolumncode when 8 then (select sum (b.topayaftercrrctn) from  bill b
+       where b.invstatuscode<>2
+       and b.billtypecode=2
+       and b.actcode is not null
+       and b.actcode = ash.actrefcode) end as  agreebygpz_sum,
+
+	   case ash.actreportcolumncode when 9 then 1 end as agreebyterm,
+       case ash.actreportcolumncode when 9 then (select sum (b.topayaftercrrctn) from  bill b
+       where b.invstatuscode<>2
+       and b.billtypecode=2
+       and b.actcode is not null
+       and b.actcode = ash.actrefcode) end as  agreebyterm_sum,
+
+	   case ash.actreportcolumncode when 10 then 1 end as agreebycourt,
+       case ash.actreportcolumncode when 10 then (select sum (b.topayaftercrrctn) from  bill b
+       where b.invstatuscode<>2
+       and b.billtypecode=2
+       and b.actcode is not null
+       and b.actcode = ash.actrefcode) end as  agreebycourt_sum,
+
+	   case ash.actreportcolumncode when 11 then 1 end as annulbycourt,
+       case ash.actreportcolumncode when 11 then (select sum (b.topayaftercrrctn) from  bill b
+       where b.invstatuscode<>2
+       and b.billtypecode=2
+       and b.actcode is not null
+       and b.actcode = ash.actrefcode) end as  annulbycourt_sum,
+
+	   case ash.actreportcolumncode when 13 then 1 end as agreebybuh,
+       case ash.actreportcolumncode when 13 then (select sum (b.topayaftercrrctn) from  bill b
+       where b.invstatuscode<>2
+       and b.billtypecode=2
+       and b.actcode is not null
+       and b.actcode = ash.actrefcode) end as  agreebybuh_sum
+
+ from actstatushistory ash, act a
+where $P{includeByt}='1'
+and ash.actrefcode = a.code
+and (ash.datefrom between to_date($P{dateStart} ,'dd.MM.yyyy') and to_date($P{dateEnd} ,'dd.MM.yyyy')
+or coalesce(ash.datetill,CURRENT_DATE) between to_date($P{dateStart} ,'dd.MM.yyyy') and to_date($P{dateEnd} ,'dd.MM.yyyy')
+)
+
+union all
+
+select distinct 1 as source, a.numbergen,
+
+       case when ash.actreportcolumncode in (12, 4) then 1 end as newact,
+       case when ash.actreportcolumncode in (12, 4) then (SELECT sum(coalesce(ae.sumgen,0)+coalesce(ae.vat,0))
+		FROM epactentry ae, epact a
+		where a.code = ae.actrefcode
+		and a.statuscode in (1,2)
+		and a.code = ash.actrefcode) end as  newact_sum,
+
+       case ash.actreportcolumncode when 0 then 1 end as given,
+       case ash.actreportcolumncode when 0 then (SELECT sum(coalesce(ae.sumgen,0)+coalesce(ae.vat,0))
+		FROM epactentry ae, epact a
+		where a.code = ae.actrefcode
+		and a.statuscode in (1,2)
+		and a.code = ash.actrefcode) end as  given_sum,
+
+       case ash.actreportcolumncode when 1 then 1 end as annul,
+       case ash.actreportcolumncode when 1 then (SELECT sum(coalesce(ae.sumgen,0)+coalesce(ae.vat,0))
+		FROM epactentry ae, epact a
+		where a.code = ae.actrefcode
+		and a.statuscode in (1,2)
+		and a.code = ash.actrefcode) end as  annul_sum,
+
+       case ash.actreportcolumncode when 2 then 1 end as sendmail,
+       case ash.actreportcolumncode when 2 then (SELECT sum(coalesce(ae.sumgen,0)+coalesce(ae.vat,0))
+		FROM epactentry ae, epact a
+		where a.code = ae.actrefcode
+		and a.statuscode in (1,2)
+		and a.code = ash.actrefcode) end as  sendmail_sum,
+
+       case ash.actreportcolumncode when 3 then 1 end as sendexp,
+       case ash.actreportcolumncode when 3 then (SELECT sum(coalesce(ae.sumgen,0)+coalesce(ae.vat,0))
+		FROM epactentry ae, epact a
+		where a.code = ae.actrefcode
+		and a.statuscode in (1,2)
+		and a.code = ash.actrefcode) end as  sendexp_sum,
+
+
+       case ash.actreportcolumncode when 14 then 1 end as sendexpd,
+       case ash.actreportcolumncode when 14 then (SELECT sum(coalesce(ae.sumgen,0)+coalesce(ae.vat,0))
+		FROM epactentry ae, epact a
+		where a.code = ae.actrefcode
+		and a.statuscode in (1,2)
+		and a.code = ash.actrefcode) end as  sendexpd_sum,
+
+
+	   case when ash.actreportcolumncode in (5, 6) then 1 end as isk,
+       case when ash.actreportcolumncode in (5, 6) then (SELECT sum(coalesce(ae.sumgen,0)+coalesce(ae.vat,0))
+		FROM epactentry ae, epact a
+		where a.code = ae.actrefcode
+		and a.statuscode in (1,2)
+		and a.code = ash.actrefcode) end as  isk_sum,
+
+	   case ash.actreportcolumncode when 7 then 1 end as agreebypay,
+       case ash.actreportcolumncode when 7 then (SELECT sum(coalesce(ae.sumgen,0)+coalesce(ae.vat,0))
+		FROM epactentry ae, epact a
+		where a.code = ae.actrefcode
+		and a.statuscode in (1,2)
+		and a.code = ash.actrefcode) end as  agreebypay_sum,
+
+	   case ash.actreportcolumncode when 8 then 1 end as agreebygpz,
+       case ash.actreportcolumncode when 8 then (SELECT sum(coalesce(ae.sumgen,0)+coalesce(ae.vat,0))
+		FROM epactentry ae, epact a
+		where a.code = ae.actrefcode
+		and a.statuscode in (1,2)
+		and a.code = ash.actrefcode) end as  agreebygpz_sum,
+
+	   case ash.actreportcolumncode when 9 then 1 end as agreebyterm,
+       case ash.actreportcolumncode when 9 then (SELECT sum(coalesce(ae.sumgen,0)+coalesce(ae.vat,0))
+		FROM epactentry ae, epact a
+		where a.code = ae.actrefcode
+		and a.statuscode in (1,2)
+		and a.code = ash.actrefcode) end as  agreebyterm_sum,
+
+	   case ash.actreportcolumncode when 10 then 1 end as agreebycourt,
+       case ash.actreportcolumncode when 10 then (SELECT sum(coalesce(ae.sumgen,0)+coalesce(ae.vat,0))
+		FROM epactentry ae, epact a
+		where a.code = ae.actrefcode
+		and a.statuscode in (1,2)
+		and a.code = ash.actrefcode) end as  agreebycourt_sum,
+
+	   case ash.actreportcolumncode when 11 then 1 end as annulbycourt,
+       case ash.actreportcolumncode when 11 then (SELECT sum(coalesce(ae.sumgen,0)+coalesce(ae.vat,0))
+		FROM epactentry ae, epact a
+		where a.code = ae.actrefcode
+		and a.statuscode in (1,2)
+		and a.code = ash.actrefcode) end as  annulbycourt_sum,
+
+	   case ash.actreportcolumncode when 13 then 1 end as agreebybuh,
+       case ash.actreportcolumncode when 13 then (SELECT sum(coalesce(ae.sumgen,0)+coalesce(ae.vat,0))
+		FROM epactentry ae, epact a
+		where a.code = ae.actrefcode
+		and a.statuscode in (1,2)
+		and a.code = ash.actrefcode) end as  agreebybuh_sum
+
+ from epactstatushistory ash, epact a
+where $P{includeProm}='1'
+and ash.actrefcode = a.code
+and (ash.datefrom between to_date($P{dateStart} ,'dd.MM.yyyy') and to_date($P{dateEnd} ,'dd.MM.yyyy')
+or coalesce(ash.datetill,CURRENT_DATE) between to_date($P{dateStart} ,'dd.MM.yyyy') and to_date($P{dateEnd} ,'dd.MM.yyyy')
+)
+
+and not exists
+	(select * from epact aa where
+	aa.numbergen=a.numbergen
+	and aa.datemake=a.datemake
+	and aa.code>a.code)
+
+) dat
+group by source
+order by source]]>
+	</queryString>
+	<field name="source" class="java.lang.Integer"/>
+	<field name="sourcename" class="java.lang.String"/>
+	<field name="raidact_cnt" class="java.lang.Long"/>
+	<field name="pay_curr_sum" class="java.math.BigDecimal"/>
+	<field name="pay_prev_sum" class="java.math.BigDecimal"/>
+	<field name="renname" class="java.lang.String"/>
+	<field name="newact" class="java.lang.Long"/>
+	<field name="newact_sum" class="java.math.BigDecimal"/>
+	<field name="given" class="java.lang.Long"/>
+	<field name="given_sum" class="java.math.BigDecimal"/>
+	<field name="annul" class="java.lang.Long"/>
+	<field name="annul_sum" class="java.math.BigDecimal"/>
+	<field name="sendmail" class="java.lang.Long"/>
+	<field name="sendmail_sum" class="java.math.BigDecimal"/>
+	<field name="sendexp" class="java.lang.Long"/>
+	<field name="sendexp_sum" class="java.math.BigDecimal"/>
+	<field name="isk" class="java.lang.Long"/>
+	<field name="isk_sum" class="java.math.BigDecimal"/>
+	<field name="agreebypay" class="java.lang.Long"/>
+	<field name="agreebypay_sum" class="java.math.BigDecimal"/>
+	<field name="agreebygpz" class="java.lang.Long"/>
+	<field name="agreebygpz_sum" class="java.math.BigDecimal"/>
+	<field name="agreebyterm" class="java.lang.Long"/>
+	<field name="agreebyterm_sum" class="java.math.BigDecimal"/>
+	<field name="agreebycourt" class="java.lang.Long"/>
+	<field name="agreebycourt_sum" class="java.math.BigDecimal"/>
+	<field name="annulbycourt" class="java.lang.Long"/>
+	<field name="annulbycourt_sum" class="java.math.BigDecimal"/>
+	<field name="agreebybuh" class="java.lang.Long"/>
+	<field name="agreebybuh_sum" class="java.math.BigDecimal"/>
+	<field name="act_created_cnt" class="java.lang.Long"/>
+	<field name="sendexpd" class="java.lang.Long"/>
+	<field name="sendexpd_sum" class="java.math.BigDecimal"/>
+	<field name="recalculated_comm" class="java.lang.Long"/>
+	<field name="recalculated_diff" class="java.math.BigDecimal"/>
+	<variable name="raidact_cnt" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{raidact_cnt}]]></variableExpression>
+	</variable>
+	<variable name="newact" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{newact}]]></variableExpression>
+	</variable>
+	<variable name="newact_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{newact_sum}]]></variableExpression>
+	</variable>
+	<variable name="given" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{given}]]></variableExpression>
+	</variable>
+	<variable name="given_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{given_sum}]]></variableExpression>
+	</variable>
+	<variable name="annul" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{annul}]]></variableExpression>
+	</variable>
+	<variable name="annul_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{annul_sum}]]></variableExpression>
+	</variable>
+	<variable name="sendmail" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{sendmail}]]></variableExpression>
+	</variable>
+	<variable name="sendmail_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{sendmail_sum}]]></variableExpression>
+	</variable>
+	<variable name="sendexp" class="java.lang.Long" resetType="Column" calculation="Sum">
+		<variableExpression><![CDATA[$F{sendexp}]]></variableExpression>
+	</variable>
+	<variable name="sendexp_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{sendexp_sum}]]></variableExpression>
+	</variable>
+	<variable name="isk" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{isk}]]></variableExpression>
+	</variable>
+	<variable name="isk_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{isk_sum}]]></variableExpression>
+	</variable>
+	<variable name="agreebypay" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{agreebypay}]]></variableExpression>
+	</variable>
+	<variable name="agreebypay_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{agreebypay_sum}]]></variableExpression>
+	</variable>
+	<variable name="agreebygpz" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{agreebygpz}]]></variableExpression>
+	</variable>
+	<variable name="agreebygpz_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{agreebygpz_sum}]]></variableExpression>
+	</variable>
+	<variable name="agreebyterm" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{agreebyterm}]]></variableExpression>
+	</variable>
+	<variable name="agreebyterm_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{agreebyterm_sum}]]></variableExpression>
+	</variable>
+	<variable name="agreebycourt" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{agreebycourt}]]></variableExpression>
+	</variable>
+	<variable name="agreebycourt_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{agreebycourt_sum}]]></variableExpression>
+	</variable>
+	<variable name="annulbycourt" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{annulbycourt}]]></variableExpression>
+	</variable>
+	<variable name="annulbycourt_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{annulbycourt_sum}]]></variableExpression>
+	</variable>
+	<variable name="renname" class="java.lang.String">
+		<variableExpression><![CDATA[$F{renname}]]></variableExpression>
+	</variable>
+	<variable name="act_created_cnt" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{act_created_cnt}]]></variableExpression>
+	</variable>
+	<variable name="agreebybuh" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{agreebybuh}]]></variableExpression>
+	</variable>
+	<variable name="agreebybuh_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{agreebybuh_sum}]]></variableExpression>
+	</variable>
+	<variable name="pay_curr_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{pay_curr_sum}]]></variableExpression>
+	</variable>
+	<variable name="pay_prev_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{pay_prev_sum}]]></variableExpression>
+	</variable>
+	<variable name="sendexpd" class="java.lang.Long" resetType="Column" calculation="Sum">
+		<variableExpression><![CDATA[$F{sendexpd}]]></variableExpression>
+	</variable>
+	<variable name="sendexpd_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{sendexpd_sum}]]></variableExpression>
+	</variable>
+	<variable name="recalculated_comm" class="java.lang.Long" resetType="Column" calculation="Sum">
+		<variableExpression><![CDATA[$F{recalculated_comm}]]></variableExpression>
+	</variable>
+	<variable name="recalculated_diff" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{recalculated_diff}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isBlankWhenNull="true">
+				<reportElement x="170" y="0" width="124" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{sourcename}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="294" y="0" width="108" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{act_created_cnt}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="402" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{newact}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="463" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{newact_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="524" y="0" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{given}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="647" y="0" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{sendmail}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="970" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{annul}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1031" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{annul_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1153" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{sendexp_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1092" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{sendexp}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1371" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{isk_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1310" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{isk}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1615" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{agreebypay_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1676" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{agreebygpz}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1737" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{agreebygpz_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1554" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{agreebypay}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1859" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{agreebyterm_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1920" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{agreebycourt}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1981" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{agreebycourt_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1798" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{agreebyterm}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="2042" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{annulbycourt}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="584" y="0" width="63" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{given_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="707" y="0" width="63" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{sendmail_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="2103" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{annulbycourt_sum}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="0" width="124" height="20"/>
+				<box>
+					<leftPen lineWidth="1.0"/>
+				</box>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement mode="Opaque" x="0" y="0" width="170" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{renname}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="2164" y="0" width="108" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{raidact_cnt}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="2272" y="0" width="108" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{pay_curr_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1432" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{agreebybuh}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1493" y="0" width="61" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{agreebybuh_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="2380" y="0" width="108" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{pay_prev_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1254" y="0" width="56" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{sendexpd_sum}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="1214" y="0" width="40" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{sendexpd}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="770" y="0" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{recalculated_comm}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="830" y="0" width="140" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{recalculated_diff}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

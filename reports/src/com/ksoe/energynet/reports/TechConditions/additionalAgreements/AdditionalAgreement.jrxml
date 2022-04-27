@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="AdditionalAgreement" pageWidth="595" pageHeight="842" whenNoDataType="NoDataSection" columnWidth="535" leftMargin="40" rightMargin="20" topMargin="20" bottomMargin="20" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet">
+	<property name="ireport.zoom" value="1.2396694214876032"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="139"/>
+	<property name="ireport.callouts" value="##Fri Apr 20 13:55:01 EEST 2018"/>
+	<parameter name="servicesObjectCode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[-1]]></defaultValueExpression>
+	</parameter>
+	<parameter name="agreementType" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Тип дополнительного соглашения, который может принимать следующие значения:
+
+1 - продления через нагрузку (укр.  подовження через навантаження);
+2 - продление через погодные условия (укр. подовження через стихійні явища);
+3- продление через изменения в проектно-сметную документацию по инициативе заказчика (укр. подовження через зміни до проєктно-кошторисну документацію за ініціативою замовника).
+
+Исходя из этого типа меняется пункт 1 дополнительного соглашения (переменная reason).]]></parameterDescription>
+	</parameter>
+	<queryString>
+		<![CDATA[select so.contractnumber
+, so.contractdate
+, so.contractnumberservices
+, so.contractdateservices
+, wa.genitivefio
+, wa.genitiveposition
+, (select distinct ep1.rencity
+from
+endepartment as de1
+inner join endepartment2epren as deep1 on de1.code = deep1.departmentrefcode
+inner join epren as ep1 on deep1.renrefcode = ep1.code
+where de1.code = so.departmentcode
+)
+, bd.bankaccount
+, so.departmentcode
+, bd.bankname
+, bd.bankmfo
+, bd.bankokpo
+, co.contragentname
+, co.contragentaddress
+, co.contragentpassport
+, co.contragentokpo
+, wa.numbergen as warrant_numbergen
+, wa.datestart as warrant_dategen
+, wa.warrantposition
+, wa.warrantshortfio
+from enservicesobject as so
+inner join enservicesobject2techcondtnsservices as so2tc on so.code = so2tc.servicesobjectrefcode
+inner join entechconditionsservcs as tc on so2tc.techcondservrefcode = tc.code
+inner join encontragent as co on co.techcondservicesrefcod = tc.code
+left join enwarrant as wa on so.warrantrefcode = wa.code
+left join enbankingdetails as bd on so.departmentcode = bd.departmentrefcode
+where so.code = $P{servicesObjectCode}]]>
+	</queryString>
+	<field name="contractnumber" class="java.lang.String"/>
+	<field name="contractdate" class="java.sql.Date"/>
+	<field name="contractnumberservices" class="java.lang.String"/>
+	<field name="contractdateservices" class="java.sql.Date"/>
+	<field name="genitivefio" class="java.lang.String"/>
+	<field name="genitiveposition" class="java.lang.String"/>
+	<field name="rencity" class="java.lang.String"/>
+	<field name="bankaccount" class="java.lang.String"/>
+	<field name="bankname" class="java.lang.String"/>
+	<field name="bankmfo" class="java.lang.Double"/>
+	<field name="bankokpo" class="java.lang.String"/>
+	<field name="contragentname" class="java.lang.String"/>
+	<field name="contragentaddress" class="java.lang.String"/>
+	<field name="contragentpassport" class="java.lang.String"/>
+	<field name="contragentokpo" class="java.lang.String"/>
+	<field name="warrant_numbergen" class="java.lang.String"/>
+	<field name="warrant_dategen" class="java.sql.Date"/>
+	<field name="warrantposition" class="java.lang.String"/>
+	<field name="warrantshortfio" class="java.lang.String"/>
+	<field name="departmentcode" class="java.lang.Integer"/>
+	<variable name="dateFormat" class="java.text.SimpleDateFormat">
+		<variableExpression><![CDATA[]]></variableExpression>
+		<initialValueExpression><![CDATA[new SimpleDateFormat("dd.MM.yyyy")]]></initialValueExpression>
+	</variable>
+	<variable name="reason" class="java.lang.String">
+		<initialValueExpression><![CDATA[( $P{agreementType} == 1 ? "з наперед непередбаченим збільшенням об'ємів робіт по приєднанню електроустановок замовників до електричних мереж, що призвело до затримки в реалізації"
++String.format(" Договору про приєднання №<b>%s/%s  від  %sр.</b>"
+    , $F{contractnumberservices}, $F{contractnumber}, $V{dateFormat}.format($F{contractdateservices}))
++ " в частинні виконання проектної документації"
+: ( $P{agreementType} == 2 ? "із тривалою закупівлею товарно-матеріальних цінностей"
+    : ( $P{agreementType} == 3 ? "із внесенням змін до проектно-кошторисної документації, згідно ініціативи замовника та необхідності додаткової комплектації"+
+        " товарно-матеріальними цінностями"
+        : String.format("<font color=\"red\">Помилка у типі додаткової угоди - %d!!!</font>", $P{agreementType}) ) ) )]]></initialValueExpression>
+	</variable>
+	<variable name="departmentAddress" class="java.lang.String">
+		<variableExpression><![CDATA[$V{departmentAddress}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getContactValue($F{departmentcode}, com.ksoe.rqorder.valueobject.RQContactType.ADDRESS, $F{contractdateservices})]]></initialValueExpression>
+	</variable>
+	<group name="second_summary">
+		<groupExpression><![CDATA[$F{contractnumber}]]></groupExpression>
+		<groupFooter>
+			<band height="98">
+				<textField isStretchWithOverflow="true">
+					<reportElement x="267" y="14" width="267" height="84"/>
+					<box>
+						<rightPen lineWidth="0.0"/>
+					</box>
+					<textElement textAlignment="Left">
+						<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[String.format("%s \n", $F{contragentname}) +
+String.format("%s\n", $F{contragentaddress}) +
+String.format("Паспорт: %s\n", $F{contragentpassport}.replace("\n","")) +
+String.format("Ідентифікаційний номер  %s\n", $F{contragentokpo})]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement x="1" y="0" width="267" height="14"/>
+					<box>
+						<rightPen lineWidth="0.0"/>
+					</box>
+					<textElement textAlignment="Center">
+						<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Виконавець послуг:"]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement x="0" y="14" width="267" height="84"/>
+					<box>
+						<rightPen lineWidth="0.0"/>
+					</box>
+					<textElement textAlignment="Left">
+						<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[String.format("%s\n", ((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("company.shortname", $F{contractdateservices})) +
+String.format("%s\n", $V{departmentAddress}) +
+String.format("р/р %s\n", $F{bankaccount}) +
+String.format("%s\n", $F{bankname}) +
+String.format("МФО %s\n", $F{bankmfo}.intValue()) +
+String.format("ЄДРПОУ %s\n", $F{bankokpo})]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement x="268" y="0" width="267" height="14"/>
+					<box>
+						<rightPen lineWidth="0.0"/>
+					</box>
+					<textElement textAlignment="Center">
+						<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Замовник:"]]></textFieldExpression>
+				</textField>
+			</band>
+			<band height="23">
+				<textField isStretchWithOverflow="true">
+					<reportElement positionType="Float" x="1" y="0" width="267" height="23"/>
+					<box>
+						<rightPen lineWidth="0.0"/>
+					</box>
+					<textElement textAlignment="Left" markup="styled">
+						<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[String.format("%s\n", $F{warrantposition})]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<title>
+		<band height="313">
+			<textField isStretchWithOverflow="true">
+				<reportElement x="0" y="0" width="535" height="40"/>
+				<box>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[String.format("Додаткова Угода №______________\n" +
+"до Договору №%s/%s  від  %sр.\n" +
+"про приєднання до електричних мереж\n"
+, $F{contractnumberservices}
+, $F{contractnumber}
+, $V{dateFormat}.format($F{contractdateservices}))]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="0" y="40" width="267" height="14"/>
+				<box>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Left">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{rencity}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="268" y="40" width="267" height="14"/>
+				<box>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Right">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["“____”___________20__р."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="54" width="535" height="259"/>
+				<box>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Left" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph firstLineIndent="10"/>
+				</textElement>
+				<textFieldExpression><![CDATA[String.format("<b>%s</b>, ", ((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("company.fullname"))+
+String.format(" в особі %s %s", $F{genitiveposition}, $F{genitivefio}) +
+", що діє на підставі " +
+String.format("Довіреності №%s від %sр., ", $F{warrant_numbergen}, $V{dateFormat}.format($F{warrant_dategen})) +
+" далі — <b>Виконавець послуг</b>, з однієї сторони та " +
+String.format("<b>%s</b>,", $F{contragentname}) +
+String.format(" паспорт %s,", $F{contragentpassport}.replace("\n", "")) +
+"  далі – <b>Замовник</b>, з іншої сторони (далі іменуються Сторонами), " +
+String.format("уклали цю додаткову угоду до Договору №<b>%s/%s  від  %sр.</b>"
+    , $F{contractnumberservices}, $F{contractnumber}, $V{dateFormat}.format($F{contractdateservices})) +
+" про приєднання до електричних мереж (надалі іменується \"Угода\") про таке:\n"
++ String.format("1. У зв’язку %s, Сторони за взаємною згодою погодили змінити строк визначений п. 3.1.1 Договору №<b>%s/%s  від  %sр.</b> наступним чином: забезпечити в установленому порядку приєднання об’єкту Замовника у термін один місяць, після підписання  даної Додаткової угоди.\n"
+    , $V{reason}, $F{contractnumberservices}, $F{contractnumber}, $V{dateFormat}.format($F{contractdateservices}))
++ "2. Інші умови вищевказаного Договору, не змінені цією угодою, залишаються чинними у тій редакції, в якій вони викладені сторонами раніше, і сторони підтверджують їх обов'язковість для себе.\n"
++ "3. Ця додаткова угода складена при повному розумінні Сторонами її умов та термінології українською мовою у трьох автентичних примірниках, один з яких зберігається у Замовника, другий у Виконавця послуг, а третій у відповідному структурному підрозділі Виконавця послуг. Усі три примірники мають однакову юридичну силу для Замовник та Виконавця послуг.\n"
++ "4. Ця додаткова угода набирає чинності з моменту її підписання уповноваженими представниками Сторін і є невід'ємною частиною вищевказаного Договору."]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<summary>
+		<band height="42">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="0" y="0" width="260" height="14"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Right" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{warrantshortfio}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="1" y="28" width="59" height="14"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Left" markup="none">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["\"    \""]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="60" y="28" width="200" height="14"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Right" markup="none">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["20    року"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="336" y="28" width="200" height="14"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Right" markup="none">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["20    року"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" x="276" y="0" width="260" height="14"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Right" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="277" y="28" width="59" height="14"/>
+				<box>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Left" markup="none">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["\"    \""]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+	<noData>
+		<band height="98">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="false">
+				<reportElement key="textField-18" stretchType="RelativeToTallestObject" x="0" y="0" width="535" height="98"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="24"/>
+				</textElement>
+				<textFieldExpression><![CDATA[String.format("Не знайдено даних для звіту по параметрах: \n"
+    +"код договора: %d\n"
+    +"тип додаткової угоди: %d"
+    , $P{servicesObjectCode}, $P{agreementType})]]></textFieldExpression>
+			</textField>
+		</band>
+	</noData>
+</jasperReport>

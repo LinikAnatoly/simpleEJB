@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="graph_AnalyseWork_zamenaOblik" pageWidth="842" pageHeight="595" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="842" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="MONTHSTART" class="java.lang.String"/>
+	<parameter name="MONTHFINAL" class="java.lang.String"/>
+	<parameter name="YEARSTART" class="java.lang.String"/>
+	<parameter name="YEARFINAL" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[/*енергосбыт график  обстеження */
+ Select
+       case when q_month.podrcode is null then q_fact.podrcode else q_month.podrcode end as rescode,
+       case when q_month.podrname is null then q_fact.podrname else q_month.podrname end as res,
+       (sum(coalesce(q_month.timegen,0))/1000)::numeric(15,2) as plan ,
+       (sum(coalesce(q_fact.timegen,0))/1000)::numeric(15,2) as fact ,
+       case when sum(coalesce(q_month.timegen,0)) = 0 then 0 else ((sum(coalesce(q_fact.timegen,0))/sum(coalesce(q_month.timegen,0)))*100)::numeric(15,2) end  as diff
+from
+(    select dep.code as podrcode,  dep.name as podrname , string_agg(pw.code::text,',') as plancodes , pwi.kartarefcode ,
+     tc.techkartnumber ||' ' || tc.name as tktechcardname
+      , tmeas.name as tktechcardtkmeasurement, sum(pwi.countgen) as countgen , sum(pwi.timegen) as timegen , min(pw.datestart) as mindate ,
+      max(pw.datestart) maxdate,fw.name  as finexecutor_name , pt.name as enplanworktypename
+    from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas , finexecutor fw , enplanworktype pt
+    where pw.typerefcode=pt.code
+    and pw.finexecutorcode = fw.code
+    and pw.departmentrefcode = dep.code
+    and pw.code = pwi.planrefcode
+    and pwi.kartarefcode = tc.code
+    and tc.measurementcode = tmeas.code
+    and pwi.countgen <> 0
+    and pw.budgetrefcode = 240000001 --только енергосбыт
+    and pw.kindcode = 2
+    and pw.datestart BETWEEN  to_date('01.'||$P{MONTHSTART} ||'.'|| $P{YEARSTART},'dd.mm.yyyy')
+		                         and last_day(to_date('01.'||$P{MONTHFINAL} ||'.'|| $P{YEARFINAL},'dd.mm.yyyy'))
+	and tc.techcardsourcecode not  in (500000039,1000000004,1000000003) -- не берем работы взятые из калькуляций
+    and pw.departmentrefcode in  (7,8,10,11,12,14,17,18,478,479,480,482)
+	/*подвиды работ для графика обстеження*/
+	and ( pw.typerefcode in (101,105,110,113) )
+	/*не берем месячные планы которые со статусом работы завершены и с них не делались задания планы(типа не выполнялись)*/
+    and case when (select ch.plannewrefcode from enplancorrecthistory ch
+                    where ch.planoldrefcode = pw.code
+                  and ch.reasoncode = 4 limit 1 ) is null
+      and pw.statuscode = 8 then 1=2 else 1=1 end
+
+    group by dep.code , dep.name,  pwi.kartarefcode, tc.name, tc.techkartnumber, tmeas.name , fw.name , pt.name
+) q_month
+full join
+(   --не услуги
+    select dep.code as podrcode,  dep.name as podrname , string_agg(pw.code::text,',') as plancodes , pwi.kartarefcode ,
+        tc.techkartnumber ||' ' || tc.name as tktechcardname , tmeas.name as tktechcardtkmeasurement,
+     		 case when pwi.kartarefcode = 2017041445 then
+        coalesce(sum((select sum(coalesce(pi2el.countgen,0)) from  enpwi2element pi2el where pi2el.planworkitemrefcode = pwi.code )),0)
+        else
+        sum(pwi.countgen) end as countgen ,
+
+        case when pwi.kartarefcode = 2017041445 then
+	        coalesce(sum((select sum(coalesce(pi2el.countgen,0)) from  enpwi2element pi2el where pi2el.planworkitemrefcode = pwi.code )),0) * coalesce(tc.normoftime,0)
+	        else
+	        sum((select sum(coalesce(hi.countfact,0)) from  net.enhumenitem hi , net.finworker fw
+	               where hi.planitemrefcode = pwi.code
+	               and fw.code = hi.finworkercode)) end
+        as timegen
+			   , min(pw.datestart) as mindate , max(pw.datestart) maxdate ,
+           ''::text as materials
+           , fw.name  as finexecutor_name  , pt.name as enplanworktypename
+    from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas , finexecutor fw , enplanworktype pt
+    where pw.typerefcode=pt.code
+    and pw.finexecutorcode = fw.code
+    and pw.departmentrefcode = dep.code
+    and pw.code = pwi.planrefcode
+    and pwi.kartarefcode = tc.code
+    and tc.measurementcode = tmeas.code
+    and pwi.countgen <> 0
+	and tc.techcardsourcecode not  in (500000039,1000000004,1000000003) -- не берем работы взятые из калькуляций
+    -- если плановая часть с месячных планов
+    and  pw.code in ( select eh2.plannewrefcode from enplanwork pw , enplancorrecthistory eh1 , enplancorrecthistory eh2
+                    where pw.budgetrefcode = 240000001 --только енергосбыт
+                      and pw.kindcode = 2
+                      and pw.datestart BETWEEN  to_date('01.'||$P{MONTHSTART} ||'.'|| $P{YEARSTART},'dd.mm.yyyy')
+		                                    and last_day(to_date('01.'||$P{MONTHFINAL} ||'.'|| $P{YEARFINAL},'dd.mm.yyyy'))
+                      and eh1.planoldrefcode = pw.code
+                      and eh1.reasoncode = 4
+                      and eh2.planoldrefcode = eh1.plannewrefcode
+                      and eh2.reasoncode = 5
+                      and pw.departmentrefcode in  (7,8,10,11,12,14,17,18,478,479,480,482)
+                     /*подвиды работ для графика обстеження*/
+                      and ( pw.typerefcode in (101,105,110,113) )
+                      /*не берем месячные планы которые со статусом работы завершены и с них не делались задания планы(типа не выполнялись)*/
+					  and case when (select ch.plannewrefcode from enplancorrecthistory ch
+					                    where ch.planoldrefcode = pw.code
+					                  and ch.reasoncode = 4 limit 1 ) is null
+					      and pw.statuscode = 8 then 1=2 else 1=1 end
+          )
+
+    group by dep.code ,  dep.name,  pwi.kartarefcode, tc.name, tc.techkartnumber , tmeas.name , fw.name , tc.normoftime , pt.name
+) q_fact
+ on  (q_month.podrcode = q_fact.podrcode
+  and q_month.kartarefcode = q_fact.kartarefcode
+  and lower(trim(q_month.finexecutor_name)) = lower(trim(q_fact.finexecutor_name))
+  and q_month.enplanworktypename = q_fact.enplanworktypename )
+  where case when q_month.podrcode is null then q_fact.podrcode else q_month.podrcode end in (7,8,10,11,12,14,17,18,478,479,480,482)
+
+  group by  case when q_month.podrcode is null then q_fact.podrcode else q_month.podrcode end ,
+            case when q_month.podrname is null then q_fact.podrname else q_month.podrname end
+  order by  case when q_month.podrname is null then q_fact.podrname else q_month.podrname end]]>
+	</queryString>
+	<field name="res" class="java.lang.String"/>
+	<field name="plan" class="java.math.BigDecimal"/>
+	<field name="fact" class="java.math.BigDecimal"/>
+	<field name="diff" class="java.math.BigDecimal"/>
+	<variable name="companyShortName" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyShortName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("company.shortname")]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="585" splitType="Immediate">
+			<barChart>
+				<chart isShowLegend="true" evaluationTime="Report" renderType="draw" theme="default">
+					<reportElement stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" mode="Transparent" x="0" y="47" width="842" height="483"/>
+					<chartTitle position="Top"/>
+					<chartSubtitle/>
+					<chartLegend position="Bottom"/>
+				</chart>
+				<categoryDataset>
+					<categorySeries>
+						<seriesExpression><![CDATA[" План, тис.люд/год."]]></seriesExpression>
+						<categoryExpression><![CDATA[$F{res}]]></categoryExpression>
+						<valueExpression><![CDATA[$F{plan}]]></valueExpression>
+					</categorySeries>
+					<categorySeries>
+						<seriesExpression><![CDATA["Факт ,тис.люд/год."]]></seriesExpression>
+						<categoryExpression><![CDATA[$F{res}]]></categoryExpression>
+						<valueExpression><![CDATA[$F{fact}]]></valueExpression>
+					</categorySeries>
+					<categorySeries>
+						<seriesExpression><![CDATA["Відсоток виконання ,%"]]></seriesExpression>
+						<categoryExpression><![CDATA[$F{res}]]></categoryExpression>
+						<valueExpression><![CDATA[$F{diff}]]></valueExpression>
+					</categorySeries>
+				</categoryDataset>
+				<barPlot isShowLabels="true" isShowTickLabels="true" isShowTickMarks="true">
+					<plot labelRotation="-30.0">
+						<seriesColor seriesOrder="0" color="#3300FF"/>
+						<seriesColor seriesOrder="1" color="#FF3333"/>
+						<seriesColor seriesOrder="2" color="#660066"/>
+					</plot>
+					<itemLabel>
+						<font size="7"/>
+					</itemLabel>
+					<categoryAxisFormat labelRotation="-30.0">
+						<axisFormat verticalTickLabels="false">
+							<labelFont>
+								<font size="10"/>
+							</labelFont>
+							<tickLabelFont>
+								<font size="10"/>
+							</tickLabelFont>
+						</axisFormat>
+					</categoryAxisFormat>
+					<valueAxisLabelExpression><![CDATA[]]></valueAxisLabelExpression>
+					<valueAxisFormat>
+						<axisFormat verticalTickLabels="false">
+							<labelFont>
+								<font size="3"/>
+							</labelFont>
+							<tickLabelFont>
+								<font size="10"/>
+							</tickLabelFont>
+						</axisFormat>
+					</valueAxisFormat>
+				</barPlot>
+			</barChart>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" stretchType="RelativeToTallestObject" x="0" y="0" width="832" height="21"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Аналіз виконання робіт по енергозбутовому напрямку ( Обстеження точок обліку електроустановок споживачів )  по " + $V{companyShortName} +
+" за період з "
++ new String(Integer.parseInt($P{MONTHSTART})==1 ? "Січень" :
+             Integer.parseInt($P{MONTHSTART})==2 ? "Лютий" :
+             Integer.parseInt($P{MONTHSTART})==3 ? "Березень" :
+             Integer.parseInt($P{MONTHSTART})==4 ? "Квітень" :
+             Integer.parseInt($P{MONTHSTART})==5 ? "Травень" :
+             Integer.parseInt($P{MONTHSTART})==6 ? "Червень" :
+             Integer.parseInt($P{MONTHSTART})==7 ? "Липень" :
+             Integer.parseInt($P{MONTHSTART})==8 ? "Серпень" :
+             Integer.parseInt($P{MONTHSTART})==9 ? "Вересень" :
+             Integer.parseInt($P{MONTHSTART})==10 ? "Жовтень" :
+             Integer.parseInt($P{MONTHSTART})==11 ? "Листопад" :
+             Integer.parseInt($P{MONTHSTART})==12 ? "Грудень" : "" )
++" "+$P{YEARSTART} +" р." +
+" по " + new String(Integer.parseInt($P{MONTHFINAL})==1 ? "Січень" :
+             Integer.parseInt($P{MONTHFINAL})==2 ? "Лютий" :
+             Integer.parseInt($P{MONTHFINAL})==3 ? "Березень" :
+             Integer.parseInt($P{MONTHFINAL})==4 ? "Квітень" :
+             Integer.parseInt($P{MONTHFINAL})==5 ? "Травень" :
+             Integer.parseInt($P{MONTHFINAL})==6 ? "Червень" :
+             Integer.parseInt($P{MONTHFINAL})==7 ? "Липень" :
+             Integer.parseInt($P{MONTHFINAL})==8 ? "Серпень" :
+             Integer.parseInt($P{MONTHFINAL})==9 ? "Вересень" :
+             Integer.parseInt($P{MONTHFINAL})==10 ? "Жовтень" :
+             Integer.parseInt($P{MONTHFINAL})==11 ? "Листопад" :
+             Integer.parseInt($P{MONTHFINAL})==12 ? "Грудень" : "" ) +" "+$P{YEARFINAL} +" р."]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band splitType="Stretch"/>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band/>
+	</summary>
+</jasperReport>

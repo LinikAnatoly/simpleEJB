@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="post2_Neopla4en" pageWidth="200" pageHeight="40" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="200" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" scriptletClass="com.ksoe.energynet.reports.common.netScriptlet">
+	<property name="ireport.scriptlethandling" value="2"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<style name="orderpreviouspostavka" mode="Opaque">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[new Boolean($P{statussymbol}.equals("П"))]]></conditionExpression>
+			<style mode="Opaque" backcolor="#C9C8C9"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="oicode" class="java.lang.Integer"/>
+	<parameter name="strestimateitem" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("0")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="startDate" class="java.lang.String">
+		<defaultValueExpression><![CDATA["01.09.2011"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="statussymbol" class="java.lang.String" isForPrompting="false"/>
+	<queryString>
+		<![CDATA[select case when countfact_postavka::numeric(15,3) - p::numeric(15,3) < 0 then 0
+       else countfact_postavka::numeric(15,3) - p::numeric(15,3) end as countfact,
+pricewithnds::numeric(15,3) as pricewithnds,
+((countfact_postavka - p)*pricewithnds)::numeric(15,3) as sumwithnds
+from
+(
+select
+ sum(countfact) + sum(countremander) as countfact_postavka ,
+ pricewithnds
+,
+  coalesce((Select sum(rqbillitem2enestimattm.countgen)
+   From rqpaydocitem2billitem , rqbillitem2enestimattm , rqbillitem  , rqpaydocitem , rqpaydoc
+         			where rqpaydocitem2billitem.billitemcode = rqbillitem2enestimattm.billitemcode
+                      and rqbillitem2enestimattm.estimateitemcode  in ( $P!{strestimateitem})
+                      and rqbillitem2enestimattm.billitemcode = rqbillitem.code
+                      and rqpaydocitem2billitem.billitemcode = rqbillitem.code
+                      and rqpaydocitem.code = rqpaydocitem2billitem.paydocitemcode
+                      and rqpaydoc.code = rqpaydocitem.paydocrefcode
+
+
+
+         ),0) as p
+from (
+
+/*поставка приход с выбором партий */
+select
+rqfkorderitem2enstmttm.estimateitemcode ,
+iord.code as prihordercode ,
+iord.numberdoc,
+iord.dategen,
+rqfkorderitem2enstmttm.countgen as countfact,
+ii.measurementnametxt
+ , case when (select coalesce(b.vat,0)  from rqbillitem2enestimattm bi2e , rqbillitem bi , rqbill b
+ 					where bi2e.billitemcode = bi.code
+  					  and bi.billrefcode = b.code
+					  and bi2e.estimateitemcode in ( $P!{strestimateitem})
+                      limit 1
+                ) > 0 then
+			round(cast(ii.pricewithoutnds*
+    			(select 1::numeric + coalesce(b.vat,0) / 100::numeric  from rqbillitem2enestimattm bi2e , rqbillitem bi , rqbill b
+ 					where bi2e.billitemcode = bi.code
+  					  and bi.billrefcode = b.code
+					  and bi2e.estimateitemcode in ( $P!{strestimateitem})
+                      limit 1
+                ) as numeric),2)
+								  else
+			round(cast(ii.pricewithoutnds as numeric),2) end
+  as pricewithnds ,
+
+iord.molincode, iord.molinname, iord.moloutcode, iord.moloutname,
+ 0 as findoccode,
+
+/*выбор кол-во излишки */
+0 as countremander,
+ iord.statuscode,
+ rqfkorderstatus.name as orderstatusname
+from rqfkorderitem ii
+      left join rqfkorderitem2enstmttm
+         on ( rqfkorderitem2enstmttm.fkorderitemrefcode = ii.code
+              and coalesce(rqfkorderitem2enstmttm.countgen,0) <> 0 )
+, rqfkorder iord left join  findoc2fkorder ffkord on (iord.code = ffkord.fkorderrefcode)  , rqfkorderstatus
+
+where iord.code = ii.fkorderrefcode
+and iord.statuscode = rqfkorderstatus.code
+and rqfkorderstatus.code = 3 /*приходы по факту - значит проведенные */
+and iord.kindcode in(1,14)
+and rqfkorderitem2enstmttm.estimateitemcode in ( $P!{strestimateitem}
+                                                )
+
+group by iord.code , iord.numberdoc, iord.dategen,
+ii.measurementnametxt,
+iord.molincode, iord.molinname, iord.moloutcode, iord.moloutname, ii.pricewithoutnds ,
+iord.kindcode , iord.statuscode
+ , ii.countgen , ii.sumwithoutnds , ii.code , rqfkorderstatus.name
+, rqfkorderitem2enstmttm.countgen
+, rqfkorderitem2enstmttm.estimateitemcode
+
+UNION /*выборка из remainder не излишков а приходов под планы */
+
+ select
+      rqfkorderitemremainder.estimateitemrefcode as estimateitemcode
+    , rqfkorder.code as prihordercode
+    , rqfkorder.numberdoc
+    , rqfkorder.dategen
+    , rqfkorderitemremainder.countgen as countfact
+    , rqfkorderitem.measurementnametxt
+    , case when (select coalesce(b.vat,0)  from rqbillitem2enestimattm bi2e , rqbillitem bi , rqbill b
+ 					where bi2e.billitemcode = bi.code
+  					  and bi.billrefcode = b.code
+					  and bi2e.estimateitemcode in ( $P!{strestimateitem} )
+                      limit 1
+                ) > 0 then
+              round(cast(rqfkorderitemremainder.pricewithoutnds*
+			    (select  1::numeric+ coalesce(b.vat,0)/100::numeric  from rqbillitem2enestimattm bi2e , rqbillitem bi , rqbill b
+ 					where bi2e.billitemcode = bi.code
+  					  and bi.billrefcode = b.code
+					  and bi2e.estimateitemcode in ( $P!{strestimateitem} )
+                      limit 1
+                ) as numeric),2)
+                      else
+              round(cast(rqfkorderitemremainder.pricewithoutnds as numeric),2)
+                      end
+     as pricewithnds
+    , rqfkorder.molincode
+    , rqfkorder.molinname
+    , rqfkorder.moloutcode
+    , rqfkorder.moloutname
+    , 0 as findoccode
+    , 0 as countremander
+    , rqfkorder.statuscode
+    , rqfkorderstatus.name as orderstatusname
+    from rqfkorderitemremainder , rqfkorderitem , rqfkorder , rqfkorderstatus
+    where rqfkorderitemremainder.estimateitemrefcode in
+                                              ( $P!{strestimateitem}
+                                              )
+      and rqfkorderitemremainder.typerefcode = 2
+      and rqfkorderitemremainder.fkorderitemrefcode = rqfkorderitem.code
+      and rqfkorderitem.fkorderrefcode = rqfkorder.code
+      and rqfkorder.kindcode in (1,14)
+      and rqfkorder.statuscode <> 1 /* НЕ равно черновым сказано Салыгиным 23,11,2010 */
+      and rqfkorder.statuscode = rqfkorderstatus.code
+
+
+
+
+) w
+ group by pricewithnds
+ ) as q
+ where countfact_postavka::numeric(15,3) - p::numeric(15,3) > 0]]>
+	</queryString>
+	<field name="countfact" class="java.math.BigDecimal"/>
+	<field name="pricewithnds" class="java.math.BigDecimal"/>
+	<field name="sumwithnds" class="java.math.BigDecimal"/>
+	<variable name="sum_postavka_fact_budjet" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{sumwithnds}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_postavka_fact_parent_material" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{sumwithnds}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_postavka_fact" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{sumwithnds}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="40" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField" style="orderpreviouspostavka" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countfact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField" style="orderpreviouspostavka" stretchType="RelativeToTallestObject" mode="Opaque" x="50" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{pricewithnds}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField" style="orderpreviouspostavka" stretchType="RelativeToTallestObject" mode="Opaque" x="100" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{sumwithnds}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-1" style="orderpreviouspostavka" stretchType="RelativeToTallestObject" mode="Opaque" x="150" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[((com.ksoe.energynet.reports.common.netScriptlet)$P{REPORT_SCRIPTLET}).getDataPostavkaByStrOrder($P{oicode},$F{pricewithnds})]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<lastPageFooter>
+		<band height="40" splitType="Stretch">
+			<printWhenExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue() == 0 )]]></printWhenExpression>
+			<textField isStretchWithOverflow="true" pattern="###0,00;-###0,00" isBlankWhenNull="true">
+				<reportElement key="textField-2" style="orderpreviouspostavka" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0,00;-###0,00" isBlankWhenNull="true">
+				<reportElement key="textField-3" style="orderpreviouspostavka" stretchType="RelativeToTallestObject" mode="Opaque" x="50" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0,00;-###0,00" isBlankWhenNull="true">
+				<reportElement key="textField-4" style="orderpreviouspostavka" stretchType="RelativeToTallestObject" mode="Opaque" x="100" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-5" style="orderpreviouspostavka" stretchType="RelativeToTallestObject" mode="Opaque" x="150" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+		</band>
+	</lastPageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

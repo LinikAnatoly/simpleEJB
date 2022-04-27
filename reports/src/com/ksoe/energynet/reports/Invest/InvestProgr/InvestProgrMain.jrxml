@@ -1,0 +1,927 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="main" pageWidth="2300" pageHeight="595" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="2280" leftMargin="10" rightMargin="10" topMargin="10" bottomMargin="10" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.4641000000000006"/>
+	<property name="ireport.x" value="1494"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="ipcode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="kvartal" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(4)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="datereport" class="java.lang.String"/>
+	<parameter name="investProgramGroupCode" class="java.lang.Integer"/>
+	<queryString>
+		<![CDATA[select
+( case
+when $P{kvartal} = 1 then 'I'
+when $P{kvartal} = 2 then 'II'
+when $P{kvartal} = 3 then 'III'
+when $P{kvartal} = 4 then 'IV'
+else '' end ) as kvartal_rm
+,code
+,eninvestprogramgroups_name
+,eninvestprogramgroups_concat
+,itemnumber
+,enippurposeprogram
+,enippurposeprogramcode
+,name_product
+,measurementname
+,price
+,countgen::numeric(15,6) as countgen
+,sumgen::numeric(15,2) as sumgen
+,invgrouprefcode
+,period_count
+,period_sum
+,financing
+,commentgen
+,yeargen
+,rep_kvartal
+,datereport
+,itcodesandchildcodes
+,infotenders
+, /*Сума витратних актів ----зарплата */
+  (( select     coalesce( sum( net.get_sum_by_act_only_zp(aaa.code)),0) + coalesce( sum( net.get_sum_by_act_only_materials_with_fuel(aaa.code)),0) +coalesce( sum( net.get_sum_by_act_only_transportexpenses_without_fuel(aaa.code) ),0)
+                 + coalesce((select sum(fi.sumwithoutnds)
+	                 from  enplanwork p , rqfkorder2planfact rpf , rqfkorderitem fi , rqfkorder f  , enact2enplanwork a2p
+	                 where  p.statuscode = 3
+	                 and rpf.factcode = p.code
+	                 and rpf.fkorderitemcode = fi.code
+	                 and fi.fkorderrefcode = f.code
+	                 and f.kindcode = 14
+	                 and f.statuscode in (3,4,5)
+	                 and f.dategen <= sel1.datereport /*дата освоения материалов */
+	                 and a2p.plancode = p.code
+	                 and a2p.plancode = rpf.factcode
+	                 and a2p.actrefcode in (select array2items(string_to_array(sel1.actCodeAgg ,','))::double precision)
+	                ),0)
+  from enact aaa where aaa.code in (select array2items(string_to_array(sel1.actCodeAgg ,','))::double precision)
+
+  )/1000)::numeric(15,2)  as sumact
+from (
+select
+ipi.code
+,ipgro.name as eninvestprogramgroups_name
+,ipgro.name || ' ' || ipgro.commentgen as eninvestprogramgroups_concat
+,ipi.itemnumber
+,purp.name as enippurposeprogram
+,purp.code as enippurposeprogramcode
+,ipi.name as name_product
+,meas.name as measurementname
+,ipi.price
+,ipi.countgen
+,ipi.sumgen
+,ipi.invgrouprefcode
+, case when rep_kvartal = 1 then coalesce(ipi.quarter1count,0)
+       when rep_kvartal = 2 then coalesce(ipi.quarter1count,0) + coalesce(ipi.quarter2count,0)
+       when rep_kvartal = 3 then coalesce(ipi.quarter1count,0) + coalesce(ipi.quarter2count,0)+ coalesce(ipi.quarter3count,0)
+       when rep_kvartal = 4 then coalesce(ipi.quarter1count,0) + coalesce(ipi.quarter2count,0)+ coalesce(ipi.quarter3count,0)+ coalesce(ipi.quarter4count,0)
+     end as period_count
+, case when rep_kvartal = 1 then coalesce(ipi.quarter1sum,0)
+       when rep_kvartal = 2 then coalesce(ipi.quarter1sum,0) + coalesce(ipi.quarter2sum,0)
+       when rep_kvartal = 3 then coalesce(ipi.quarter1sum,0) + coalesce(ipi.quarter2sum,0)+ coalesce(ipi.quarter3sum,0)
+       when rep_kvartal = 4 then coalesce(ipi.quarter1sum,0) + coalesce(ipi.quarter2sum,0)+ coalesce(ipi.quarter3sum,0)+ coalesce(ipi.quarter4sum,0)
+     end as period_sum
+
+,ipi.financing /*джерело фынансування */
+,ipi.commentgen
+,ip.yeargen
+,rep_kvartal
+,datereport
+,(select string_agg(code::varchar, ',')from
+(select it.code from enipitem it
+where it.code = ipi.code
+union all
+select it.code from enipitem it
+where it.parentrefcode = ipi.code ) selitcode) as itcodesandchildcodes
+,ipi.infotenders
+----
+,(  Select string_agg(distinct a2p.actrefcode::varchar , ',')
+	                                    from enipitem2plan ipi2pl ,  enplanwork pp
+	                                            left join enplancorrecthistory ph1 on ( pp.code = ph1.planoldrefcode and ph1.reasoncode = 4 )
+	                                            left join enplancorrecthistory ph2 on ( ph1.plannewrefcode = ph2.planoldrefcode and ph2.reasoncode = 5  )
+	                                            left join enact2enplanwork a2p on  ( ph2.plannewrefcode = a2p.plancode )
+	                                            left join enact a on (a2p.actrefcode=a.code )
+	                                                  where pp.code = ph1.planoldrefcode
+	                                                    and ipi2pl.planrefcode = pp.code
+	                                                    and ipi2pl.ipitemrefcode =  ipi.code
+	                                                    and a.dateact <= to_date($P{datereport},'dd.mm.yyyy')
+											          ) as actCodeAgg
+
+from net.enip ip ,
+net.enipitem ipi ,
+net.enippurposeprogram purp, /*целевая программа*/
+net.eninvestprogramgroups ipgro , /*разделы ИП*/
+net.tkmeasurement meas ,
+( select $P{kvartal} as rep_kvartal ) as kvartal ,
+( select to_date($P{datereport},'dd.mm.yyyy') as datereport ) as datereport
+where ip.code = $P{ipcode}
+and case when $P{investProgramGroupCode} <> 0 then ipi.invgrouprefcode =  $P{investProgramGroupCode}  else 1=1 end
+and ip.code = ipi.iprefcode
+and ipi.parentrefcode is null
+and ipi.purposeprogramrefcode = purp.code
+and ipgro.code = ipi.invgrouprefcode
+and ipi.measurementcode = meas.code
+order by ipi.invgrouprefcode , func_order_(itemnumber) , purp.code
+) sel1
+
+order by invgrouprefcode , func_order_(itemnumber) , enippurposeprogramcode]]>
+	</queryString>
+	<field name="eninvestprogramgroups_name" class="java.lang.String"/>
+	<field name="eninvestprogramgroups_concat" class="java.lang.String"/>
+	<field name="itemnumber" class="java.lang.String">
+		<fieldDescription><![CDATA[Пункт Інвестпрограми]]></fieldDescription>
+	</field>
+	<field name="enippurposeprogram" class="java.lang.String"/>
+	<field name="measurementname" class="java.lang.String">
+		<fieldDescription><![CDATA[Наименование единицы измерения]]></fieldDescription>
+	</field>
+	<field name="price" class="java.math.BigDecimal"/>
+	<field name="countgen" class="java.math.BigDecimal"/>
+	<field name="sumgen" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Сума витрат, грн]]></fieldDescription>
+	</field>
+	<field name="period_count" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Кількість, затверджена НКРЕ (1-й квартал)]]></fieldDescription>
+	</field>
+	<field name="period_sum" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Сума, затверджена НКРЕ, тис. грн. з ПДВ (1-й квартал)]]></fieldDescription>
+	</field>
+	<field name="financing" class="java.lang.String"/>
+	<field name="commentgen" class="java.lang.String"/>
+	<field name="name_product" class="java.lang.String"/>
+	<field name="yeargen" class="java.lang.String"/>
+	<field name="kvartal_rm" class="java.lang.String"/>
+	<field name="code" class="java.lang.Integer"/>
+	<field name="sumact" class="java.math.BigDecimal"/>
+	<variable name="sum_item_act" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$V{sum_item_act}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="79" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="200" y="33" width="1114" height="20"/>
+				<box>
+					<topPen lineWidth="0.0"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Етапи проведення закупівель або впровадження основного обладнання, матеріалів, апаратного та програмного забезпечення згідно з інвестиційною програмою на прогнозний період"]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="110" splitType="Stretch">
+			<staticText>
+				<reportElement x="50" y="0" width="50" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[№ пункта]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="100" y="0" width="120" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Цільова
+Програма
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="95" width="50" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[1]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="100" y="95" width="120" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[3]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="0" width="50" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Розділ ІП]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="50" y="95" width="50" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[2]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="220" y="0" width="120" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Назва об`єкту продукції]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="220" y="95" width="120" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[4]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="340" y="95" width="70" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[5]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="340" y="0" width="70" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Кількість (рік),
+Шт / км
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="410" y="0" width="70" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Вартість об’єкту, яка затверджена НКРЕКП]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="410" y="95" width="70" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[6]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="480" y="95" width="70" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[7]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="480" y="0" width="70" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Тип виконання робіт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="550" y="95" width="120" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[8]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="550" y="0" width="120" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Об`єкт планування ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="670" y="0" width="60" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Початок виконання робіт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="670" y="95" width="60" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[9]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="730" y="0" width="110" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Підрозділ планів]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="730" y="95" width="110" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[10]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="840" y="0" width="110" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Виконавець робіт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="840" y="95" width="110" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[11]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="950" y="0" width="80" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Сума оплат що здійснювало Товариство на закупівлю послуг або ТМЦ ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="950" y="95" width="80" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[12]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1030" y="0" width="80" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Сума витратних актів(послуги зі
+ сторони), тис.грн]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1030" y="95" width="80" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[13]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1110" y="95" width="80" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[14]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1110" y="0" width="80" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Сума витратних актів(хоз.спосіб ЗП), тис.грн]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1190" y="0" width="80" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Сума витратних актів(хоз.спосіб матеріали), тис.грн]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1190" y="95" width="80" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[15]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1270" y="95" width="80" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[16]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1270" y="0" width="80" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Сума витратних актів(хоз.спосіб транспортні витрати), тис.грн]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1730" y="95" width="80" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[23]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1730" y="0" width="80" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Відсоток виконання,
+%]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1350" y="95" width="80" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[17]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1350" y="0" width="80" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Акт
+(номер, дата)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1430" y="95" width="60" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[18]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1430" y="0" width="60" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Розпорядження про створення комісії
+(дата, номер)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1490" y="95" width="60" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[19]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1490" y="0" width="60" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Розпорядження про комплексне випробування
+(дата, номер)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1550" y="95" width="60" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[20]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1550" y="0" width="60" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Розпорядження про готовність об`єкту до експлуатації
+(дата, номер)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1610" y="0" width="60" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Акт по формі ОЗ
+(дата, номер)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1610" y="95" width="60" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[21]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1670" y="95" width="60" height="15"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[22]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="1670" y="0" width="60" height="95"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<text><![CDATA[Стан у WorkFlow
+]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{eninvestprogramgroups_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="100" y="0" width="120" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{enippurposeprogram}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="50" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{itemnumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="220" y="0" width="120" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{enippurposeprogram}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="340" y="0" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countgen}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="410" y="0" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{sumgen}]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="false">
+				<reportElement x="480" y="0" width="1250" height="20"/>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="datereport">
+					<subreportParameterExpression><![CDATA[$P{datereport}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="ipicode">
+					<subreportParameterExpression><![CDATA[$F{code}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="sumgen">
+					<subreportParameterExpression><![CDATA[$F{sumgen}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="kvartal">
+					<subreportParameterExpression><![CDATA[$P{kvartal}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="ipcode">
+					<subreportParameterExpression><![CDATA[$P{ipcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<returnValue subreportVariable="sumAct" toVariable="sum_item_act" calculation="Sum"/>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/Invest/InvestProgr/InvestProgrSub.jasper")
+/*"C:/Projects/EnergyServerEclipse/EnergyNet/reports/src/com/ksoe/energynet/reports/Invest/InvestProgr/InvestProgrSub.jasper"*/]]></subreportExpression>
+			</subreport>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1730" y="0" width="80" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{sumact}.divide($F{sumgen}, 2, BigDecimal.ROUND_HALF_UP).
+multiply(new BigDecimal(100).setScale(2,java.math.BigDecimal.ROUND_HALF_UP)) )
+.setScale(2,java.math.BigDecimal.ROUND_HALF_UP)]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="361" splitType="Stretch"/>
+	</summary>
+</jasperReport>

@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="detailed_sub" pageWidth="2487" pageHeight="802" orientation="Landscape" columnWidth="2487" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<style name="expired" isDefault="true" mode="Opaque" backcolor="#FFFFFF" fontName="Times New Roman">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[($F{expired}.intValue()==-9999)]]></conditionExpression>
+			<style forecolor="#000000" backcolor="#FF0033"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="dateStart" class="java.lang.String"/>
+	<parameter name="dateEnd" class="java.lang.String"/>
+	<parameter name="includeByt" class="java.lang.String">
+		<defaultValueExpression><![CDATA["1"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="includeProm" class="java.lang.String">
+		<defaultValueExpression><![CDATA["1"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="actReportColumnCode" class="java.lang.String">
+		<defaultValueExpression><![CDATA["-1"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select
+(select name from epren) as renname,
+a.code as actcode, a.blanknumber::text  as actname,
+ to_char(a.dategen,'dd.MM.yyyy') as actdate,
+coalesce(ads.name,cast('Невизначено' as varchar)) as addstatusname,
+rp.name as TO_NAME,
+coalesce(person.surname,' ')||' '||coalesce(person.name,' ')||' '||coalesce(person.patronimic,' ') as TO_FI,
+coalesce(citytype.name,'')||' '||coalesce(city.name,' ')||',  '||coalesce(streettype.name,'')||' '||coalesce(street.name,' ')||coalesce(', буд. '||address.locationhouse,' ')||coalesce(case when address.locationapp<>'' then ',  кв. '||address.locationapp else '' end,' ') as TO_ADDRESS,
+tt.name as theft_type_name,
+
+case
+	when curr_ash.actreportcolumncode in (12,0,2,1,3,4,14) then 'Розгляд актів на комісії'
+    when curr_ash.actreportcolumncode in (5,6) then 'Оскарженно споживачем'
+    when curr_ash.actreportcolumncode in (7,8,9,10,13) then 'Узгоджені акти'
+    when curr_ash.actreportcolumncode in (11) then 'Анульовано згідно рішення суду'
+    else ''
+end as actreportcolumngroup,
+
+curr_ash.report_status as current_status,
+curr_ash.datefrom as current_status_datestart,
+a.valuekwt,
+case when a.topayvalue = 0 then
+coalesce((case when curr_ash.actreportcolumncode in (1,11) then
+(select hist1.topayvalue from acthistory hist1 where to_char(hist1.endhistorydate,'dd.MM.yyyy HH24:MI:ss') = (
+select to_char(hist.starthistorydate,'dd.MM.yyyy HH24:MI:ss')
+from acthistory hist where hist.actrefcode = a.code and hist.endhistorydate is null)) end),0)
+else a.topayvalue end as sum_by_act,
+
+
+(case when a.topayvalue = 0 then
+coalesce((case when curr_ash.actreportcolumncode in (1,11) then
+(select hist1.topayvalue from acthistory hist1 where to_char(hist1.endhistorydate,'dd.MM.yyyy HH24:MI:ss') = (
+select to_char(hist.starthistorydate,'dd.MM.yyyy HH24:MI:ss')
+from acthistory hist where hist.actrefcode = a.code and hist.endhistorydate is null)) end),0)
+else a.topayvalue end) - coalesce(a.calcvaluefirst,a.topayvalue) as act_diff,
+
+
+iw.name as rpstatusname,
+curr_ash.datetill as current_status_datetill,
+lt.name as liqname,
+
+/*
+case when (((current_date-cast(curr_ash.datefrom as date))>=50) and (curr_ash.actreportcolumncode in (0,2,4,12)))
+then 1 else 0 end as expired
+*/
+case when
+(cast((select min(ah1.datefrom) from actstatushistory ah1 where ah1.actreportcolumncode in (0,2,4) and ah1.actrefcode=a.code) as date)
+-
+cast((select min(ah2.datefrom) from actstatushistory ah2 where ah2.actreportcolumncode=12 and ah2.actrefcode=a.code) as date))>=50
+then 1 else 0 end as expired
+
+
+from thefttype as tt, recordpoint rp left join personalaccount on rp.prsnlaccntrfcode = personalaccount.code
+left join isworking iw on  iw.code=rp.isworkingcode
+ left join person on person.code = personalaccount.personcode
+ left join address on address.code = person.prsnaddrssrfcode
+ left join street on street.code = address.streetcode
+ left join streettype on streettype.code=street.streettypecode
+ left join city on street.citycode = city.code
+ left join citytype on citytype.code=city.citytypecode, act a
+ left join liquidtype lt on lt.code=a.liquidtypecode
+ left join actaddstatus ads on ads.code=a.addstatus
+left join
+(
+
+select ash.actrefcode as actcode, ash.datefrom,ash.datetill, arc.name as report_status, ash.actreportcolumncode
+ from actstatushistory ash , actreportcolumn arc where
+ ash.actreportcolumncode = arc.code
+ and ash.code in (
+select max(ashi.code) as code from actstatushistory ashi
+group by  ashi.actrefcode
+)
+
+) as curr_ash on (a.code = curr_ash.actcode)
+where tt.code = a.thefttypecode
+and rp.code = a.recordpontrfcode
+and $P{includeByt}='1'
+and a.dategen between to_date($P{dateStart} ,'dd.MM.yyyy') and to_date($P{dateEnd} ,'dd.MM.yyyy')
+and ($P!{actReportColumnCode}=-1 or curr_ash.actreportcolumncode=$P!{actReportColumnCode})
+
+UNION ALL
+
+(
+select
+(select name from epren) as renname,
+a.code as actcode,
+a.numbergen::text as actname,
+to_char(a.datemake,'dd.MM.yyyy') as actdate,
+cast('Невизначено' as varchar)  as addstatusname,
+cs.accountnumber as TO_NAME,
+cs.name as TO_FI,
+rpaddress as TO_ADDRESS,
+ak.name as theft_type_name,
+
+case
+	when curr_ash.actreportcolumncode in (12,0,2,1,3,4,14) then 'Розгляд актів на комісії'
+    when curr_ash.actreportcolumncode in (5,6) then 'Оскарженно споживачем'
+    when curr_ash.actreportcolumncode in (7,8,9,10,13) then 'Узгоджені акти'
+    when curr_ash.actreportcolumncode in (11) then 'Анульовано згідно рішення суду'
+    else ''
+end as actreportcolumngroup,
+
+curr_ash.report_status as current_status,
+curr_ash.datefrom as current_status_datestart,
+(select sum(ae.consumption) from epactentry ae where ae.actrefcode=a.code) as valuekwt,
+coalesce(a.sumgen,0)+coalesce(a.vat,0) as sum_by_act,
+coalesce(a.sumgen,0)+coalesce(a.vat,0) - coalesce(a.sumfirst, coalesce(a.sumgen,0)+coalesce(a.vat,0)) as act_diff,
+rpstatus as rpstatusname,
+curr_ash.datetill as current_status_datetill,
+'неопределено' as liqname,
+
+/*
+case when (((current_date-cast(curr_ash.datefrom as date))>=50) and (curr_ash.actreportcolumncode in (0,2,4,12)))
+then 1 else 0 end as expired
+*/
+case when
+(cast((select min(ah1.datefrom) from actstatushistory ah1 where ah1.actreportcolumncode in (0,2,4) and ah1.actrefcode=a.code) as date)
+-
+cast((select min(ah2.datefrom) from actstatushistory ah2 where ah2.actreportcolumncode=12 and ah2.actrefcode=a.code) as date))>=50
+then 1 else 0 end as expired
+
+
+from epact a
+inner join epcustomer cs on cs.code=a.customerrefcode
+inner join epcustomerstatus cst on  cst.code=cs.statuscode
+inner join epactkind ak on ak.code=a.kindact
+inner join
+(
+select
+actcode,
+--string_agg(rpname, chr(13)) as rpname,
+string_agg(rpstatus, chr(13)) as rpstatus,
+string_agg(rpaddress, chr(13)) as rpaddress
+--count(rpcode) as rpcount
+from (
+  select distinct
+  ae.actrefcode as actcode,
+  --rp.code as rpcode,
+  --rp.name as rpname,
+  rpst.name as rpstatus,
+  coalesce(addressjoint(rp.addressrefcode), rp.adress, '-') as rpaddress
+  from eprecordpoint rp
+  inner join eprecordpontstts rpst on rpst.code=rp.statuscode
+  inner join epactentry ae on ae.recordpontrfcode=rp.code
+  order by ae.actrefcode, rpaddress ) aaa
+  group by actcode
+) rp on rp.actcode=a.code
+left join
+(
+select ash.actrefcode as actcode, ash.datefrom,ash.datetill, arc.name as report_status, ash.actreportcolumncode
+ from epactstatushistory ash , epactreportcolumn arc where
+ ash.actreportcolumncode = arc.code
+ and ash.code in (
+select max(ashi.code) as code from epactstatushistory ashi
+group by  ashi.actrefcode
+)
+
+) as curr_ash on (a.code = curr_ash.actcode)
+where $P{includeProm}='1'
+and a.datemake between to_date($P{dateStart} ,'dd.MM.yyyy') and to_date($P{dateEnd} ,'dd.MM.yyyy')
+and ($P!{actReportColumnCode}=-1 or curr_ash.actreportcolumncode=$P!{actReportColumnCode})
+and not exists
+	(select * from epact aa where
+	aa.numbergen=a.numbergen
+	and aa.datemake=a.datemake
+	and aa.code>a.code)
+
+order by curr_ash.datefrom, a.numbergen, a.code
+)]]>
+	</queryString>
+	<field name="renname" class="java.lang.String"/>
+	<field name="actcode" class="java.lang.Double"/>
+	<field name="actname" class="java.lang.String"/>
+	<field name="to_name" class="java.lang.String"/>
+	<field name="to_fi" class="java.lang.String"/>
+	<field name="to_address" class="java.lang.String"/>
+	<field name="theft_type_name" class="java.lang.String"/>
+	<field name="actreportcolumngroup" class="java.lang.String"/>
+	<field name="current_status" class="java.lang.String"/>
+	<field name="current_status_datestart" class="java.sql.Timestamp"/>
+	<field name="valuekwt" class="java.math.BigDecimal"/>
+	<field name="sum_by_act" class="java.math.BigDecimal"/>
+	<field name="rpstatusname" class="java.lang.String"/>
+	<field name="current_status_datetill" class="java.sql.Timestamp"/>
+	<field name="liqname" class="java.lang.String"/>
+	<field name="addstatusname" class="java.lang.String"/>
+	<field name="actdate" class="java.lang.String"/>
+	<field name="act_diff" class="java.math.BigDecimal"/>
+	<field name="expired" class="java.lang.Integer"/>
+	<group name="renname">
+		<groupExpression><![CDATA[$F{renname}]]></groupExpression>
+		<groupHeader>
+			<band height="20">
+				<textField>
+					<reportElement style="expired" mode="Opaque" x="0" y="0" width="2487" height="20" backcolor="#CCCCCC"/>
+					<textElement>
+						<font size="12" isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{renname}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="0" y="0" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{actname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="150" y="0" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{to_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="210" y="0" width="230" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{to_fi}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="440" y="0" width="392" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{to_address}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="1660" y="0" width="290" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{theft_type_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="982" y="0" width="180" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{current_status}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="1162" y="0" width="120" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{current_status_datestart}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="1950" y="0" width="100" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{valuekwt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="2050" y="0" width="100" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{sum_by_act}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="1282" y="0" width="120" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{current_status_datetill}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="1402" y="0" width="158" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{rpstatusname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="1560" y="0" width="100" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{liqname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="832" y="0" width="150" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{actreportcolumngroup}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="2350" y="0" width="137" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{addstatusname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="70" y="0" width="80" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{actdate}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="expired" stretchType="RelativeToTallestObject" x="2150" y="0" width="200" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph leftIndent="5"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act_diff}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

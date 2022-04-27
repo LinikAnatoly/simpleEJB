@@ -1,0 +1,3507 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="rqOrderOborot" pageWidth="4000" pageHeight="595" orientation="Landscape" whenNoDataType="BlankPage" columnWidth="3940" leftMargin="30" rightMargin="30" topMargin="20" bottomMargin="20" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="2"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="838"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="startDate" class="java.lang.String">
+		<parameterDescription><![CDATA[startDate]]></parameterDescription>
+	</parameter>
+	<parameter name="endDate" class="java.lang.String">
+		<parameterDescription><![CDATA[endDate]]></parameterDescription>
+	</parameter>
+	<parameter name="materialGroupCode" class="java.lang.String">
+		<parameterDescription><![CDATA[materialGroupCode]]></parameterDescription>
+	</parameter>
+	<parameter name="contractNumber" class="java.lang.String">
+		<parameterDescription><![CDATA[contractNumber]]></parameterDescription>
+	</parameter>
+	<parameter name="budgCode" class="java.lang.String"/>
+	<parameter name="orderform" class="java.lang.String"/>
+	<parameter name="zayakind" class="java.lang.String"/>
+	<parameter name="ordertype" class="java.lang.String"/>
+	<parameter name="orderCode" class="java.lang.String"/>
+	<parameter name="renCode" class="java.lang.String"/>
+	<parameter name="elementCode" class="java.lang.String"/>
+	<parameter name="elementName" class="java.lang.String"/>
+	<parameter name="renName" class="java.lang.String"/>
+	<parameter name="viewmotion" class="java.lang.Integer"/>
+	<parameter name="IsComplete" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="planCode" class="java.lang.String"/>
+	<parameter name="strGroupmaterials" class="java.lang.String">
+		<defaultValueExpression><![CDATA[""]]></defaultValueExpression>
+	</parameter>
+	<parameter name="paccount" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("0")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="porgcode" class="java.lang.String"/>
+	<parameter name="orderitemstatus" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="ddscode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="orderstatus" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(2)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="fkorderstatus" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="responsiblesCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[код ответственного лица на заявке]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pstatusbill" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select
+* , (select group_concat( rb.fio||' '||rb.position ,',') from enresponsibles rb , rqorderitem ri
+where ri.code = oicode  and rb.code = ri.responsiblesrefcode  ) as responsibles
+,
+ (select
+	distinct string_agg( regexp_replace(pp.commentgen,Chr(10),'') , ' ; ' )
+from
+	enplanwork pp
+where pp.budgetrefcode <> 240000001
+	and pp.code in(
+		select
+			distinct ei.planrefcode
+		from
+			rqorderitem2enestimttm oi2ei,
+			enestimateitem ei
+		where
+			oi2ei.orderitemcode = oicode
+			and oi2ei.estimateitemcode = ei.code
+	)
+    ) as planсommentgen
+	, ( select * from net.get_purchase_name_by_purchaseitemcode((select RQORDERITEM.purchaseitemrefcode::integer from RQORDERITEM where RQORDERITEM.code = oicode )  ) ) as purchaseInfoByOrderItem
+from
+(
+select
+(select m.identid2010 from net.tkmaterials m where m.code = sm.code ) as identid2010 ,
+(select m.identid2015 from net.tkmaterials m where m.code = sm.code ) as identid2015 ,
+(select name from tkmaterials tm
+where tm.code in
+(select rootgrouprefcode
+from tkmaterials
+where code = sm.code)) as parent_material,
+case when es.kindrefcode = 2 then  sm.name||('(ПММ)') else sm.name end  as mname,
+ ei.name as meas,
+ sm.numkatalog ,
+ ord.numberdoc as order_number,
+ to_char(ord.orderperiod,'MM.yyyy') as order_period,
+ ord.countfact as order_countfact,
+ ord.pricewithoutnds as order_pricewithoutnds,
+ ord.sumwithoutnds as  sumwithoutnds,
+ case when ord.contractnumber = '' or ord.contractnumber is null then  (select oii.agreedocnum from rqorderitem oii where oii.code = ord.oicode )  else ord.contractnumber end  as contractnumber,
+ to_char(ord.planneddatedelivery,'dd.mm.yyyy') as planneddatedelivery,
+ ord.planneddatepays,
+ ord.oicode as oicode,
+ ord.budgetrefcode ,
+ to_char(ord.orderdategen,'dd.MM.yyyy') as order_dategen,
+
+ /*db.name as budname, *//*r.name as rname, ed.ename as ename,*/
+ tp.name as typename, kn.name as kindname,
+
+(select coalesce(count(distinct b2o.code),0)
+from rqbillitem2orderitem b2o
+where b2o.orderitemrefcode = ord.oicode) as bcount
+ ,
+  /*кол-во которое попало в счета */
+ coalesce((select sum(bb.countfact) from rqbillitem2orderitem bb where bb.orderitemrefcode=ord.oicode) ,0) as count_in_bills ,
+
+ /*количество строк для движения */
+(
+SELECT count(countfact) from (
+SELECT  rqfkorderitem2enstmttm.countgen as countfact
+from rqfkorderitem ii
+      left join rqfkorderitem2enstmttm
+         on ( rqfkorderitem2enstmttm.fkorderitemrefcode = ii.code
+              and coalesce(rqfkorderitem2enstmttm.countgen,0) <> 0 )
+, rqfkorder iord left join  findoc2fkorder ffkord on (iord.code = ffkord.fkorderrefcode)  , rqfkorderstatus
+
+where iord.code = ii.fkorderrefcode
+and iord.statuscode = rqfkorderstatus.code
+/*равно проведеным   23,11,2010 добавили  чек что бы выбирать все статусы 23.01.2012 */
+and (( rqfkorderstatus.code in (3,4,5) and $P{fkorderstatus} = 0 ) or ( 1=1 and $P{fkorderstatus} = 1))
+and iord.kindcode IN (1,15)
+and rqfkorderitem2enstmttm.estimateitemcode in ( select estimateitemcode from rqorderitem2enestimttm rrr where
+                                                                                 rrr.orderitemcode = ord.oicode
+                                                                         )
+
+ UNION
+
+SELECT  sum(rqfkorderitemremainder.countgen) as countfact
+       from rqfkorderitemremainder , rqfkorderitem , rqfkorder , rqfkorderstatus
+    where rqfkorderitemremainder.estimateitemrefcode in
+                                              ( select    estimateitemcode from rqorderitem2enestimttm rrr where
+                                                         rrr.orderitemcode = ord.oicode
+                                              )
+      and rqfkorderitemremainder.typerefcode = 2
+      and rqfkorderitemremainder.fkorderitemrefcode = rqfkorderitem.code
+      and rqfkorderitem.fkorderrefcode = rqfkorder.code
+      and rqfkorder.kindcode  IN (1,15)
+      and (( rqfkorder.statuscode in (3,4,5) and $P{fkorderstatus} = 0 ) or ( 1=1 and $P{fkorderstatus} = 1))
+      and rqfkorder.statuscode = rqfkorderstatus.code
+
+      ) selprihordercount
+) as countmotion
+
+,  ord.rqorgname
+, ord.contractdate ,
+  ord.ddscodetext,
+ ( select rqorderstatus.name from rqorder , rqorderitem , rqorderstatus
+   where rqorder.code = rqorderitem.orderrefcode
+     and rqorderitem.code = ord.oicode
+     and rqorderstatus.code = rqorder.statusrefcode limit 1  ) as rqorderstatus ,
+    (
+select
+totalcode
+from
+(select
+mainoi.code as TotalCode,
+/*Кол-во по заявке*/
+coalesce(mainoi.countfact,0) as OrderQty,
+/* Кол-во по счету - естимейты */
+coalesce((select
+Qty
+from
+(select
+Bills1.TotalCode as TotalCode,
+Sum(Bills1.Qty) as Qty
+from
+(select distinct
+oi.code as TotalCode,
+bies.code as biescode,
+coalesce(bies.countgen,0) as Qty
+from
+(enestimateitem as es
+left join
+(rqbillitem2enestimattm as bies
+left join
+rqbillitem as bi
+on
+bi.code = bies.billitemcode)
+on
+es.code = bies.estimateitemcode)
+left join
+(rqorderitem2enestimttm as oies
+left join
+rqorderitem as oi
+on
+oi.code = oies.orderitemcode
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+and  (oi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0) )
+on
+oies.estimateitemcode = es.code
+where oi.code = mainoi.code) as Bills1
+group by TotalCode) as Bills),0) as BIESQty,
+/* Количество по приходу - естимейты без остатков с типом 1 */
+coalesce((select
+Qty
+from
+(select
+FKOrders1.TotalCode,
+sum(FKOrders1.Qty+FKOrders1.ostQty) as Qty
+from
+(select distinct
+oi.code as TotalCode,
+fies.code as ficode,
+(coalesce(fies.countgen,0)) as Qty,
+(case when fir.fkorderitemrefcode = fi.code then coalesce(fir.countgen,0) else 0 end) as ostQty
+from
+((enestimateitem as es
+left join
+rqfkorderitemremainder as fir
+on
+fir.estimateitemrefcode = es.code)
+left join
+(rqfkorderitem2enstmttm as fies
+left join
+(rqfkorderitem as fi
+left join
+rqfkorder as fo
+on
+fo.code = fi.fkorderrefcode and fo.statuscode in (3,4,5)  )
+on
+fi.code = fies.fkorderitemrefcode)
+on
+es.code = fies.estimateitemcode)
+left join
+(rqorderitem2enestimttm as oies
+left join
+rqorderitem as oi on oi.code = oies.orderitemcode
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+and  (oi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0)) on oies.estimateitemcode = es.code
+where oi.code = mainoi.code
+and fo.statuscode <> 1
+and fo.kindcode = 1) as FKOrders1
+group by TotalCode) as FKOrders),0) as FIESQty,
+/* Проверка есть ли на эту строку остаток типа 1 */
+(select
+TotalCode from
+(select distinct
+oi.code as TotalCode
+from
+(enestimateitem as es
+left join
+(rqfkorderitem2enstmttm as fies
+left join
+((rqfkorderitem as fi
+left join
+rqfkorderitemremainder as fir
+on
+fir.fkorderitemrefcode = fi.code)
+left join
+rqfkorder as fo
+on
+fo.code = fi.fkorderrefcode and fo.statuscode in (3,4,5) )
+on
+fi.code = fies.fkorderitemrefcode)
+on
+es.code = fies.estimateitemcode)
+left join
+(rqorderitem2enestimttm as oies
+left join
+rqorderitem as oi on oi.code = oies.orderitemcode
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+and  (oi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0) ) on oies.estimateitemcode = es.code
+where oi.code = mainoi.code
+and fo.statuscode <> 1
+and fo.kindcode = 1
+and fir.typerefcode = 1) as FKOrders1) as IsThereTypeOne,
+/* Сумма строк прихода где есть тип 1 */
+coalesce((select
+sum(FIQty)
+from
+(select distinct
+oi.code as TotalCode,
+fi.countgen as FIQty
+from
+(enestimateitem as es
+left join
+(rqfkorderitem2enstmttm as fies
+left join
+((rqfkorderitem as fi
+left join
+rqfkorderitemremainder as fir
+on
+fir.fkorderitemrefcode = fi.code)
+left join
+rqfkorder as fo
+on
+fo.code = fi.fkorderrefcode and fo.statuscode in (3,4,5)  )
+on
+fi.code = fies.fkorderitemrefcode)
+on
+es.code = fies.estimateitemcode)
+left join
+(rqorderitem2enestimttm as oies
+left join
+rqorderitem as oi on oi.code = oies.orderitemcode
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+and  (oi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0) ) on oies.estimateitemcode = es.code
+where oi.code = mainoi.code
+and fo.statuscode <> 1
+and fo.kindcode = 1) as FKOrders1
+group by TotalCode),0) as FIQty,
+/* Сумма строк по счету для сравнения с суммой строк прихода где есть остатки типа 1 */
+coalesce((select
+Qty
+from
+(select
+Bills1.TotalCode as TotalCode,
+Sum(Bills1.Qty) as Qty
+from
+(select distinct
+oi.code as TotalCode,
+bi.code as Bicode,
+bi.countfact as Qty
+from
+(enestimateitem as es
+left join
+(rqbillitem2enestimattm as bies
+left join
+rqbillitem as bi
+on
+bi.code = bies.billitemcode)
+on
+es.code = bies.estimateitemcode)
+left join
+(rqorderitem2enestimttm as oies
+left join
+rqorderitem as oi
+on
+oi.code = oies.orderitemcode
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+and  (oi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0) )
+on
+oies.estimateitemcode = es.code
+where oi.code = mainoi.code) as Bills1
+group by TotalCode) as Bills),0) as BIQty
+from
+rqorderitem as mainoi
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+Where  (mainoi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0) ) as IncompleteDelivery
+where
+IncompleteDelivery.Totalcode = oicode
+and
+case when $P{IsComplete} > 3  then BIESQty is not null else 0=0 end
+and
+case
+when $P{IsComplete} = 0
+then 0 = 0
+when $P{IsComplete} = 1
+then
+   case
+       when IsThereTypeOne is not null
+       then round(cast(OrderQty as decimal),3) > round(cast(coalesce(FIQty,0) as decimal),3)
+       else round(cast(OrderQty as decimal),3) > round(cast(coalesce(FIESQty,0) as decimal),3)
+   end
+when $P{IsComplete} = 2
+then
+   case
+       when IsThereTypeOne is not null
+       then round(cast(OrderQty as decimal),3) < round(cast(coalesce(FIQty,0) as decimal),3)
+       else round(cast(OrderQty as decimal),3) < round(cast(coalesce(FIESQty,0) as decimal),3)
+   end
+when $P{IsComplete} = 3
+then
+   case
+       when IsThereTypeOne is not null
+       then round(cast(OrderQty as decimal),3) < round(cast(coalesce(FIQty,0) as decimal),3)
+           or round(cast(OrderQty as decimal),3) > round(cast(coalesce(FIQty,0) as decimal),3)
+       else round(cast(OrderQty as decimal),3) < round(cast(coalesce(FIESQty,0) as decimal),3)
+           or round(cast(OrderQty as decimal),3) > round(cast(coalesce(FIESQty,0) as decimal),3)
+   end
+when $P{IsComplete} = 4
+then
+   case
+       when IsThereTypeOne is not null
+       then round(cast(BIQty as decimal),3) > round(cast(coalesce(FIQty,0) as decimal),3)
+       else round(cast(BIESQty as decimal),3) > round(cast(coalesce(FIESQty,0) as decimal),3)
+   end
+when $P{IsComplete} = 5
+then
+   case
+       when IsThereTypeOne is not null
+       then round(cast(BIQty as decimal),3) < round(cast(coalesce(FIQty,0) as decimal),3)
+       else round(cast(BIESQty as decimal),3) < round(cast(coalesce(FIESQty,0) as decimal),3)
+   end
+when $P{IsComplete} = 6
+then
+   case
+       when IsThereTypeOne is not null
+       then round(cast(BIQty as decimal),3) < round(cast(coalesce(FIQty,0) as decimal),3)
+           or round(cast(BIQty as decimal),3) > round(cast(coalesce(FIQty,0) as decimal),3)
+       else round(cast(BIESQty as decimal),3) < round(cast(coalesce(FIESQty,0) as decimal),3)
+           or round(cast(BIESQty as decimal),3) > round(cast(coalesce(FIESQty,0) as decimal),3)
+   end
+end
+) as priznak
+,
+/*анализ условия по счетам ( все 0 ,  невыставленные 1 , выставленые 2 , выставлен и неоплачен 3, выставлен и  оплачен 4 )  */
+( select
+case when $P!{paccount} = 0  then 1 /*показываем все строки невзирая на счета  */
+     when $P!{paccount} = 1 then   /*показываем строки с невыставлеными счетами*/
+       case when (select coalesce( code ,0 )  from rqbillitem2orderitem rqb2ordit
+                   where rqb2ordit.orderitemrefcode =  ord.oicode
+                   limit 1 ) > 0 then 0 else 1 end
+     when $P!{paccount} = 2 then   /*показываем строки с выставлеными счетами*/
+       case when (select coalesce( code ,0 )  from rqbillitem2orderitem rqb2ordit
+                   where rqb2ordit.orderitemrefcode =  ord.oicode
+                   limit 1 ) > 0 then 1 else 0 end
+     when (($P!{paccount} = 3) or ($P{pstatusbill} = 0 )) then /*16.10.2014 pstatusbill c нулем значиттоже самое что показывать неоплач строки*/  /*показываем строки с выставлеными счетами и неоплачеными*/
+       case when  (select coalesce( code ,0 )  from rqbillitem2orderitem rqb2ordit
+                    where rqb2ordit.orderitemrefcode =  ord.oicode
+                    limit 1 ) > 0
+               and coalesce(( /*select coalesce(sum(rqp2bilit.summafact),0) from rqpaydocitem2billitem rqp2bilit
+  where rqp2bilit.billitemcode in (select rqb2ordit.billitemrefcode from rqbillitem2orderitem rqb2ordit
+                                    where rqb2ordit.orderitemrefcode =  ord.oicode  )*/
+                    select coalesce(bi.staterefcode,0) from rqbillitem2orderitem bi2oi , rqbillitem bi
+                             where bi2oi.orderitemrefcode = ord.oicode
+                             and bi2oi.billitemrefcode = bi.code
+                             and bi.staterefcode = 1
+                             limit 1
+                    ),0) <> 1   then 1 else 0 end
+     when $P!{paccount} = 4 then   /*показываем строки с выставлеными счетами и оплачеными*/
+       case when  (select coalesce( code ,0 )  from rqbillitem2orderitem rqb2ordit
+                    where rqb2ordit.orderitemrefcode =  ord.oicode
+                    limit 1 ) > 0
+               and ( select coalesce(sum(rqp2bilit.summafact),0) from rqpaydocitem2billitem rqp2bilit
+  where rqp2bilit.billitemcode in (select rqb2ordit.billitemrefcode from rqbillitem2orderitem rqb2ordit
+                                    where rqb2ordit.orderitemrefcode =  ord.oicode  )
+                    ) > 0     then 1 else 0 end
+
+end /*если все счета */
+
+) as priznak_account
+ from
+tkmeasurement ei,
+tkmaterials sm,
+enestimateitem es left join
+(select rqddscodes.txtcode as ddscodetext,  rqorg.name as rqorgname , rqorg.id as rqorgcode ,   o2e.estimateitemcode, ro.code, ro.numberdoc, ro.orderperiod,
+roi.countfact, roi.pricewithoutnds, ro.dategen  as orderdategen ,
+ roi.sumwithoutnds, roi.planneddatepays, roi.planneddatedelivery, roi.findocid, roi.contractnumber,
+ ro.rqorderformcode, ro.kindrefcode, ro.rqordertypecode, roi.code as oicode ,  roi.contractdate , ro.budgetrefcode
+from rqorderitem2enestimttm o2e, rqorderitem roi left join rqorg on (roi.orgcode = rqorg.code )
+                                                 left join rqddscodes on (roi.ddscodescode = rqddscodes.code)
+                                                 left join enresponsibles on (roi.responsiblesrefcode = enresponsibles.code)
+                                                 , rqorder ro
+where o2e.orderitemcode = roi.code
+and ro.code = roi.orderrefcode
+
+/*статус заявки по умолчанию только "в работе ОМТС" , если угодно то берем еще и "попереді" */
+and  (
+      ( ro.statusrefcode = 2 and $P{orderstatus} = 2  ) /* только в работе ОМТС */
+    or
+      ( ro.statusrefcode in(2,3) and $P{orderstatus}  = 23  ) /*в работе ОМТС и попередні*/
+    )
+
+and ( rqddscodes.code = $P{ddscode} or $P{ddscode}  = 0 )
+
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+and  (roi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0)
+/* ответственное лицо */
+and ( enresponsibles.code = $P{responsiblesCode} or $P{responsiblesCode}  = 0 )
+) as ord on ord.estimateitemcode = es.code
+
+
+,rqordertype tp, rqorderkind kn
+,enplanwork p, enelementdata ed
+,endepartment db, endepartment r
+where p.code = es.planrefcode
+and p.elementrefcode = ed.ecode
+and p.budgetrefcode = db.code
+and p.departmentrefcode = r.code
+and es.materialrefcode = sm.code
+and ei.code = sm.measurementcode
+and es.countfact <> 0
+and (( es.kindrefcode  = 1  AND 1 = 1 ) OR
+     ( es.kindrefcode  In (1,2) AND 1  = 2 ))
+
+and ord.kindrefcode = kn.code
+and ord.rqordertypecode = tp.code
+
+
+/*and db.code = 75000016
+and ord.code = 500000494*/
+
+/*and sm.code = 500000486*/
+
+/*and ord.code = 500000423*/
+
+/* типы заявок */
+/* ХОЕ планова = 4 , ХОЕ позапланова = 5 */
+and  (ord.kindrefcode = $P!{orderform} or $P!{orderform} = 0)
+/*1 - бюджетна заявка , 2 - инвестпрограмма*/
+and  (ord.rqordertypecode = $P!{ordertype} or $P!{ordertype} = 0)
+
+/* SUPP-91442 выборка строк заявок по периоду плановых закупок  */
+and ord.oicode in
+( SELECT DISTINCT oi2ei.orderitemcode from rqplanpurchase pl , rqpurchaseitem pli , rqpurchaseitem2estmttm pli2ei , rqorderitem2enestimttm oi2ei
+	where pl.dateadd between to_date($P{startDate},'dd.MM.yyyy') and to_date($P{endDate},'dd.MM.yyyy')
+	and pl.code = pli.purchaserefcode
+	and pli.code = pli2ei.purchaseitemrefcode
+	and pli2ei.estimateitemrefcode=oi2ei.estimateitemcode
+)
+
+/* группа материалов */
+and sm.code in
+(select tm.code from tkmaterials tm
+where $P!{strGroupmaterials})
+
+/* номер договора */
+and (ord.findocid = $P!{contractNumber} or $P!{contractNumber} = 0)
+
+/* бюджетодержатель */
+and (db.code = $P!{budgCode} or $P!{budgCode} = 0)
+
+/* подразделение */
+and (r.code = $P!{renCode} or $P!{renCode} = 0)
+
+/* заявка */
+and (ord.code = $P!{orderCode} or $P!{orderCode} = 0)
+
+/* объект планирования */
+and (ed.ecode = $P!{elementCode} or $P!{elementCode} = 0)
+
+/*План */
+and (p.code = $P!{planCode} or $P!{planCode} = 0)
+
+/*постачальник */
+ and (ord.rqorgcode = $P!{porgcode} or  $P!{porgcode} = 0 )
+
+
+group by sm.code ,  (select name from tkmaterials tm
+where tm.code in
+(select rootgrouprefcode
+from tkmaterials
+where code = sm.code)),
+case when es.kindrefcode = 2 then  sm.name||('(ПММ)') else sm.name end,
+ ei.name,
+ sm.numkatalog ,
+ ord.numberdoc, ord.orderperiod,
+ ord.pricewithoutnds,
+ ord.countfact, ord.sumwithoutnds,
+ ord.planneddatedelivery, ord.planneddatepays,
+ ord.oicode,
+ ord.contractnumber, /*db.name, */ /*r.name, ed.ename,*/ tp.name, kn.name ,
+ ord.rqorgname ,
+ ord.contractdate ,
+ ord.ddscodetext ,
+ ord.budgetrefcode ,
+ ord.orderdategen
+
+order by  (select name from tkmaterials tm
+where tm.code in
+(select rootgrouprefcode
+from tkmaterials
+where code = sm.code)),
+case when es.kindrefcode = 2 then  sm.name||('(ПММ)') else sm.name end, ei.name
+) as q
+where
+q.priznak is not null
+and q.priznak_account = 1
+and q.bcount <> 0  /* сразу выбираются строки, на которые есть счета */
+
+union all
+
+select
+* , (select group_concat( rb.fio||' '||rb.position ,',') from enresponsibles rb , rqorderitem ri  where ri.code = oicode  and rb.code = ri.responsiblesrefcode  ) as responsibles
+,  (select
+	distinct string_agg( regexp_replace(pp.commentgen,Chr(10),'') , ' ; ' )
+from
+	enplanwork pp
+where pp.budgetrefcode <> 240000001
+	and pp.code in(
+		select
+			distinct ei.planrefcode
+		from
+			rqorderitem2enestimttm oi2ei,
+			enestimateitem ei
+		where
+			oi2ei.orderitemcode = oicode
+			and oi2ei.estimateitemcode = ei.code
+	)
+    ) as planсommentgen
+	, ( select * from net.get_purchase_name_by_purchaseitemcode((select RQORDERITEM.purchaseitemrefcode::integer from RQORDERITEM where RQORDERITEM.code = oicode )  ) ) as purchaseInfoByOrderItem
+from
+(
+select
+(select m.identid2010 from net.tkmaterials m where m.code = sm.code ) as identid2010 ,
+(select m.identid2015 from net.tkmaterials m where m.code = sm.code ) as identid2015 ,
+(select name from tkmaterials tm
+where tm.code in
+(select rootgrouprefcode
+from tkmaterials
+where code = sm.code)) as parent_material,
+case when es.kindrefcode = 2 then  sm.name||('(ПММ)') else sm.name end  as mname,
+ ei.name as meas,
+ sm.numkatalog ,
+ ord.numberdoc as order_number,
+ to_char(ord.orderperiod,'MM.yyyy') as order_period,
+ ord.countfact as order_countfact,
+ ord.pricewithoutnds as order_pricewithoutnds,
+ ord.sumwithoutnds as  sumwithoutnds,
+ case when ord.contractnumber = '' or ord.contractnumber is null then  (select oii.agreedocnum from rqorderitem oii where oii.code = ord.oicode )  else ord.contractnumber end  as contractnumber,
+ to_char(ord.planneddatedelivery,'dd.mm.yyyy') as planneddatedelivery,
+ ord.planneddatepays,
+ ord.oicode as oicode,
+ ord.budgetrefcode ,
+ to_char(ord.orderdategen,'dd.MM.yyyy') as order_dategen,
+
+ /*db.name as budname, *//*r.name as rname, ed.ename as ename,*/
+ tp.name as typename, kn.name as kindname,
+
+(select coalesce(count(distinct b2o.code),0)
+from rqbillitem2orderitem b2o
+where b2o.orderitemrefcode = ord.oicode) as bcount
+ ,
+ /*кол-во которое попало в счета */
+ coalesce((select sum(bb.countfact) from rqbillitem2orderitem bb where bb.orderitemrefcode=ord.oicode) ,0) as count_in_bills ,
+
+ /*количество строк для движения */
+(
+SELECT count(countfact) from (
+SELECT  rqfkorderitem2enstmttm.countgen as countfact
+from rqfkorderitem ii
+      left join rqfkorderitem2enstmttm
+         on ( rqfkorderitem2enstmttm.fkorderitemrefcode = ii.code
+              and coalesce(rqfkorderitem2enstmttm.countgen,0) <> 0 )
+, rqfkorder iord left join  findoc2fkorder ffkord on (iord.code = ffkord.fkorderrefcode)  , rqfkorderstatus
+
+where iord.code = ii.fkorderrefcode
+and iord.statuscode = rqfkorderstatus.code
+/*равно проведеным   23,11,2010 добавили  чек что бы выбирать все статусы 23.01.2012 */
+and (( rqfkorderstatus.code in (3,4,5) and $P{fkorderstatus} = 0 ) or ( 1=1 and $P{fkorderstatus} = 1))
+and iord.kindcode IN (1,15)
+and rqfkorderitem2enstmttm.estimateitemcode in ( select estimateitemcode from rqorderitem2enestimttm rrr where
+                                                                                 rrr.orderitemcode = ord.oicode
+                                                                         )
+
+ UNION
+
+SELECT  sum(rqfkorderitemremainder.countgen) as countfact
+       from rqfkorderitemremainder , rqfkorderitem , rqfkorder , rqfkorderstatus
+    where rqfkorderitemremainder.estimateitemrefcode in
+                                              ( select    estimateitemcode from rqorderitem2enestimttm rrr where
+                                                         rrr.orderitemcode = ord.oicode
+                                              )
+      and rqfkorderitemremainder.typerefcode = 2
+      and rqfkorderitemremainder.fkorderitemrefcode = rqfkorderitem.code
+      and rqfkorderitem.fkorderrefcode = rqfkorder.code
+      and rqfkorder.kindcode IN (1,15)
+     /*равно проведеным   23,11,2010 добавили  чек что бы выбирать все статусы 23.01.2012 */
+      and (( rqfkorder.statuscode in (3,4,5) and $P{fkorderstatus} = 0 ) or ( 1=1 and $P{fkorderstatus} = 1))
+      and rqfkorder.statuscode = rqfkorderstatus.code
+
+      ) selprihordercount
+) as countmotion
+
+,  ord.rqorgname
+, ord.contractdate ,
+  ord.ddscodetext,
+ ( select rqorderstatus.name from rqorder , rqorderitem , rqorderstatus
+   where rqorder.code = rqorderitem.orderrefcode
+     and rqorderitem.code = ord.oicode
+     and rqorderstatus.code = rqorder.statusrefcode limit 1  ) as rqorderstatus ,
+    (
+select
+totalcode
+from
+(select
+mainoi.code as TotalCode,
+/*Кол-во по заявке*/
+coalesce(mainoi.countfact,0) as OrderQty,
+/* Кол-во по счету - естимейты */
+coalesce((select
+Qty
+from
+(select
+Bills1.TotalCode as TotalCode,
+Sum(Bills1.Qty) as Qty
+from
+(select distinct
+oi.code as TotalCode,
+bies.code as biescode,
+coalesce(bies.countgen,0) as Qty
+from
+(enestimateitem as es
+left join
+(rqbillitem2enestimattm as bies
+left join
+rqbillitem as bi
+on
+bi.code = bies.billitemcode)
+on
+es.code = bies.estimateitemcode)
+left join
+(rqorderitem2enestimttm as oies
+left join
+rqorderitem as oi
+on
+oi.code = oies.orderitemcode
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+and  (oi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0))
+on
+oies.estimateitemcode = es.code
+where oi.code = mainoi.code) as Bills1
+group by TotalCode) as Bills),0) as BIESQty,
+/* Количество по приходу - естимейты без остатков с типом 1 */
+coalesce((select
+Qty
+from
+(select
+FKOrders1.TotalCode,
+sum(FKOrders1.Qty+FKOrders1.ostQty) as Qty
+from
+(select distinct
+oi.code as TotalCode,
+fies.code as ficode,
+(coalesce(fies.countgen,0)) as Qty,
+(case when fir.fkorderitemrefcode = fi.code then coalesce(fir.countgen,0) else 0 end) as ostQty
+from
+((enestimateitem as es
+left join
+rqfkorderitemremainder as fir
+on
+fir.estimateitemrefcode = es.code)
+left join
+(rqfkorderitem2enstmttm as fies
+left join
+(rqfkorderitem as fi
+left join
+rqfkorder as fo
+on
+fo.code = fi.fkorderrefcode and fo.statuscode in (3,4,5)  )
+on
+fi.code = fies.fkorderitemrefcode)
+on
+es.code = fies.estimateitemcode)
+left join
+(rqorderitem2enestimttm as oies
+left join
+rqorderitem as oi on oi.code = oies.orderitemcode
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+and  (oi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0) ) on oies.estimateitemcode = es.code
+where oi.code = mainoi.code
+and fo.statuscode <> 1
+and fo.kindcode = 1) as FKOrders1
+group by TotalCode) as FKOrders),0) as FIESQty,
+/* Проверка есть ли на эту строку остаток типа 1 */
+(select
+TotalCode from
+(select distinct
+oi.code as TotalCode
+from
+(enestimateitem as es
+left join
+(rqfkorderitem2enstmttm as fies
+left join
+((rqfkorderitem as fi
+left join
+rqfkorderitemremainder as fir
+on
+fir.fkorderitemrefcode = fi.code)
+left join
+rqfkorder as fo
+on
+fo.code = fi.fkorderrefcode and fo.statuscode in (3,4,5) )
+on
+fi.code = fies.fkorderitemrefcode)
+on
+es.code = fies.estimateitemcode)
+left join
+(rqorderitem2enestimttm as oies
+left join
+rqorderitem as oi on oi.code = oies.orderitemcode
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+and  (oi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0) ) on oies.estimateitemcode = es.code
+where oi.code = mainoi.code
+and fo.statuscode <> 1
+and fo.kindcode = 1
+and fir.typerefcode = 1) as FKOrders1) as IsThereTypeOne,
+/* Сумма строк прихода где есть тип 1 */
+coalesce((select
+sum(FIQty)
+from
+(select distinct
+oi.code as TotalCode,
+fi.countgen as FIQty
+from
+(enestimateitem as es
+left join
+(rqfkorderitem2enstmttm as fies
+left join
+((rqfkorderitem as fi
+left join
+rqfkorderitemremainder as fir
+on
+fir.fkorderitemrefcode = fi.code)
+left join
+rqfkorder as fo
+on
+fo.code = fi.fkorderrefcode and fo.statuscode in (3,4,5)  )
+on
+fi.code = fies.fkorderitemrefcode)
+on
+es.code = fies.estimateitemcode)
+left join
+(rqorderitem2enestimttm as oies
+left join
+rqorderitem as oi on oi.code = oies.orderitemcode
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+and  (oi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0) ) on oies.estimateitemcode = es.code
+where oi.code = mainoi.code
+and fo.statuscode <> 1
+and fo.kindcode = 1) as FKOrders1
+group by TotalCode),0) as FIQty,
+/* Сумма строк по счету для сравнения с суммой строк прихода где есть остатки типа 1 */
+coalesce((select
+Qty
+from
+(select
+Bills1.TotalCode as TotalCode,
+Sum(Bills1.Qty) as Qty
+from
+(select distinct
+oi.code as TotalCode,
+bi.code as Bicode,
+bi.countfact as Qty
+from
+(enestimateitem as es
+left join
+(rqbillitem2enestimattm as bies
+left join
+rqbillitem as bi
+on
+bi.code = bies.billitemcode)
+on
+es.code = bies.estimateitemcode)
+left join
+(rqorderitem2enestimttm as oies
+left join
+rqorderitem as oi
+on
+oi.code = oies.orderitemcode
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+and  (oi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0))
+on
+oies.estimateitemcode = es.code
+where oi.code = mainoi.code) as Bills1
+group by TotalCode) as Bills),0) as BIQty
+from
+rqorderitem as mainoi
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+where  (mainoi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0) ) as IncompleteDelivery
+where
+IncompleteDelivery.Totalcode = oicode
+and
+case when $P{IsComplete} > 3  then BIESQty is not null else 0=0 end
+and
+case
+when $P{IsComplete} = 0
+then 0 = 0
+when $P{IsComplete} = 1
+then
+   case
+       when IsThereTypeOne is not null
+       then round(cast(OrderQty as decimal),3) > round(cast(coalesce(FIQty,0) as decimal),3)
+       else round(cast(OrderQty as decimal),3) > round(cast(coalesce(FIESQty,0) as decimal),3)
+   end
+when $P{IsComplete} = 2
+then
+   case
+       when IsThereTypeOne is not null
+       then round(cast(OrderQty as decimal),3) < round(cast(coalesce(FIQty,0) as decimal),3)
+       else round(cast(OrderQty as decimal),3) < round(cast(coalesce(FIESQty,0) as decimal),3)
+   end
+when $P{IsComplete} = 3
+then
+   case
+       when IsThereTypeOne is not null
+       then round(cast(OrderQty as decimal),3) < round(cast(coalesce(FIQty,0) as decimal),3)
+           or round(cast(OrderQty as decimal),3) > round(cast(coalesce(FIQty,0) as decimal),3)
+       else round(cast(OrderQty as decimal),3) < round(cast(coalesce(FIESQty,0) as decimal),3)
+           or round(cast(OrderQty as decimal),3) > round(cast(coalesce(FIESQty,0) as decimal),3)
+   end
+when $P{IsComplete} = 4
+then
+   case
+       when IsThereTypeOne is not null
+       then round(cast(BIQty as decimal),3) > round(cast(coalesce(FIQty,0) as decimal),3)
+       else round(cast(BIESQty as decimal),3) > round(cast(coalesce(FIESQty,0) as decimal),3)
+   end
+when $P{IsComplete} = 5
+then
+   case
+       when IsThereTypeOne is not null
+       then round(cast(BIQty as decimal),3) < round(cast(coalesce(FIQty,0) as decimal),3)
+       else round(cast(BIESQty as decimal),3) < round(cast(coalesce(FIESQty,0) as decimal),3)
+   end
+when $P{IsComplete} = 6
+then
+   case
+       when IsThereTypeOne is not null
+       then round(cast(BIQty as decimal),3) < round(cast(coalesce(FIQty,0) as decimal),3)
+           or round(cast(BIQty as decimal),3) > round(cast(coalesce(FIQty,0) as decimal),3)
+       else round(cast(BIESQty as decimal),3) < round(cast(coalesce(FIESQty,0) as decimal),3)
+           or round(cast(BIESQty as decimal),3) > round(cast(coalesce(FIESQty,0) as decimal),3)
+   end
+end
+) as priznak
+,
+/*анализ условия по счетам ( все 0 ,  невыставленные 1 , выставленые 2 , выставлен и неоплачен 3, выставлен и  оплачен 4 )  */
+( select
+case when $P!{paccount} = 0 then 1 /*показываем все строки невзирая на счета  */
+     when $P!{paccount} = 1 then   /*показываем строки с невыставлеными счетами*/
+       case when (select coalesce( code ,0 )  from rqbillitem2orderitem rqb2ordit
+                   where rqb2ordit.orderitemrefcode =  ord.oicode
+                   limit 1 ) > 0 then 0 else 1 end
+     when $P!{paccount} = 2 then   /*показываем строки с выставлеными счетами*/
+       case when (select coalesce( code ,0 )  from rqbillitem2orderitem rqb2ordit
+                   where rqb2ordit.orderitemrefcode =  ord.oicode
+                   limit 1 ) > 0 then 1 else 0 end
+     when (($P!{paccount} = 3) or ($P{pstatusbill} = 0 )) then /*16.10.2014 pstatusbill c нулем значиттоже самое что показывать неоплач строки*/  /*показываем строки с выставлеными счетами и неоплачеными*/
+       case when  (select coalesce( code ,0 )  from rqbillitem2orderitem rqb2ordit
+                    where rqb2ordit.orderitemrefcode =  ord.oicode
+                    limit 1 ) > 0
+               and coalesce(( /*select coalesce(sum(rqp2bilit.summafact),0) from rqpaydocitem2billitem rqp2bilit
+  where rqp2bilit.billitemcode in (select rqb2ordit.billitemrefcode from rqbillitem2orderitem rqb2ordit
+                                    where rqb2ordit.orderitemrefcode =  ord.oicode  )*/
+                    select coalesce(bi.staterefcode,0) from rqbillitem2orderitem bi2oi , rqbillitem bi
+                             where bi2oi.orderitemrefcode = ord.oicode
+                             and bi2oi.billitemrefcode = bi.code
+                             and bi.staterefcode = 1
+                             limit 1
+                    ),0) <> 1   then 1 else 0 end
+     when $P!{paccount} = 4 then   /*показываем строки с выставлеными счетами и оплачеными*/
+       case when  (select coalesce( code ,0 )  from rqbillitem2orderitem rqb2ordit
+                    where rqb2ordit.orderitemrefcode =  ord.oicode
+                    limit 1 ) > 0
+               and ( select coalesce(sum(rqp2bilit.summafact),0) from rqpaydocitem2billitem rqp2bilit
+  where rqp2bilit.billitemcode in (select rqb2ordit.billitemrefcode from rqbillitem2orderitem rqb2ordit
+                                    where rqb2ordit.orderitemrefcode =  ord.oicode  )
+                    ) > 0     then 1 else 0 end
+
+end /*если все счета */
+
+) as priznak_account
+ from
+tkmeasurement ei,
+tkmaterials sm,
+enestimateitem es left join
+(select rqddscodes.txtcode as ddscodetext,  rqorg.name as rqorgname , rqorg.id as rqorgcode ,   o2e.estimateitemcode, ro.code, ro.numberdoc, ro.orderperiod,
+roi.countfact, roi.pricewithoutnds, ro.dategen  as orderdategen ,
+ roi.sumwithoutnds, roi.planneddatepays, roi.planneddatedelivery, roi.findocid, roi.contractnumber,
+ ro.rqorderformcode, ro.kindrefcode, ro.rqordertypecode, roi.code as oicode ,  roi.contractdate , ro.budgetrefcode
+from rqorderitem2enestimttm o2e, rqorderitem roi left join rqorg on (roi.orgcode = rqorg.code )
+                                                 left join rqddscodes on (roi.ddscodescode = rqddscodes.code)
+                                                 left join enresponsibles on (roi.responsiblesrefcode = enresponsibles.code)
+                                                 , rqorder ro
+where o2e.orderitemcode = roi.code
+and ro.code = roi.orderrefcode
+/*статус заявки по умолчанию только "в работе ОМТС" , если угодно то берем еще и "попереді" */
+and  (
+      ( ro.statusrefcode = 2 and $P{orderstatus} = 2  ) /* только в работе ОМТС */
+    or
+      ( ro.statusrefcode in(2,3) and $P{orderstatus}  = 23  ) /*в работе ОМТС и попередні*/
+    )
+and ( rqddscodes.code = $P{ddscode} or $P{ddscode}  = 0 )
+
+/* 1  - показывать только необходимые строки заявки  , 0 - показывать необходимые строки и те которые утратили необходимость*/
+and  (roi.statusrefcode = $P!{orderitemstatus} or $P!{orderitemstatus} = 0)
+/* ответственное лицо */
+and ( enresponsibles.code = $P{responsiblesCode} or $P{responsiblesCode}  = 0 )
+
+) as ord on ord.estimateitemcode = es.code
+
+
+,rqordertype tp, rqorderkind kn
+,enplanwork p, enelementdata ed
+,endepartment db, endepartment r
+where p.code = es.planrefcode
+and p.elementrefcode = ed.ecode
+and p.budgetrefcode = db.code
+and p.departmentrefcode = r.code
+and es.materialrefcode = sm.code
+and ei.code = sm.measurementcode
+and es.countfact <> 0
+and (( es.kindrefcode  = 1  AND 1 = 1 ) OR
+     ( es.kindrefcode  In (1,2) AND 1  = 2 ))
+
+and ord.kindrefcode = kn.code
+and ord.rqordertypecode = tp.code
+
+
+/*and db.code = 75000016
+and ord.code = 500000494*/
+
+/*and sm.code = 500000486*/
+
+/*and ord.code = 500000423*/
+
+/* типы заявок */
+/* ХОЕ планова = 4 , ХОЕ позапланова = 5 */
+and  (ord.kindrefcode = $P!{orderform} or $P!{orderform} = 0)
+/*1 - бюджетна заявка , 2 - инвестпрограмма*/
+and  (ord.rqordertypecode = $P!{ordertype} or $P!{ordertype} = 0)
+
+/* SUPP-91442 выборка строк заявок по периоду плановых закупок  */
+and ord.oicode in
+( SELECT DISTINCT oi2ei.orderitemcode from rqplanpurchase pl , rqpurchaseitem pli , rqpurchaseitem2estmttm pli2ei , rqorderitem2enestimttm oi2ei
+		where pl.dateadd between to_date($P{startDate},'dd.MM.yyyy') and to_date($P{endDate},'dd.MM.yyyy')
+		and pl.code = pli.purchaserefcode
+		and pli.code = pli2ei.purchaseitemrefcode
+		and pli2ei.estimateitemrefcode=oi2ei.estimateitemcode
+)
+
+/* группа материалов */
+and sm.code in
+(select tm.code from tkmaterials tm
+where $P!{strGroupmaterials})
+
+/* номер договора */
+and (ord.findocid = $P!{contractNumber} or $P!{contractNumber} = 0)
+
+/* бюджетодержатель */
+and (db.code = $P!{budgCode} or $P!{budgCode} = 0)
+
+/* подразделение */
+and (r.code = $P!{renCode} or $P!{renCode} = 0)
+
+/* заявка */
+and (ord.code = $P!{orderCode} or $P!{orderCode} = 0)
+
+/* объект планирования */
+and (ed.ecode = $P!{elementCode} or $P!{elementCode} = 0)
+
+/*План */
+and (p.code = $P!{planCode} or $P!{planCode} = 0)
+
+/*постачальник */
+ and (ord.rqorgcode = $P!{porgcode} or  $P!{porgcode} = 0 )
+
+
+group by sm.code ,  (select name from tkmaterials tm
+where tm.code in
+(select rootgrouprefcode
+from tkmaterials
+where code = sm.code)),
+case when es.kindrefcode = 2 then  sm.name||('(ПММ)') else sm.name end,
+ ei.name,
+ sm.numkatalog ,
+  ord.numberdoc, ord.orderperiod,
+ ord.pricewithoutnds,
+ ord.countfact, ord.sumwithoutnds,
+ ord.planneddatedelivery, ord.planneddatepays,
+ ord.oicode,
+ ord.contractnumber, /*db.name, */ /*r.name, ed.ename,*/ tp.name, kn.name ,
+ ord.rqorgname ,
+ ord.contractdate ,
+ ord.ddscodetext ,
+ ord.budgetrefcode ,
+ ord.orderdategen
+
+order by  (select name from tkmaterials tm
+where tm.code in
+(select rootgrouprefcode
+from tkmaterials
+where code = sm.code)),
+case when es.kindrefcode = 2 then  sm.name||('(ПММ)') else sm.name end, ei.name
+) as q
+where
+q.priznak is not null
+and q.priznak_account = 1
+and q.bcount = 0  /* без счетов */
+order by contractnumber , contractdate  , order_number]]>
+	</queryString>
+	<field name="parent_material" class="java.lang.String"/>
+	<field name="mname" class="java.lang.String"/>
+	<field name="meas" class="java.lang.String"/>
+	<field name="order_number" class="java.lang.String"/>
+	<field name="order_period" class="java.lang.String"/>
+	<field name="order_countfact" class="java.lang.Double"/>
+	<field name="order_pricewithoutnds" class="java.lang.Double"/>
+	<field name="sumwithoutnds" class="java.lang.Double"/>
+	<field name="contractnumber" class="java.lang.String"/>
+	<field name="planneddatedelivery" class="java.lang.String"/>
+	<field name="oicode" class="java.lang.Integer"/>
+	<field name="ddscodetext" class="java.lang.String"/>
+	<field name="typename" class="java.lang.String"/>
+	<field name="kindname" class="java.lang.String"/>
+	<field name="planneddatepays" class="java.util.Date"/>
+	<field name="bcount" class="java.lang.Integer"/>
+	<field name="countmotion" class="java.lang.Integer"/>
+	<field name="rqorgname" class="java.lang.String"/>
+	<field name="contractdate" class="java.util.Date"/>
+	<field name="order_dategen" class="java.lang.String"/>
+	<field name="budgetrefcode" class="java.math.BigDecimal"/>
+	<field name="numkatalog" class="java.lang.String"/>
+	<field name="rqorderstatus" class="java.lang.String"/>
+	<field name="responsibles" class="java.lang.String"/>
+	<field name="identid2010" class="java.lang.String"/>
+	<field name="identid2015" class="java.lang.String"/>
+	<field name="planсommentgen" class="java.lang.String"/>
+	<field name="count_in_bills" class="java.lang.Double"/>
+	<field name="purchaseInfoByOrderItem" class="java.lang.String"/>
+	<variable name="orderSum" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$F{sumwithoutnds}]]></variableExpression>
+	</variable>
+	<variable name="bsum" class="java.lang.Double" calculation="Sum">
+		<initialValueExpression><![CDATA[new Double(0)]]></initialValueExpression>
+	</variable>
+	<variable name="bvatsum" class="java.lang.Double" calculation="Sum">
+		<initialValueExpression><![CDATA[new Double(0)]]></initialValueExpression>
+	</variable>
+	<variable name="paysum" class="java.lang.Double" calculation="Sum">
+		<initialValueExpression><![CDATA[new Double(0)]]></initialValueExpression>
+	</variable>
+	<variable name="payrestsum" class="java.lang.Double" calculation="Sum"/>
+	<variable name="suminvsum" class="java.lang.Double" calculation="Sum"/>
+	<variable name="vsumbillwithoutnds" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$V{vsumbillwithoutnds}]]></variableExpression>
+		<initialValueExpression><![CDATA[new Double(0.0)]]></initialValueExpression>
+	</variable>
+	<variable name="sumbillnds" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$V{sumbillnds}]]></variableExpression>
+		<initialValueExpression><![CDATA[new Double(0.0)]]></initialValueExpression>
+	</variable>
+	<variable name="sumpay" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$V{sumpay}]]></variableExpression>
+		<initialValueExpression><![CDATA[new Double(0)]]></initialValueExpression>
+	</variable>
+	<background>
+		<band height="3" splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="50" splitType="Stretch">
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-34" x="0" y="3" width="1873" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Звіт виконання планів матеріально-технічного забезпечення за період з " + $P{startDate} + " по "+ $P{endDate} +" р." +  "\n" +
+(($P{renName}.length() > 1) ? " по підрозділу " + $P{renName} : "") +  "\n" +
+(($P{elementName}.length() > 1) ? " об’єкт планування " + $P{elementName} : "")]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="140" splitType="Stretch">
+			<staticText>
+				<reportElement key="staticText-1" x="0" y="0" width="20" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="Left">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[№ з/п]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-2" x="20" y="0" width="50" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="Left">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[номер заявки / місяць заявки ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-10" x="323" y="0" width="140" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Група матеріалів]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-11" x="463" y="0" width="230" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Найменування матеріалу]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-12" x="1573" y="0" width="40" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[од.вим]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-13" x="1613" y="0" width="50" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[кількість]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-14" x="1713" y="0" width="50" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Планова дата поставки]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-15" x="1763" y="0" width="55" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Ціна в заявці (без ПДВ)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-16" x="1818" y="0" width="55" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Сума в заявці (без ПДВ)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-17" x="1873" y="0" width="360" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Рахунки]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-18" x="1873" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[№ рахунку]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-19" x="1923" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[дата рахунку]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-20" x="2023" y="20" width="60" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[ціна, грн (без ПДВ)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-21" x="2133" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[сума, грн (без ПДВ)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-22" x="1973" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[кількість]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-23" x="2233" y="0" width="150" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Оплата]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-24" x="2233" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[сума оплати, грн (з ПДВ)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-25" x="2283" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[сума недоплати, грн (з ПДВ)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-26" x="2383" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[дата накладної]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-27" x="2383" y="0" width="400" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Поставка]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-28" x="2433" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[№ накладної]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-29" x="2543" y="20" width="40" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[од.вим]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-30" x="2583" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[кількість поставленого]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="2733" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[недопоставлено]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-35" x="1003" y="0" width="50" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="Left">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[№ договору]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-36" x="1473" y="0" width="50" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="Left">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[№ специфікації]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-40" x="2083" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[різниця від заявленої (ціна, грн) (без ПДВ)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-41" x="1663" y="0" width="50" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Планова дата сплати]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-42" x="2183" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[ПДВ, грн]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-43" x="120" y="0" width="50" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="Left">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[вид заявки]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-44" x="170" y="0" width="50" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="Left">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[тип заявки ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-45" x="220" y="0" width="50" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[код РГК]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-47" x="2633" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[ціна, грн (без ПДВ)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-48" x="2683" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[сума, грн (без ПДВ)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-59" x="1053" y="0" width="50" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="Left">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Дата договору]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-60" x="1523" y="0" width="50" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="Left">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Дата специфікації]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-61" x="2483" y="20" width="60" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Статус документа]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-62" x="70" y="0" width="50" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="Left">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Дата складання заявки]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-63" x="2333" y="20" width="50" height="100"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[дата оплати]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-64" x="270" y="0" width="53" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Статус заявки]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-65" x="1103" y="0" width="150" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Відповідальна особа]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-59" x="1053" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[14]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-36" x="1473" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[17]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-35" x="1003" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[13]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-13" x="1613" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[20]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-15" x="1763" y="120" width="55" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[23]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-12" x="1573" y="120" width="40" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[19]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-16" x="1818" y="120" width="55" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[24]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-41" x="1663" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[21]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-62" x="70" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[3]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-45" x="220" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[6]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-14" x="1713" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[22]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-1" x="0" y="120" width="20" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[1]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-44" x="170" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[5]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-65" x="1103" y="120" width="150" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[15]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-2" x="20" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[2]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-11" x="463" y="120" width="230" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[9]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-60" x="1523" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[18]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-43" x="120" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[4]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-10" x="323" y="120" width="140" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[8]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-58" x="853" y="120" width="150" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[12]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-64" x="270" y="120" width="53" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[7]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-40" x="2083" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[29]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-61" x="2483" y="120" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[37]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-47" x="2633" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[40]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-19" x="1923" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[26]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-29" x="2543" y="120" width="40" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[38]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-28" x="2433" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[36]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-42" x="2183" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[31]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-20" x="2023" y="120" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[28]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-18" x="1873" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[25]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-25" x="2283" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[33]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-22" x="1973" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[27]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-31" x="2733" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[42]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-63" x="2333" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[34]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-21" x="2133" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[30]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-26" x="2383" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[35]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-30" x="2583" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[39]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-24" x="2233" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[32]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-48" x="2683" y="120" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[41]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-57" x="2783" y="0" width="75" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Код строки заявки]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-57" x="2783" y="120" width="75" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[43]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-58" x="693" y="0" width="80" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Код ДК 2010]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-58" x="773" y="0" width="80" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Код ДК 2015]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-58" x="853" y="0" width="150" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Постачальник]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-58" x="693" y="120" width="80" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[10]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-58" x="773" y="120" width="80" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[11]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-65" x="1253" y="0" width="220" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Примітка з планів]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-65" x="1253" y="120" width="220" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[16]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-57" x="2858" y="0" width="300" height="120"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Інформація про план закупівель]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-57" x="2858" y="120" width="300" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[44]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-117" stretchType="RelativeToTallestObject" mode="Transparent" x="2333" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-64" stretchType="RelativeToTallestObject" mode="Transparent" x="1873" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" x="0" y="0" width="20" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{REPORT_COUNT}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-2" stretchType="RelativeToTallestObject" x="20" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["№ "+$F{order_number} + " за "+$F{order_period}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-3" stretchType="RelativeToTallestObject" x="323" y="0" width="140" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{parent_material}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-4" stretchType="RelativeToTallestObject" x="463" y="0" width="230" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{mname} + ($F{numkatalog} != null ? " Катал.код: "+ $F{numkatalog} : "" )
+/*new String($F{mname} +  " " +  $F{oicode})*/]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-5" stretchType="RelativeToTallestObject" x="1573" y="0" width="40" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{meas}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-6" stretchType="RelativeToTallestObject" x="1613" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{order_countfact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-8" stretchType="RelativeToTallestObject" x="1763" y="0" width="55" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{order_pricewithoutnds}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.00" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" x="1818" y="0" width="55" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{sumwithoutnds}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-26" stretchType="RelativeToTallestObject" x="1473" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-27" stretchType="RelativeToTallestObject" x="1713" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new String(((  ($F{budgetrefcode} != null) &&($F{budgetrefcode}.doubleValue() == new BigDecimal(75000016).doubleValue() ) ) && ( $F{order_dategen} != null ) ) ? (((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).returnDatebyTypeDay($F{order_dategen} , 1  )) : ($F{planneddatedelivery}) )
+/*new String("!!!Вернуть скриптлет")*/]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-28" stretchType="RelativeToTallestObject" x="1003" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{contractnumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="dd.MM.yyyy" isBlankWhenNull="true">
+				<reportElement key="textField-45" stretchType="RelativeToTallestObject" x="1663" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{planneddatepays}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-46" stretchType="RelativeToTallestObject" x="170" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{typename}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-47" stretchType="RelativeToTallestObject" x="120" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kindname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-48" stretchType="RelativeToTallestObject" x="220" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font size="9" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ddscodetext}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-52" stretchType="RelativeToTallestObject" mode="Transparent" x="2583" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-53" stretchType="RelativeToTallestObject" mode="Transparent" x="2733" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{IsComplete}==4 ?
+$F{count_in_bills}*-1
+:
+$F{order_countfact}*-1]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-54" stretchType="RelativeToTallestObject" mode="Transparent" x="2543" y="0" width="40" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-55" stretchType="RelativeToTallestObject" mode="Transparent" x="2233" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-56" stretchType="RelativeToTallestObject" mode="Transparent" x="2283" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-57" stretchType="RelativeToTallestObject" mode="Transparent" x="2433" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-58" stretchType="RelativeToTallestObject" mode="Transparent" x="2383" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-59" stretchType="RelativeToTallestObject" mode="Transparent" x="2133" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-60" stretchType="RelativeToTallestObject" mode="Transparent" x="2183" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-62" stretchType="RelativeToTallestObject" mode="Transparent" x="2083" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-63" stretchType="RelativeToTallestObject" mode="Transparent" x="2023" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-66" stretchType="RelativeToTallestObject" mode="Transparent" x="1973" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-65" stretchType="RelativeToTallestObject" mode="Transparent" x="1923" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-85" stretchType="RelativeToTallestObject" mode="Transparent" x="2633" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-86" stretchType="RelativeToTallestObject" mode="Transparent" x="2683" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" stretchType="RelativeToTallestObject" mode="Transparent" x="1873" y="0" width="510" height="20">
+					<printWhenExpression><![CDATA[new Boolean($F{bcount}.intValue()>0)]]></printWhenExpression>
+				</reportElement>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="oicode">
+					<subreportParameterExpression><![CDATA[$F{oicode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="orderprice">
+					<subreportParameterExpression><![CDATA[$F{order_pricewithoutnds}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="ordercountfact">
+					<subreportParameterExpression><![CDATA[$F{order_countfact}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<returnValue subreportVariable="bsum" toVariable="bsum" calculation="Sum"/>
+				<returnValue subreportVariable="sumbvat" toVariable="bvatsum" calculation="Sum"/>
+				<returnValue subreportVariable="psum" toVariable="paysum" calculation="Sum"/>
+				<returnValue subreportVariable="sumpayrest" toVariable="payrestsum" calculation="Sum"/>
+				<returnValue subreportVariable="suminvsum" toVariable="suminvsum" calculation="Sum"/>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/orderOborotbyPurchaseDate/billByOrder.jasper")
+/*"C:/iReport-3.0.0/tmp/billByOrder.jasper"*/]]></subreportExpression>
+			</subreport>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-111" stretchType="RelativeToTallestObject" x="853" y="0" width="150" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{rqorgname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="dd.MM.yyyy" isBlankWhenNull="true">
+				<reportElement key="textField-112" stretchType="RelativeToTallestObject" x="1053" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{contractdate}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-113" stretchType="RelativeToTallestObject" x="1523" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-114" stretchType="RelativeToTallestObject" mode="Transparent" x="2483" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-2" stretchType="RelativeToTallestObject" mode="Transparent" x="2384" y="0" width="399" height="20">
+					<printWhenExpression><![CDATA[new Boolean($F{countmotion}.intValue()>0)]]></printWhenExpression>
+				</reportElement>
+				<subreportParameter name="oicode">
+					<subreportParameterExpression><![CDATA[$F{oicode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="ordercountfact">
+					<subreportParameterExpression><![CDATA[$F{order_countfact}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="viewmotion">
+					<subreportParameterExpression><![CDATA[$P{viewmotion}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="fkorderstatus">
+					<subreportParameterExpression><![CDATA[$P{fkorderstatus}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<returnValue subreportVariable="suminvsum" toVariable="suminvsum" calculation="Sum"/>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/orderOborotbyPurchaseDate/invoiceByBill.jasper")
+/*"C:/iReport-3.0.0/tmp/invoiceByBill.jasper"*/]]></subreportExpression>
+			</subreport>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-116" stretchType="RelativeToTallestObject" x="70" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{order_dategen}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-124" stretchType="RelativeToTallestObject" x="270" y="0" width="53" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font size="9" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{rqorderstatus}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-125" stretchType="RelativeToTallestObject" x="1103" y="0" width="150" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{responsibles}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-110" stretchType="RelativeToTallestObject" mode="Transparent" x="2783" y="0" width="75" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{oicode}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-4" stretchType="RelativeToTallestObject" x="693" y="0" width="80" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{identid2010}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-4" stretchType="RelativeToTallestObject" x="773" y="0" width="80" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{identid2015}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-125" stretchType="RelativeToTallestObject" x="1253" y="0" width="220" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{planсommentgen}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-110" stretchType="RelativeToTallestObject" mode="Transparent" x="2858" y="0" width="300" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{purchaseInfoByOrderItem}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="338" splitType="Stretch">
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-119" x="0" y="0" width="1818" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Bottom" rotation="None">
+					<font size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Всього:  "]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-67" x="1818" y="0" width="55" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{orderSum}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-68" x="2133" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{bsum}]]></textFieldExpression>
+			</textField>
+			<textField pattern="#0.00" isBlankWhenNull="true">
+				<reportElement key="textField-69" x="2233" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{paysum}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-70" x="2183" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{bvatsum}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-71" x="1873" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-72" x="1923" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-73" x="1973" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-74" x="2023" y="0" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-75" x="2083" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-77" x="2383" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-78" x="2433" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-79" x="2543" y="0" width="40" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-80" x="2583" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-81" x="2733" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-87" x="2633" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-89" x="2283" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{paysum}-($V{bsum}+$V{bvatsum})
+/*$V{payrestsum}*/]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-90" x="2683" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{suminvsum}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-115" x="2483" y="0" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-118" x="2333" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-3" positionType="Float" stretchType="RelativeToTallestObject" mode="Transparent" x="0" y="30" width="3158" height="64"/>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="startDate">
+					<subreportParameterExpression><![CDATA[$P{startDate}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="endDate">
+					<subreportParameterExpression><![CDATA[$P{endDate}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="materialGroupCode">
+					<subreportParameterExpression><![CDATA[$P{materialGroupCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="contractNumber">
+					<subreportParameterExpression><![CDATA[$P{contractNumber}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="budgCode">
+					<subreportParameterExpression><![CDATA[$P{budgCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="orderform">
+					<subreportParameterExpression><![CDATA[$P{orderform}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="zayakind">
+					<subreportParameterExpression><![CDATA[$P{zayakind}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="ordertype">
+					<subreportParameterExpression><![CDATA[$P{ordertype}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="orderCode">
+					<subreportParameterExpression><![CDATA[$P{orderCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="renCode">
+					<subreportParameterExpression><![CDATA[$P{renCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="elementCode">
+					<subreportParameterExpression><![CDATA[$P{elementCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="elementName">
+					<subreportParameterExpression><![CDATA[$P{elementName}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="renName">
+					<subreportParameterExpression><![CDATA[$P{renName}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="viewmotion">
+					<subreportParameterExpression><![CDATA[$P{viewmotion}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="IsComplete">
+					<subreportParameterExpression><![CDATA[$P{IsComplete}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="planCode">
+					<subreportParameterExpression><![CDATA[$P{planCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="strGroupmaterials">
+					<subreportParameterExpression><![CDATA[$P{strGroupmaterials}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="paccount">
+					<subreportParameterExpression><![CDATA[$P{paccount}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="porgcode">
+					<subreportParameterExpression><![CDATA[$P{porgcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="orderitemstatus">
+					<subreportParameterExpression><![CDATA[$P{orderitemstatus}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="ddscode">
+					<subreportParameterExpression><![CDATA[$P{ddscode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="orderstatus">
+					<subreportParameterExpression><![CDATA[$P{orderstatus}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="responsiblesCode">
+					<subreportParameterExpression><![CDATA[$P{responsiblesCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<returnValue subreportVariable="vsumbillwithoutnds" toVariable="vsumbillwithoutnds" calculation="Sum"/>
+				<returnValue subreportVariable="sumbillnds" toVariable="sumbillnds" calculation="Sum"/>
+				<returnValue subreportVariable="sumpay" toVariable="sumpay" calculation="Sum"/>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/orderOborotbyPurchaseDate/restMaterialbyAccount.jasper")
+/*"C:/iReport-3.0.0/tmp/restMaterialbyAccount.jasper"*/]]></subreportExpression>
+			</subreport>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-120" positionType="Float" stretchType="RelativeToTallestObject" x="2133" y="94" width="50" height="20">
+					<printWhenExpression><![CDATA[new Boolean($V{vsumbillwithoutnds}.doubleValue()!=0.0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new Double($V{bsum}.doubleValue() + $V{vsumbillwithoutnds}.doubleValue())]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-121" positionType="Float" stretchType="RelativeToTallestObject" x="2183" y="94" width="50" height="20">
+					<printWhenExpression><![CDATA[new Boolean($V{vsumbillwithoutnds}.doubleValue()!=0.0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new Double($V{bvatsum}.doubleValue() + $V{sumbillnds}.doubleValue())]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" isBlankWhenNull="true">
+				<reportElement key="textField-122" positionType="Float" stretchType="RelativeToTallestObject" x="2233" y="94" width="50" height="20">
+					<printWhenExpression><![CDATA[new Boolean($V{vsumbillwithoutnds}.doubleValue()!=0.0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new Double($V{paysum}.doubleValue() + $V{sumpay}.doubleValue())]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-123" positionType="Float" stretchType="RelativeToTallestObject" x="1873" y="94" width="260" height="20">
+					<printWhenExpression><![CDATA[new Boolean($V{vsumbillwithoutnds}.doubleValue()!=0.0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Всього по строкам заявок та зверх замовленої кількості "]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-102" x="2783" y="0" width="75" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.000;-###0.000" isBlankWhenNull="true">
+				<reportElement key="textField-102" x="2858" y="0" width="300" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font size="10" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

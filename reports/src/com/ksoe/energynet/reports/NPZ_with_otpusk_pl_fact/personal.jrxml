@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="personal" pageWidth="2267" pageHeight="535" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="2267" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="ireport.scriptlethandling" value="2"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="net.sf.jasperreports.print.keep.full.text" value="true"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String">
+		<defaultValueExpression><![CDATA["C:\\iReport-3.0.0\\tmp\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pdate1" class="java.lang.String"/>
+	<parameter name="podr_code" class="java.lang.Integer" isForPrompting="false"/>
+	<parameter name="pdate2" class="java.lang.String"/>
+	<parameter name="plankind" class="java.lang.Integer"/>
+	<parameter name="persentLoadFilter" class="java.math.BigDecimal"/>
+	<parameter name="finConnection" class="java.lang.Object" isForPrompting="false"/>
+	<parameter name="year" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[SELECT /*+ RULE */
+      -- Назначение на Должность
+      n.Id,
+      -- Карточка
+      n.Karta_Id,
+      kr.TabN,
+      fio.F||' '||fio.I||' '||fio.O FIO,
+      RTRIM(ps.Post_Nazv) Post_Nazv
+FROM
+  (SELECT g2.Id, g2.Nazv, gp2.Norma
+     FROM kadry.Grafik  g2,  kadry.Grafik_Period  gp2
+     WHERE g2.Id = gp2.Grafik_Id(+)
+       AND /*:DATE_SREZ*/to_date($P{pdate2},'dd.mm.yyyy')  BETWEEN gp2.S AND gp2.Po) g,
+  kadry.Prom            prom,
+  kadry.Kategory        k,
+  kadry.Doljnost      d,
+  kadry.Doljnost_Day  dd,
+  (SELECT p.Id             Podr_Id,
+          p.Date_Start     Podr_Date_Start,
+          p.Date_Finish    Podr_Date_Finish,
+          pd.ROWID         Podr_Day_Row_Id,
+          pd.Podr_Id       Podr_Day_Podr_Id,
+          pd.Date_Start    Podr_Day_Date_Start,
+          pd.Main_Podr_Id  Main_Podr_Id,
+          pd.Podr_Vid_Id   Podr_Vid_Id,
+          pd.Nazv          Podr_Nazv,
+          pd.Sokr_Nazv     Podr_Sokr_Nazv,
+          pd.Kod           Podr_Kod,
+          pd.Prom_Id       Podr_Prom_Id,
+          pd.Pos           Podr_Pos,
+          pd.Vne_Shtata    Vne_Shtata,
+          ceh.ROWID        Ceh_Row_Id,
+          ceh.Podr_Id      Ceh_Id,
+          ceh.Date_Start   Ceh_Date_Start,
+          ceh.Main_Podr_Id Ceh_Main_Podr_Id,
+          ceh.Podr_Vid_Id  Ceh_Vid_Id,
+          ceh.Nazv         Ceh_Nazv,
+          ceh.Sokr_Nazv    Ceh_Sokr_Nazv,
+          ceh.Kod          Ceh_Kod,
+          ceh.Prom_Id      Ceh_Prom_Id,
+          ceh.Pos          Ceh_Pos
+     FROM kadry.Podr_Day  ceh,
+          kadry.Podr_Day  pd,
+          kadry.Podr      p
+    WHERE pd.Podr_Id(+) = p.Id
+      AND (pd.Podr_Id IS NULL
+        OR pd.ROWID = (SELECT SUBSTR(MAX(TO_CHAR(pd1.Date_Start,'J')||ROWID),8)
+                          FROM kadry.Podr_Day pd1
+                         WHERE pd1.Podr_Id=pd.Podr_Id
+                           AND pd1.Date_Start<=/*:DATE_SREZ*/to_date($P{pdate2},'dd.mm.yyyy') )
+          )
+      AND ceh.Podr_Id = kadry.pkg_podr_utils.Get_Struct_Ed_Id_Buf(p.Id, /*:DATE_SREZ*/to_date($P{pdate2},'dd.mm.yyyy') )
+      AND ceh.ROWID = (SELECT SUBSTR(MAX(TO_CHAR(ceh1.date_start,'J')||ROWID),8)
+                          FROM kadry.Podr_Day ceh1
+                         WHERE ceh1.Podr_Id=ceh.Podr_Id
+                           AND ceh1.Date_Start<=/*:DATE_SREZ*/to_date($P{pdate2},'dd.mm.yyyy') )
+      AND p.Id = /*:PODR_ID*/ $P{podr_code}
+  ) pd,
+  kadry.v_Post       ps,
+  kadry.v_Post       ps1,
+
+-- предыдущее назначение
+  kadry.Perevod_Vid  pv,
+  kadry.perevod_usl  pu,
+  kadry.Osnova       os,
+  kadry.Nazn         n2,
+  kadry.Doljnost     d2,
+  kadry.Post         ps2,
+  kadry.Razr         rz2,
+  kadry.Prof         pf2,
+--  Podr_Day     pd2,
+-- следующее назначение
+  kadry.Perevod_Vid  pv3,
+  kadry.perevod_usl  pu3,
+  kadry.Osnova       os3,
+  kadry.Nazn         n3,
+  kadry.Doljnost     d3,
+  kadry.Post         ps3,
+  kadry.Razr         rz3,
+  kadry.Prof         pf3,
+--  Podr_Day     pd3,
+--
+
+  kadry.FIO          fio,
+  kadry.Karta        kr,
+  kadry.Nazn_Vid     nv,
+  kadry.Pricaz       pr1,
+  kadry.Pricaz       pr2,
+  kadry.Pricaz       pr3,
+  kadry.Regim        r,
+  kadry.Nazn_Day     nd,
+  kadry.Nazn         n
+--
+WHERE (nd.Nazn_Id = n.Id
+  -- Выбор параметров на дату среза
+  AND nd.Date_Start <= GREATEST(n.Date_Start, /*:DATE_SREZ*/to_date($P{pdate2},'dd.mm.yyyy') )
+  AND NOT EXISTS
+     (SELECT NULL FROM kadry.s_Nazn_Day nd2
+       WHERE nd2.Nazn_Id = nd.Nazn_Id
+         AND nd2.Date_Start <= GREATEST(n.Date_Start, /*:DATE_SREZ*/to_date($P{pdate2},'dd.mm.yyyy')  )
+         AND nd2.Date_Start > nd.Date_Start)
+  AND n.Start_Pricaz_Id  = pr1.Id
+  AND n.Finish_Pricaz_Id = pr2.Id
+  AND nd.Pricaz_Id       = pr3.Id
+  --
+  AND n.Doljnost_Id = d.Id
+  AND pd.Podr_Id = d.Podr_Id
+
+  AND ps.Post_Id = NVL(nd.Post_Id, d.Post_Id)
+  AND ps1.Post_Id = d.Post_Id
+  AND k.Id = d.Kategory_Id
+  AND prom.Id = DECODE(k.Prom_Id, 3,pd.Podr_Prom_Id, k.Prom_Id)
+  --
+  AND dd.Doljnost_Id(+) = d.Id
+  -- Выбор параметров должности на дату
+  AND (dd.Doljnost_Id IS NULL
+    OR (dd.Date_Start <= LEAST(n.Date_Finish, /*:DATE_SREZ*/to_date($P{pdate2},'dd.mm.yyyy') )
+--    OR (dd.Date_Start <= n.Date_Finish
+      AND NOT EXISTS (SELECT NULL FROM kadry.Doljnost_Day dd2
+                      WHERE dd2.Doljnost_Id = dd.Doljnost_Id
+                        AND dd2.Date_Start <= LEAST(n.Date_Finish, /*:DATE_SREZ*/to_date($P{pdate2},'dd.mm.yyyy') )
+--                        AND dd2.Date_Start <= n.Date_Finish
+                        AND dd2.Date_Start > dd.Date_Start)))
+-- предыдущее назначение
+  AND pv.Id(+) = n.Perevod_Vid_Id
+  AND pu.id(+) = n.Perevod_Usl_id
+  AND os.Id(+) = n.Perevod_Osnova_Id
+  AND n.Perevod_Nazn_Id = n2.Id(+)
+  AND n2.Doljnost_Id = d2.Id(+)
+  AND ps2.Id(+) = d2.Post_Id
+  AND pf2.Id(+) = ps2.Prof_Id
+  AND rz2.Id(+) = ps2.Razr_Id
+-- сдедующее назначение
+  AND n.Id = n3.Perevod_Nazn_Id(+)
+  AND pu3.id(+) = n3.perevod_Usl_id
+  AND pv3.Id(+) = n3.Perevod_Vid_Id
+  AND os3.Id(+) = n3.Perevod_Osnova_Id
+  AND d3.Id(+)  = n3.Doljnost_Id
+  AND ps3.Id(+) = d3.Post_Id
+  AND pf3.Id(+) = ps3.Prof_Id
+  AND rz3.Id(+) = ps3.Razr_Id
+--
+
+  AND n.Karta_Id     = kr.Id
+  AND fio.Id         = kr.FIO_Id
+  AND nd.Nazn_Vid_Id = nv.Id(+)
+  AND nd.Regim_Id  = r.Id(+)
+-- график назначения
+  AND dd.Grafik_Id = g.Id(+)) AND /*:DATE_SREZ*/to_date($P{pdate2},'dd.mm.yyyy')  BETWEEN n.Date_Start AND n.Date_Finish /* открытые */
+  AND kr.prim like ('%НВЗ%')
+ORDER BY kr.TabN, n.DATE_START DESC
+
+/*:DATE_SREZ(DATE,IN)=30.04.2014
+:Rab_Tb_Grafik_Id(NUMBER)=<NULL>
+:PODR_ID(INTEGER)=229
+*/]]>
+	</queryString>
+	<field name="karta_id" class="java.lang.Integer"/>
+	<field name="tabn" class="java.lang.String"/>
+	<field name="fio" class="java.lang.String"/>
+	<field name="post_nazv" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="200" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{post_nazv}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="200" y="0" width="200" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{fio}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="400" y="0" width="80" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{tabn}]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" stretchType="RelativeToTallestObject" x="480" y="0" width="100" height="20"/>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="karta_id">
+					<subreportParameterExpression><![CDATA[$F{karta_id}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="year">
+					<subreportParameterExpression><![CDATA[$P{year}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[(java.sql.Connection)$P{finConnection}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/NPZ_with_otpusk_pl_fact/otpuskPlan.jasper")]]></subreportExpression>
+			</subreport>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" stretchType="RelativeToTallestObject" x="580" y="0" width="400" height="20"/>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="karta_id">
+					<subreportParameterExpression><![CDATA[$F{karta_id}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="year">
+					<subreportParameterExpression><![CDATA[$P{year}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[(java.sql.Connection)$P{finConnection}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/NPZ_with_otpusk_pl_fact/otpuskFact.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<lastPageFooter>
+		<band height="20">
+			<printWhenExpression><![CDATA[new Boolean($V{REPORT_COUNT}.intValue() == 0 )]]></printWhenExpression>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="200" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="200" y="0" width="200" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="400" y="0" width="80" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+			</textField>
+		</band>
+	</lastPageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

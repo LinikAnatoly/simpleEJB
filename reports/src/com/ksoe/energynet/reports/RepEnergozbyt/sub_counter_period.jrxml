@@ -1,0 +1,1331 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="sub_counter_period" pageWidth="487" pageHeight="842" columnWidth="487" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isFloatColumnFooter="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="renCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[renCode]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(9)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="M" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="yearGen" class="java.lang.String">
+		<defaultValueExpression><![CDATA["2012"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="P3" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select
+rname,mn,all_istek,tm_istek,all_plan,all_nplan,planf_counter,notplanf_counter,allf_counter,factnotneed,
+to_char(cast(
+cast('01.'||cast($P{M} as varchar(2))||'.'||
+cast($P!{yearGen} as varchar(4)) as date)
+as date),'dd.MM.yyyy') as cd,
+plannotneed,moved
+
+from
+(
+select
+rname,
+case
+when $P{M}=1 then 'Январь'
+when $P{M}=2 then 'Февраль'
+when $P{M}=3 then 'Март'
+when $P{M}=4 then 'Апрель'
+when $P{M}=5 then 'Май'
+when $P{M}=6 then 'Июнь'
+when $P{M}=7 then 'Июль'
+when $P{M}=8 then 'Август'
+when $P{M}=9 then 'Сентябрь'
+when $P{M}=10 then 'Октябрь'
+when $P{M}=11 then 'Ноябрь'
+when $P{M}=12 then 'Декабрь'
+end as mn,
+sum(all_istek) as all_istek,
+sum(tm_istek) as tm_istek,
+sum(all_plan) as all_plan,
+
+sum(planf_counter) as planf_counter,
+sum(notplanf_counter) as notplanf_counter,
+sum(allf_counter) as allf_counter,
+sum(all_nplan) as all_nplan,
+sum(factnotneed) as factnotneed,
+sum(plannotneed) as plannotneed,
+sum(moved) as moved
+
+from
+(
+select rname,count(lastdate) as all_istek,0 as tm_istek,0 as all_plan,
+0 as all_nplan,
+0 as planf_counter,0 as notplanf_counter,0 as allf_counter,0 as factnotneed,
+0 as plannotneed,
+0 as moved
+from
+(
+Select ( select e2.shortname from  engeodep2endepartment ee , endepartment e2  where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  ) as rname,
+
+add_months(
+(case when rp.datecounterinst<cast('01.'||cast($P{M} as varchar(2))||'.'||cast($P!{yearGen} as varchar(4)) as date) then rp.datecountercheck else coalesce(rp.prevcountercheck,rp.datecountercheck) end)
+,
+case when rp.datecounterinst<cast('01.'||cast($P{M} as varchar(2))||'.'||cast($P!{yearGen} as varchar(4)) as date) then
+cast(12*(case when ((coalesce(rp.checkperiod1,0)>0)and(rp.datecountercheck>=rp.datecheck)) then rp.checkperiod1 else rp.checkperiod end) as integer)
+else cast(12*coalesce(rp.prevcheckperiod,(case when ((coalesce(rp.checkperiod1,0)>0)and(rp.datecountercheck>=rp.datecheck)) then rp.checkperiod1 else rp.checkperiod end))  as integer)
+end
+) as lastdate
+
+ From enelement e, engeographicdepartment r, enrecordpointbyt rp
+where rp.elementcode=e.code
+and e.geodepartmentrefcode =r.code
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+and rp.countertype not like
+(
+case
+when $P{P3} in ('1','3') then '%NP%'
+else ''
+end
+)
+
+
+--and ((rp.statuscode is null) or (rp.statuscode<>1))
+--and ((rp.isworking is null) or (rp.isworking<>1))
+and ((rp.isworking is null) or (rp.isworking=0))
+and rp.serialnumber is not null
+ ) mdat
+where lastdate<(cast('01.'||cast($P{M} as varchar(2))||'.'||
+cast($P!{yearGen} as varchar(4)) as date))
+
+group by rname
+
+union all
+
+select rname,0,count(lastdate),0,0,0,0,0,0,0,0
+from
+(
+Select ( select e2.shortname from  engeodep2endepartment ee , endepartment e2  where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  ) as rname,
+
+add_months(
+(case when rp.datecounterinst<cast('01.'||cast($P{M} as varchar(2))||'.'||cast($P!{yearGen} as varchar(4)) as date) then rp.datecountercheck else coalesce(rp.prevcountercheck,rp.datecountercheck) end)
+,
+case when rp.datecounterinst<cast('01.'||cast($P{M} as varchar(2))||'.'||cast($P!{yearGen} as varchar(4)) as date) then
+cast(12*(case when ((coalesce(rp.checkperiod1,0)>0)and(rp.datecountercheck>=rp.datecheck)) then rp.checkperiod1 else rp.checkperiod end) as integer)
+else cast(12*coalesce(rp.prevcheckperiod,(case when ((coalesce(rp.checkperiod1,0)>0)and(rp.datecountercheck>=rp.datecheck)) then rp.checkperiod1 else rp.checkperiod end))  as integer)
+end
+) as lastdate
+
+From enelement e,engeographicdepartment r, enrecordpointbyt rp
+where rp.elementcode=e.code
+and e.geodepartmentrefcode =r.code
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+
+
+--and ((rp.statuscode is null) or (rp.statuscode<>1))
+--and ((rp.isworking is null) or (rp.isworking<>1))
+and ((rp.isworking is null) or (rp.isworking=0))
+and rp.serialnumber is not null
+ ) mdat
+where lastdate between cast('01.'||cast($P{M} as varchar(2))||'.'||
+cast($P!{yearGen} as varchar(4)) as date)
+and last_day(cast('01.'||cast($P{M} as varchar(2))||'.'||
+cast($P!{yearGen} as varchar(4)) as date))
+group by rname
+
+union all
+
+select rname,0,0,count(countgen) as countgen,0,0,0,0,0,0,0
+from
+(
+Select distinct p.code as countgen , ( select e2.shortname from  engeodep2endepartment ee , endepartment e2  where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  ) as rname
+from enelement e, engeographicdepartment r, enrecordpointbyt rp,enplanwork p,enplanworkitem eni
+where rp.elementcode=e.code
+and e.geodepartmentrefcode =r.code
+and eni.planrefcode=p.code
+and p.budgetrefcode = 240000001
+and p.formrefcode=1
+and coalesce(p.monthoriginal,0)=0
+and eni.kartarefcode in (2017041452,2017041455,2017041443,2017041457)
+and p.typerefcode <> 8 --услуги отдельно
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+
+and p.elementrefcode=rp.elementcode
+and p.monthgen=cast($P{M} as integer)
+and p.yeargen=cast($P!{yearGen} as integer)
+and p.kindcode=2
+
+) mdat
+group by rname
+
+
+--new
+union all
+
+select rname,0,0,0,count(countgen),0,0,0,0,0,0
+from
+(
+Select  distinct p.code as countgen ,  ( select e2.shortname from  engeodep2endepartment ee , endepartment e2  where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  ) as rname
+from enelement e, engeographicdepartment r, enrecordpointbyt rp,enplanwork p,enplanworkitem eni
+where rp.elementcode=e.code
+and e.geodepartmentrefcode =r.code
+and eni.planrefcode=p.code
+and p.budgetrefcode = 240000001
+and p.formrefcode=2
+and coalesce(p.monthoriginal,0)=0
+and eni.kartarefcode in (2017041452,2017041455,2017041443,2017041457)
+and p.typerefcode <> 8 --услуги отдельно
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+
+and p.elementrefcode=rp.elementcode
+and p.monthgen=cast($P{M} as integer)
+and p.yeargen=cast($P!{yearGen} as integer)
+and p.kindcode=2
+
+union all
+
+Select distinct p.code as countgen , ( select e2.shortname from  engeodep2endepartment ee , endepartment e2  where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  ) as rname
+from enplanwork p, endepartment dep, enplanworktype pt ,
+engeographicdepartment r, enrecordpointbyt rp, enelement e, enservicesobject so
+where so.personalaccountcode=rp.rpcode
+and so.elementcode=p.elementrefcode
+and p.elementrefcode=e.code
+and e.geodepartmentrefcode =r.code
+and dep.code = p.departmentrefcode
+and p.typerefcode = pt.code
+and p.kindcode=2
+and p.formrefcode in (1,2)
+and p.typerefcode = 8 --услуги
+and p.monthgen=cast($P{M} as integer)
+and p.yeargen=cast($P!{yearGen} as integer)
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode
+	 from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+) mdat
+group by rname
+
+
+union all
+
+select ( select e2.shortname from  engeodep2endepartment ee , endepartment e2
+	 where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  ) as rname,0,0,0,0,sum(eni.countgen) as tfact,0,0,0,0,0
+
+from enplanwork p, endepartment dep, enplanworktype pt , enplanworkitem eni,
+engeographicdepartment r, enrecordpointbyt rp,enelement e
+where p.budgetrefcode = 240000001
+and rp.elementcode=e.code
+and p.elementrefcode=e.code
+and e.geodepartmentrefcode =r.code
+and dep.code = p.departmentrefcode
+and p.typerefcode = pt.code
+and p.kindcode=4
+and p.code = eni.planrefcode
+and eni.countgen <> 0
+and eni.kartarefcode in (2017041452,2017041455,2017041443,2017041457)
+and p.formrefcode=1
+and p.typerefcode <> 8 --услуги отдельно
+and p.monthgen=cast($P{M} as integer)
+and p.yeargen=cast($P!{yearGen} as integer)
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode
+	 from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+group by p.monthgen,r.name,r.code
+
+union all
+
+select rname,0 as c1,0 as c2,0 as c3,0 as c4,0 as c5,sum(tfact) as tfact,0 as c7,0 as c8,0 as c9,0 as c10
+from (
+
+select ( select e2.shortname from  engeodep2endepartment ee , endepartment e2
+	 where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  ) as rname,0,0,0,0,0,sum(eni.countgen) as tfact,0,0,0,0
+
+from enplanwork p, endepartment dep, enplanworktype pt , enplanworkitem eni,
+engeographicdepartment r, enrecordpointbyt rp,enelement e
+where p.budgetrefcode = 240000001
+and rp.elementcode=e.code
+and p.elementrefcode=e.code
+and e.geodepartmentrefcode =r.code
+and dep.code = p.departmentrefcode
+and p.typerefcode = pt.code
+and p.kindcode=4
+and p.code = eni.planrefcode
+and eni.countgen <> 0
+and eni.kartarefcode in (2017041452,2017041455,2017041443,2017041457)
+and p.formrefcode=2
+and p.typerefcode <> 8 --услуги отдельно
+and p.monthgen=cast($P{M} as integer)
+and p.yeargen=cast($P!{yearGen} as integer)
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode
+	 from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+group by p.monthgen,r.name,r.code
+
+union all
+
+select ( select e2.shortname from  engeodep2endepartment ee , endepartment e2
+	 where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  ) as rname,0,0,0,0,0,sum(eni.countgen) as tfact,0,0,0,0
+
+from enplanwork p, endepartment dep, enplanworktype pt , enplanworkitem eni,
+engeographicdepartment r, enrecordpointbyt rp,enelement e,enservicesobject so,sccounter sc,enestimateitem ei
+where so.personalaccountcode=rp.rpcode
+and so.elementcode=p.elementrefcode
+and ei.code=sc.estimateitemrefcode
+and ei.planitemrefcode=eni.code
+and ei.kindrefcode=3
+and p.elementrefcode=e.code
+and e.geodepartmentrefcode =r.code
+and dep.code = p.departmentrefcode
+and p.typerefcode = pt.code
+and p.kindcode=4
+and p.code = eni.planrefcode
+and eni.countgen <> 0
+and p.formrefcode in (1,2)
+and p.typerefcode = 8 --услуги
+and p.monthgen=cast($P{M} as integer)
+and p.yeargen=cast($P!{yearGen} as integer)
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode
+	 from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+group by p.monthgen,r.name,r.code
+) di
+group by rname
+
+
+union all
+
+
+select rname,0 as c1,0 as c2,0 as c3,0 as c4,0 as c5,0 as c6,sum(tfact) as tfact,0 as c8,0 as c9,0 as c10
+from (
+select ( select e2.shortname from  engeodep2endepartment ee , endepartment e2
+	 where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  ) as rname,0,0,0,0,0,0,sum(eni.countgen) as tfact,0,0,0
+
+from enplanwork p, endepartment dep, enplanworktype pt , enplanworkitem eni,
+engeographicdepartment r, enrecordpointbyt rp,enelement e
+where p.budgetrefcode = 240000001
+and rp.elementcode=e.code
+and p.elementrefcode=e.code
+and e.geodepartmentrefcode =r.code
+and dep.code = p.departmentrefcode
+and p.typerefcode = pt.code
+and p.kindcode=4
+and p.code = eni.planrefcode
+and eni.countgen <> 0
+and eni.kartarefcode in (2017041452,2017041455,2017041443,2017041457)
+and p.formrefcode in (1,2)
+and p.typerefcode <> 8 --услуги отдельно
+and p.monthgen=cast($P{M} as integer)
+and p.yeargen=cast($P!{yearGen} as integer)
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode
+	 from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+group by p.monthgen,r.name,r.code
+
+union all
+
+select ( select e2.shortname from  engeodep2endepartment ee , endepartment e2
+	 where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  ) as rname,0,0,0,0,0,0,sum(eni.countgen) as tfact,0,0,0
+
+from enplanwork p, endepartment dep, enplanworktype pt , enplanworkitem eni,
+engeographicdepartment r, enrecordpointbyt rp,enelement e,enservicesobject so,sccounter sc,enestimateitem ei
+where so.personalaccountcode=rp.rpcode
+and so.elementcode=p.elementrefcode
+and ei.code=sc.estimateitemrefcode
+and ei.planitemrefcode=eni.code
+and ei.kindrefcode=3
+and p.elementrefcode=e.code
+and e.geodepartmentrefcode =r.code
+and dep.code = p.departmentrefcode
+and p.typerefcode = pt.code
+and p.kindcode=4
+and p.code = eni.planrefcode
+and eni.countgen <> 0
+and p.formrefcode in (1,2)
+and p.typerefcode = 8 --услуги
+and p.monthgen=cast($P{M} as integer)
+and p.yeargen=cast($P!{yearGen} as integer)
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode
+	 from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+group by p.monthgen,r.name,r.code
+) di
+group by rname
+
+
+union all
+
+
+select rname,0 as c1,0 as c2,0 as c3,0 as c4,0 as c5,0 as c6,0 as c7,sum(tfact) as tfact,0 as c9,0 as c10
+from (
+
+select ( select e2.shortname from  engeodep2endepartment ee , endepartment e2
+	 where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  ) as rname,0,0,0,0,0,0,0,sum(eni.countgen) as tfact,0,0
+
+from enplanwork p, endepartment dep, enplanworktype pt , enplanworkitem eni,
+engeographicdepartment r, enrecordpointbyt rp,enelement e,
+enestimateitem ei,sccounter sc
+where p.budgetrefcode = 240000001
+and rp.elementcode=e.code
+and p.elementrefcode=e.code
+and e.geodepartmentrefcode =r.code
+and dep.code = p.departmentrefcode
+and p.typerefcode = pt.code
+and p.kindcode=4
+and p.code = eni.planrefcode
+and eni.countgen <> 0
+and eni.kartarefcode in (2017041452,2017041455,2017041443,2017041457)
+and p.formrefcode in (1,2)
+and p.typerefcode <> 8 --услуги отдельно
+and p.monthgen=cast($P{M} as integer)
+and p.yeargen=cast($P!{yearGen} as integer)
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode
+	 from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+and ei.planrefcode=p.code
+and ei.kindrefcode=3
+and ei.code=sc.estimateitemrefcode
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+and
+add_months(
+(case when rp.datecounterinst<cast('01.'||cast($P{M} as varchar(2))||'.'||cast($P!{yearGen} as varchar(4)) as date) then rp.datecountercheck else coalesce(rp.prevcountercheck,rp.datecountercheck) end)
+,
+case when rp.datecounterinst<cast('01.'||cast($P{M} as varchar(2))||'.'||cast($P!{yearGen} as varchar(4)) as date) then
+cast(12*(case when ((coalesce(rp.checkperiod1,0)>0)and(rp.datecountercheck>=rp.datecheck)) then rp.checkperiod1 else rp.checkperiod end) as integer)
+else cast(12*coalesce(rp.prevcheckperiod,(case when ((coalesce(rp.checkperiod1,0)>0)and(rp.datecountercheck>=rp.datecheck)) then rp.checkperiod1 else rp.checkperiod end))  as integer)
+end
+) >=cast((add_months(cast('01.'||cast($P{M} as varchar(2))||'.'||cast($P!{yearGen} as varchar(4)) as timestamp),cast(1 as integer))) as date)
+
+group by p.monthgen,r.name,r.code
+
+union all
+
+
+select ( select e2.shortname from  engeodep2endepartment ee , endepartment e2
+	 where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  ) as rname,0,0,0,0,0,0,0,sum(eni.countgen) as tfact,0,0
+
+from enplanwork p, endepartment dep, enplanworktype pt , enplanworkitem eni,
+engeographicdepartment r, enrecordpointbyt rp,enelement e,
+enestimateitem ei,sccounter sc,enservicesobject so
+where so.personalaccountcode=rp.rpcode
+and so.elementcode=p.elementrefcode
+and p.elementrefcode=e.code
+and ei.code=sc.estimateitemrefcode
+and ei.planitemrefcode=eni.code
+and ei.kindrefcode=3
+and e.geodepartmentrefcode =r.code
+and dep.code = p.departmentrefcode
+and p.typerefcode = pt.code
+and p.kindcode=4
+and p.code = eni.planrefcode
+and eni.countgen <> 0
+and p.formrefcode in (1,2)
+and p.typerefcode = 8 --услуги
+and p.monthgen=cast($P{M} as integer)
+and p.yeargen=cast($P!{yearGen} as integer)
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode
+	 from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+and ei.planrefcode=p.code
+and ei.kindrefcode=3
+and ei.code=sc.estimateitemrefcode
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+and add_months(
+(case when rp.datecounterinst<cast('01.'||cast($P{M} as varchar(2))||'.'||cast($P!{yearGen} as varchar(4)) as date) then rp.datecountercheck else coalesce(rp.prevcountercheck,rp.datecountercheck) end)
+,
+case when rp.datecounterinst<cast('01.'||cast($P{M} as varchar(2))||'.'||cast($P!{yearGen} as varchar(4)) as date) then
+cast(12*(case when ((coalesce(rp.checkperiod1,0)>0)and(rp.datecountercheck>=rp.datecheck)) then rp.checkperiod1 else rp.checkperiod end) as integer)
+else cast(12*coalesce(rp.prevcheckperiod,(case when ((coalesce(rp.checkperiod1,0)>0)and(rp.datecountercheck>=rp.datecheck)) then rp.checkperiod1 else rp.checkperiod end))  as integer)
+end
+) >=cast((add_months(cast('01.'||cast($P{M} as varchar(2))||'.'||cast($P!{yearGen} as varchar(4)) as timestamp),cast(1 as integer))) as date)
+
+group by p.monthgen,r.name,r.code
+) di
+group by rname
+
+union all
+
+select rname,0,0,0,0,0,0,0,0,count(countgen),0
+from
+(
+Select  distinct p.code as countgen , ( select e2.shortname from  engeodep2endepartment ee , endepartment e2
+	 where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  ) as rname
+from enelement e,engeographicdepartment r, enrecordpointbyt rp,enplanwork p,enplanworkitem eni
+where rp.elementcode=e.code
+and e.geodepartmentrefcode =r.code
+and eni.planrefcode=p.code
+and p.budgetrefcode = 240000001
+and eni.kartarefcode in (2017041452,2017041455,2017041443,2017041457)
+and p.typerefcode <> 8 --услуги отдельно
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode
+	 from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+
+and p.elementrefcode=rp.elementcode
+and p.monthgen=cast($P{M} as integer)
+and p.yeargen=cast($P!{yearGen} as integer)
+and p.kindcode=2
+--
+and p.elementrefcode not in
+(
+select elementcode
+from
+(
+Select rp.elementcode,
+
+add_months(
+(case when rp.datecounterinst<cast('01.'||cast($P{M} as varchar(2))||'.'||cast($P!{yearGen} as varchar(4)) as date) then rp.datecountercheck else coalesce(rp.prevcountercheck,rp.datecountercheck) end)
+,
+case when rp.datecounterinst<cast('01.'||cast($P{M} as varchar(2))||'.'||cast($P!{yearGen} as varchar(4)) as date) then
+cast(12*(case when ((coalesce(rp.checkperiod1,0)>0)and(rp.datecountercheck>=rp.datecheck)) then rp.checkperiod1 else rp.checkperiod end) as integer)
+else cast(12*coalesce(rp.prevcheckperiod,(case when ((coalesce(rp.checkperiod1,0)>0)and(rp.datecountercheck>=rp.datecheck)) then rp.checkperiod1 else rp.checkperiod end))  as integer)
+end
+) as lastdate
+
+
+From enelement e, engeographicdepartment r, enrecordpointbyt rp
+where rp.elementcode=e.code
+and e.geodepartmentrefcode =r.code
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode
+	 from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+
+--and ((rp.statuscode is null) or (rp.statuscode<>1))
+--and ((rp.isworking is null) or (rp.isworking<>1))
+and ((rp.isworking is null) or (rp.isworking=0))
+and rp.serialnumber is not null
+ ) mdat
+where lastdate<=last_day(cast('01.'||cast($P{M} as varchar(2))||'.'||
+cast($P!{yearGen} as varchar(4)) as date))
+
+)
+--
+
+) mdat
+group by rname
+
+union all
+
+select rname,0,0,0,0,0,0,0,0,0,count(countgen)
+from
+(
+Select  distinct p.code as countgen , ( select e2.shortname from  engeodep2endepartment ee , endepartment e2
+	 where ee.departmentrefcode  = e2.code  and ee.geodepartmentrefcode = r.code limit 1  )  as rname
+from enelement e, engeographicdepartment r, enrecordpointbyt rp,enplanwork p,enplanworkitem eni
+where rp.elementcode=e.code
+and e.geodepartmentrefcode =r.code
+and eni.planrefcode=p.code
+and p.budgetrefcode = 240000001
+and coalesce(p.monthoriginal,0)>0
+and eni.kartarefcode in (2017041452,2017041455,2017041443,2017041457)
+and p.typerefcode <> 8 --услуги отдельно
+and (e.geodepartmentrefcode in ( select g2d.geodepartmentrefcode
+	 from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+
+and rp.phasity in
+(
+select case when $P{P3} in (0,4) then 1
+else cast(substr( cast($P{P3} as varchar) ,length(cast($P{P3} as varchar)),1) as integer) end
+from dual
+union all
+select 3 from dual where $P{P3} in (0,4)
+)
+
+and rp.countertype like
+(
+case
+when $P{P3}='4' then '%NP%'
+when $P{P3}='41' then '%NP%'
+when $P{P3}='43' then '%NP%'
+else '%%'
+end
+)
+
+
+and p.elementrefcode=rp.elementcode
+and p.monthgen=cast($P{M} as integer)
+and p.yeargen=cast($P!{yearGen} as integer)
+and p.kindcode=2
+) mdat
+group by rname
+
+union all
+
+select r.shortname  as rname,0,0,0,0,0,0,0,0,0,0 from endepartment r
+where (r.code in ( select g2d.departmentrefcode
+	 from engeodep2endepartment g2d where g2d.departmentrefcode = $P!{renCode} ) or $P!{renCode} = 0 )
+ and r.shortname like ('%РУКОЕЕ%')
+
+) dat
+
+group by rname
+) dd
+order by rname]]>
+	</queryString>
+	<field name="rname" class="java.lang.String"/>
+	<field name="mn" class="java.lang.String"/>
+	<field name="all_istek" class="java.math.BigDecimal"/>
+	<field name="tm_istek" class="java.math.BigDecimal"/>
+	<field name="all_plan" class="java.math.BigDecimal"/>
+	<field name="planf_counter" class="java.math.BigDecimal"/>
+	<field name="cd" class="java.lang.String"/>
+	<field name="notplanf_counter" class="java.math.BigDecimal"/>
+	<field name="allf_counter" class="java.math.BigDecimal"/>
+	<field name="all_nplan" class="java.math.BigDecimal"/>
+	<field name="factnotneed" class="java.math.BigDecimal"/>
+	<field name="plannotneed" class="java.math.BigDecimal"/>
+	<field name="moved" class="java.math.BigDecimal"/>
+	<variable name="cnt1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{all_istek}]]></variableExpression>
+	</variable>
+	<variable name="cnt2" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{tm_istek}]]></variableExpression>
+	</variable>
+	<variable name="cnt3" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{all_plan}]]></variableExpression>
+	</variable>
+	<variable name="cnt4" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{planf_counter}]]></variableExpression>
+	</variable>
+	<variable name="cnt5" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{notplanf_counter}]]></variableExpression>
+	</variable>
+	<variable name="cnt6" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{allf_counter}]]></variableExpression>
+	</variable>
+	<variable name="cnt7" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{all_nplan}]]></variableExpression>
+	</variable>
+	<variable name="cnt8" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{factnotneed}]]></variableExpression>
+	</variable>
+	<variable name="cnt9" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{moved}]]></variableExpression>
+	</variable>
+	<variable name="cnt10" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{plannotneed}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="153" splitType="Stretch">
+			<staticText>
+				<reportElement key="staticText-4" x="300" y="25" width="185" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Факт виконання робіт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-5" x="0" y="139" width="45" height="14"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[1]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-6" x="45" y="139" width="43" height="14"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[2]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="88" y="139" width="43" height="14"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[3]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-8" x="131" y="139" width="43" height="14"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[4]]></text>
+			</staticText>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-6" x="0" y="0" width="485" height="25"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{mn}+" "+$P{yearGen}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-3" x="0" y="25" width="45" height="114"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA["Залишок"+ "\n" +
+"прострочених"+ "\n" +
+"лічильників"+"\n" +
+"на "+$F{cd}+"\n" +
+"шт. * "]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-3" x="45" y="25" width="43" height="114"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA["Прострочені"+ "\n" +
+"лічильникі"+ "\n" +
+"за поточний"+"\n" +
+"період "+$F{mn}+"\n" +
+"шт. ** "]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-3" x="88" y="25" width="43" height="114"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA["Плани"+ "\n" +
+"поточного"+ "\n" +
+"періоду"+"\n" +
+$F{mn}+"\n" +
+"шт. *** "]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-4" x="300" y="40" width="46" height="99"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[План.
+заміна
+ліч.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-4" x="346" y="40" width="47" height="99"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Не план.
+заміна
+ліч.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-4" x="393" y="40" width="46" height="99"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Всього
+за
+місяць]]></text>
+			</staticText>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-3" x="131" y="25" width="43" height="114"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA["Непланові"+ "\n" +
+$F{mn}+"\n" +
+"шт. "]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-3" x="217" y="25" width="43" height="114"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA["Всього"+ "\n" +
+"заплановано"+ "\n" +
+$F{mn}+"\n" +
+"шт. "]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-8" x="217" y="139" width="43" height="14"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[6]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-4" x="439" y="40" width="46" height="99"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Що не
+вийшов
+строк
+повірки]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-8" x="300" y="139" width="46" height="14"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[8]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-8" x="346" y="139" width="47" height="14"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[9]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-8" x="393" y="139" width="46" height="14"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[10]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-8" x="439" y="139" width="46" height="14"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[11]]></text>
+			</staticText>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-3" x="260" y="25" width="40" height="114"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA["в т.ч. що не"+ "\n" +
+"вийшов"+ "\n" +
+"строк"+ "\n" +
+"повірки"]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-8" x="260" y="139" width="40" height="14"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[7]]></text>
+			</staticText>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-3" x="174" y="25" width="43" height="114"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA["Перенесені в"+"\n" +
+$F{mn}+"\n" +
+"шт. "]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement key="staticText-8" x="174" y="139" width="43" height="14"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[5]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="23" splitType="Stretch">
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-2" x="0" y="0" width="45" height="23"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{all_istek}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-3" x="45" y="0" width="43" height="23"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{tm_istek}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-4" x="88" y="0" width="43" height="23"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{all_plan}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-5" x="300" y="0" width="46" height="23"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{planf_counter}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-5" x="346" y="0" width="47" height="23"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{notplanf_counter}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-5" x="393" y="0" width="46" height="23"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{allf_counter}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-4" x="131" y="0" width="43" height="23"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{all_nplan}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-4" x="217" y="0" width="43" height="23"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{all_plan}.add($F{all_nplan}).add($F{moved})]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-5" x="439" y="0" width="46" height="23"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{factnotneed}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-4" x="260" y="0" width="40" height="23"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{plannotneed}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-4" x="174" y="0" width="43" height="23"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{moved}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

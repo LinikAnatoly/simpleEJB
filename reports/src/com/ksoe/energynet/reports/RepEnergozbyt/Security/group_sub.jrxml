@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="group_sub" pageWidth="1282" pageHeight="802" orientation="Landscape" columnWidth="1282" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="0.75"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<queryString>
+		<![CDATA[select d.name,d.fio,d.addr,
+    		 cast(round(cast(d.power as numeric),2) as varchar) as power,d.feedername,d.nact,
+    		 to_char(d.dact,'dd.MM.yyyy') as dact ,d.ttype,to_char(max(d.dategen),'dd.MM.yyyy') as dategen,
+                     case when d.isbyt=1 then 'Быт' else 'Пром' end as isbyt,stts
+             from
+    		 (
+
+
+     		 select d.code,d.name,d.fio,d.addr,
+       		 d.power,d.feedername,group_concat(distinct nact,';') as nact,
+       		 max(dact) as dact,max(ttype) as ttype,
+             case
+             when coalesce(d.dategen,cast('01.01.1970' as date))>max(dact) then coalesce(d.dategen,cast('01.01.1970' as date))
+             else max(dact) end as dategen,
+             d.isbyt,
+             (select wr.name from isworking wr,recordpoint rpi where rpi.isworkingcode=wr.code and rpi.code=d.code) as stts
+       		 from
+       		 (
+    		 select rp.code,rp.name,fiojoint(pa.personcode) as fio, addressjoint(p.prsnaddrssrfcode) as addr,
+    		 rp.power,f10.invnumber as feedername,a.blanknumberold as nact,
+    		 a.dategen as dact,tt.name as ttype,
+    		 cm.dategen,
+    		 1 as isbyt
+
+    		 from
+    		 (select cpi.startperioddate-1096 as startperioddate from currentperiod cpi where cpi.statecode=0) as cp,
+    		 act a,personalaccount pa,feeder f04,winding w,transformer t,feeder f10,person p,thefttype tt,recordpoint rp
+    		 left join
+    		 (
+    		 select cm.recordpontrfcode,max(cm.dategen) as dategen
+    		 from controlmeasurement cm
+    		 where ((cm.inspectiontypecd<1000) or (cm.inspectiontypecd in (1002,1006,1008,1010)))
+    		 and cm.statuscode<>3
+    		 and ((cm.subtypecode is null) or (cm.subtypecode=0))
+    		 and cm.typecode in (0,2,3)
+    		 group by cm.recordpontrfcode
+    		 ) cm on rp.code=cm.recordpontrfcode
+
+    		 where a.recordpontrfcode=rp.code
+    		 and a.statuscode<>1
+    		 and a.dategen>=cp.startperioddate
+    		 and rp.prsnlaccntrfcode=pa.code
+
+    		 and rp.isworkingcode<>1
+    		 and ((rp.counterrefcode is not null) or (rp.code in (select z.recordpontrfcode from zonecounter z)))
+    		 and pa.personcode=p.code
+    		 and a.thefttypecode=tt.code
+    		 and rp.feederrefcode=f04.code
+    		 and f04.windingcode=w.code
+    		 and w.transformrrfcode=t.code
+    		 and t.feederrefcode=f10.code
+    		 and not exists (
+    		 select cmi.recordpontrfcode
+    		 from controlmeasurement cmi,
+    		 (
+    		 select cpp.startperioddate from currentperiod cpp,currentperiod cp
+    		 where cp.statecode=0
+    		 and cpp.code=cp.code-2
+    		 ) cp
+    		 where ((cmi.inspectiontypecd<1000) or (cmi.inspectiontypecd in (1002,1006,1008,1010)))
+    		 and cmi.statuscode<>3
+    		 and ((cmi.subtypecode is null) or (cmi.subtypecode=0))
+    		 and cmi.typecode in (0,2,3)
+    		 and cmi.dategen>=cp.startperioddate
+    		 and cmi.recordpontrfcode=rp.code
+    		 )
+    		 order by a.dategen desc
+    		 ) d
+    		 group by d.code,d.name,d.fio,d.addr,
+    		 d.power,d.feedername,d.dategen,d.isbyt
+
+       	   union all
+
+    				 select d.code,d.name,d.fio,d.addr,
+    			    		 d.power,d.feedername,group_concat(distinct nact,';') as nact,
+    			    		 max(dact) as dact,max(ttype) as ttype,
+
+                             case
+                            when coalesce(d.dategen,cast('01.01.1970' as date))>max(dact) then coalesce(d.dategen,cast('01.01.1970' as date))
+                             else max(dact) end as dategen,
+
+                             d.isbyt,
+                             (select wr.name from eprecordpontstts wr,eprecordpoint rp where rp.code=d.code and rp.statuscode=wr.code) as stts
+
+    			    		 from
+    			    		 (
+
+    			    		 select
+    			    		 rp.code,c.accountnumber as name, rp.name as fio,coalesce(addressjoint(rp.addressrefcode),c.address) as addr,
+    			    		 rp.allowedpower as power,coalesce(f.name,'Не указан') as feedername,
+    			    		 a.numbergen as nact,
+    			    		 a.dategen as dact,
+    			    		 k.name as ttype,
+    			    		 (
+    			    		 select max(cm.dategen)
+    			    		 from epmeasurement cm
+    			    		 where cm.statuscode=0
+    			    		 and cm.measurementtypcd in (1,9,5,6,7)
+    			    		 and cm.recordpontrfcode=rp.code
+    			    		 ) as dategen,
+    			    		 0 as isbyt
+    			    		 from (select cpi.startperioddate-1096 as startperioddate from currentperiod cpi where cpi.statecode=0) as cp,
+    			    		 epcustomer c,eprecordpoint rp
+    			    		 left join epfeeder f on rp.feederrefcode=f.code
+    			    		 ,epactentry ae,epact a
+    			    		 left join epactkind k on a.kindact=k.code
+    			    		 where a.code=ae.actrefcode
+    			    		 and ae.recordpontrfcode=rp.code
+    			    		 and rp.counterrefcode is not null
+    			    		 and a.dategen>=cp.startperioddate
+    			    		 and a.statuscode not in (3,4)
+    			    		 and rp.statuscode<>2
+    			    		 and rp.typecode=0
+    			    		 and rp.customerrefcode=c.code
+
+    			    		 and not exists
+    			    		 (
+    			    		 select cmi.recordpontrfcode
+    			    		 from
+    			    		 (
+    			    		 select cpp.startperioddate from currentperiod cpp,currentperiod cp
+    			    		 where cp.statecode=0
+    			    		 and cpp.code=cp.code-6
+    			    		 ) cp,epmeasurement cmi
+    			    		 where cmi.statuscode=0
+    			    		 and cmi.measurementtypcd in (1,9,5,6,7)
+    			    		 and cmi.recordpontrfcode=rp.code
+    			    		 and cmi.dategen>=cp.startperioddate
+    			    		 )
+    			    		 order by a.dategen
+    			    		 ) d
+    			    		 group by d.code,d.name,d.fio,d.addr,
+    			    		 d.power,d.feedername,d.dategen,d.isbyt
+
+    			    		 union all
+
+    			    		 select d.code,d.name,d.fio,d.addr,
+    			    		 d.power,d.feedername,group_concat(distinct nact,';') as nact,
+    			    		 max(dact) as dact,max(ttype) as ttype,
+                             case
+                             when coalesce(d.dategen,cast('01.01.1970' as date))>max(dact) then coalesce(d.dategen,cast('01.01.1970' as date))
+                             else max(dact) end as dategen,
+
+                             d.isbyt,
+                             (select wr.name from eprecordpontstts wr,eprecordpoint rp where rp.code=d.code and rp.statuscode=wr.code) as stts
+    			    		 from
+    			    		 (
+
+    			    		 select
+    			    		 rp.code,c.accountnumber as name, rp.name as fio,coalesce(addressjoint(rp.addressrefcode),c.address) as addr,
+    			    		 rp.allowedpower as power,coalesce(f.name,'Не указан') as feedername,
+    			    		 a.numbergen as nact,
+    			    		 a.dategen as dact,
+    			    		 k.name as ttype,
+    			    		 (
+    			    		 select max(cm.dategen)
+    			    		 from epmeasurement cm
+    			    		 where cm.statuscode=0
+    			    		 and cm.measurementtypcd in (5,6,7)
+    			    		 and cm.recordpontrfcode=rp.code
+    			    		 ) as dategen,
+    			    		 0 as isbyt
+    			    		 from (select cpi.startperioddate-1096 as startperioddate from currentperiod cpi where cpi.statecode=0) as cp,
+    			    		 epcustomer c,eprecordpoint rp
+    			    		 left join epfeeder f on rp.feederrefcode=f.code
+    			    		 ,epactentry ae,epact a
+    			    		 left join epactkind k on a.kindact=k.code
+    			    		 where a.code=ae.actrefcode
+    			    		 and ae.recordpontrfcode=rp.code
+    			    		 and rp.counterrefcode is not null
+    			    		 and a.dategen>=cp.startperioddate
+    			    		 and a.statuscode not in (3,4)
+    			    		  and rp.statuscode<>2
+    			    		 and rp.typecode=0
+    			    		 and rp.customerrefcode=c.code
+
+    			    		 and not exists
+    			    		 (
+    			    		 select cmi.recordpontrfcode
+    			    		 from
+    			    		 (
+    			    		 select cpp.startperioddate from currentperiod cpp,currentperiod cp
+    			    		 where cp.statecode=0
+    			    		 and cpp.code=cp.code-36
+    			    		 ) cp,epmeasurement cmi
+    			    		 where cmi.statuscode=0
+    			    		 and cmi.measurementtypcd in (5,6,7)
+    			    		 and cmi.recordpontrfcode=rp.code
+    			    		 and cmi.dategen>=cp.startperioddate
+    			    		 )
+    			    		 order by a.dategen
+    			    		 ) d
+    			    		 group by d.code,d.name,d.fio,d.addr,
+    			    		 d.power,d.feedername,d.dategen,d.isbyt
+
+    		 ) d
+    		 group by d.code,d.name,d.fio,d.addr,
+    		 d.power,d.feedername,d.nact,d.dact,d.ttype,d.isbyt,d.stts
+    		 order by d.isbyt,d.dact desc,d.name]]>
+	</queryString>
+	<field name="name" class="java.lang.String"/>
+	<field name="fio" class="java.lang.String"/>
+	<field name="addr" class="java.lang.String"/>
+	<field name="power" class="java.math.BigDecimal"/>
+	<field name="feedername" class="java.lang.String"/>
+	<field name="nact" class="java.lang.String"/>
+	<field name="dact" class="java.lang.String"/>
+	<field name="ttype" class="java.lang.String"/>
+	<field name="dategen" class="java.lang.String"/>
+	<field name="isbyt" class="java.lang.String"/>
+	<field name="stts" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="106" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="106" y="0" width="172" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fio}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="278" y="0" width="192" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{addr}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="470" y="0" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{power}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="530" y="0" width="60" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{feedername}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="590" y="0" width="117" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="707" y="0" width="68" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{dact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="775" y="0" width="271" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ttype}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1046" y="0" width="68" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{dategen}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1114" y="0" width="68" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{isbyt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1182" y="0" width="100" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{stts}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band/>
+	</summary>
+</jasperReport>

@@ -1,0 +1,563 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="dodatok1AdditionalAgreementContract" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="339"/>
+	<style name="style1">
+		<paragraph lineSpacing="Single"/>
+	</style>
+	<style name="table">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+		<paragraph lineSpacing="Single"/>
+	</style>
+	<style name="table_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+		<paragraph lineSpacing="Single"/>
+	</style>
+	<style name="table_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+		<paragraph lineSpacing="Single"/>
+	</style>
+	<style name="table_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+		<paragraph lineSpacing="Single"/>
+	</style>
+	<scriptlet name="finScriptlet" class="com.ksoe.energynet.reports.common.FINScriptlet">
+		<scriptletDescription><![CDATA[finScriptlet]]></scriptletDescription>
+	</scriptlet>
+	<parameter name="agreeCode" class="java.lang.Integer"/>
+	<queryString>
+		<![CDATA[select case when techcos.contractdate > '02.06.2015' then '300506' else '320627' end as mfobanka,
+so.contractnumberservices, so.contractnumber, to_char(so.contractdate,'dd.mm.yyyy') as contractdate,
+coalesce(so.contragentposition,'') as contragentposition,
+techco.building, techco.customer, techco.dategen,
+CAST(techcos.tyServicesPower as FLOAT) as tyservicespower,
+techcos.tariffentryrefcode,
+coalesce(c2ctf.tariff1value,contarf.value) as tarvalue ,
+coalesce(c2ctf.summa1tariff,techcos.tyservicessumma - techcos.tysummavat) as tar1summa ,
+coalesce(c2ctf.summa2tariff,0) as tar2summa,
+trunc(coalesce(c2ctf.summa1tariff,techcos.tyservicessumma - techcos.tysummavat)::numeric(15,2)) as tar1summaGRN,
+(coalesce(c2ctf.summa1tariff,techcos.tyservicessumma - techcos.tysummavat)
+::numeric(15,2) - trunc(coalesce(c2ctf.summa1tariff,techcos.tyservicessumma - techcos.tysummavat)
+::numeric(15,2) )
+)::numeric(15,2) * 100 as tar1summaKOP,
+techcos.tyservicessumma,
+trunc(coalesce(techcos.tyservicessumma,0)::numeric(15,2)) as tyservicessummaGRN,
+(coalesce(techcos.tyservicessumma,0)
+::numeric(15,2) - trunc(coalesce(techcos.tyservicessumma,0)
+::numeric(15,2) )
+)::numeric(15,2) * 100 as tyservicessummaKOP,
+techcos.tysummavat,
+coalesce(sotp.calculationsum, 0) as calculationsum,
+case when cnt.contragentaddress <> '' then trim(replace(cnt.contragentaddress,chr(10),' ')) else '' end as contragentaddress,
+coalesce(trim(replace(cnt.contragentaddresswork,chr(10),' ')),' ') as contragentaddresswork ,
+case when cnt.warrantaddress <> '' then trim(replace(cnt.warrantaddress,chr(10),' ')) else '' end as warrantaddress  ,
+case when cnt.contragentokpo <> '' then 'Ідентифікаційний номер ' || cnt.contragentokpo else '' end as contragentokpo ,
+coalesce(cnt.contragentbankaccount,'') as contragentbankaccount,
+coalesce(cnt.contragentbankname,'') as contragentbankname,
+coalesce(cnt.contragentbankmfo,'') as contragentbankmfo,
+/*cnt.contragentbossname,*/
+case when trim(replace(coalesce(cnt.contragentbossname,''),chr(10),'')) = '' then  cnt.contragentname  else trim(replace(cnt.contragentbossname,chr(10),'')) end as contragentbossname,
+case when cnt.contragentpassport <> '' then  case when bt.code = 6 then 'Паспорт '
+     when bt.code = 5 then 'Свідоцтво про державну реєстрацію '
+     else ' '
+end || trim(replace(cnt.contragentpassport,chr(10),' ')) else null end as contragentpassport ,
+coalesce(powrt.name,'') as categoryRefName,
+(coalesce((select conpp.name from net.enconnectionpowerpoint conpp --Ступінь напруги в точці приєднання
+where
+sotp.powerpointrefcode=conpp.code),'')
+) as powerPointRefName,
+( coalesce((select conitp.name from net.enconnectioninstlltntp conitp --Тип електроустановки приєднання
+where
+sotp.installationtyperefcod=conitp.code),'')
+) as InstallationType,
+coalesce(wr.warrantposition,'') as enwarrant_warrantposition ,
+coalesce(wr.warrantshortfio,'') as enwarrant_warrantshortfio,
+coalesce(stt.name,'') as settlename
+from net.enservicesobject so  --Об"єкти - послуги на сторону
+left join
+	net.enservicesobject2techcondtnsservices as so2tcs --Зв’язок договору про послуги з договором на Технічні умови
+	on so2tcs.servicesobjectrefcode=so.code,
+net.entechconditionsservcs techcos --Договір про виконання технічних умов
+left join
+	net.enconnectiontariffentr as contarf --Значення ставок плати за стандартне приєднання
+	on techcos.tariffentryrefcode=contarf.code
+left join
+	net.encalc2connecttariff c2ctf --Розрахунок вартості приєднання за двома тарифами
+	on c2ctf.techcondservrefcode = techcos.code
+left join
+    net.encontragent cnt --Замовник
+    on cnt.techcondservicesrefcod = techcos.code,
+net.entechconditionsobjcts techco, --Технічні умови
+net.enbasistype bt, --Обгрунтування на підставі чого діє замовник
+net.ensotechparams sotp, --Технические параметры ServicesObject'а
+net.enpowerreliabilityctgr powrt, --Категорія надійності електропостачання
+net.enwarrant wr, --Доверенности
+net.ensettletype stt --Тип місцевості (місто/село)
+where
+so.code=$P{agreeCode}
+and so.techconobjectscode=techco.code
+and so2tcs.techcondservrefcode = techcos.code
+and cnt.techconobjectscode = techco.code
+and cnt.basistypecode = bt.code
+and sotp.servicesobjectcode=so.code
+and sotp.categoryrefcode=powrt.code
+and wr.code=techcos.warrantrefcode
+and powrt.settletyperefcode=stt.code]]>
+	</queryString>
+	<field name="mfobanka" class="java.lang.String"/>
+	<field name="contractnumberservices" class="java.lang.String"/>
+	<field name="contractnumber" class="java.lang.String"/>
+	<field name="contractdate" class="java.lang.String"/>
+	<field name="contragentposition" class="java.lang.String"/>
+	<field name="building" class="java.lang.String"/>
+	<field name="customer" class="java.lang.String"/>
+	<field name="dategen" class="java.sql.Date"/>
+	<field name="tyservicespower" class="java.lang.Double"/>
+	<field name="tariffentryrefcode" class="java.lang.Double"/>
+	<field name="tarvalue" class="java.lang.Double"/>
+	<field name="tar1summa" class="java.math.BigDecimal"/>
+	<field name="tar2summa" class="java.lang.Double"/>
+	<field name="tar1summagrn" class="java.math.BigDecimal"/>
+	<field name="tar1summakop" class="java.math.BigDecimal"/>
+	<field name="tyservicessumma" class="java.math.BigDecimal"/>
+	<field name="tyservicessummagrn" class="java.math.BigDecimal"/>
+	<field name="tyservicessummakop" class="java.math.BigDecimal"/>
+	<field name="tysummavat" class="java.lang.Double"/>
+	<field name="calculationsum" class="java.math.BigDecimal"/>
+	<field name="contragentaddress" class="java.lang.String"/>
+	<field name="contragentaddresswork" class="java.lang.String"/>
+	<field name="warrantaddress" class="java.lang.String"/>
+	<field name="contragentokpo" class="java.lang.String"/>
+	<field name="contragentbankaccount" class="java.lang.String"/>
+	<field name="contragentbankname" class="java.lang.String"/>
+	<field name="contragentbankmfo" class="java.lang.String"/>
+	<field name="contragentbossname" class="java.lang.String"/>
+	<field name="contragentpassport" class="java.lang.String"/>
+	<field name="categoryrefname" class="java.lang.String"/>
+	<field name="powerpointrefname" class="java.lang.String"/>
+	<field name="installationtype" class="java.lang.String"/>
+	<field name="enwarrant_warrantposition" class="java.lang.String"/>
+	<field name="enwarrant_warrantshortfio" class="java.lang.String"/>
+	<field name="settlename" class="java.lang.String"/>
+	<variable name="companyShortName" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyShortName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("company.shortname")]]></initialValueExpression>
+	</variable>
+	<variable name="companyAddress" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyAddress}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getContactValue(com.ksoe.energynet.valueobject.ENDepartment.ENDEPARTMENT_KSOE, com.ksoe.rqorder.valueobject.RQContactType.ADDRESS, $F{dategen})]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="700" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="false">
+				<reportElement positionType="Float" x="200" y="0" width="355" height="56"/>
+				<textElement>
+					<font fontName="Times New Roman" size="12" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Додаток № 1 \n"+
+"до Додаткової угоди №___________ від__________________р. \n"+
+"до Договору про приєднання № "+$F{contractnumberservices}+"/"+ $F{contractnumber}+" від "+$F{contractdate}+" р."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="false">
+				<reportElement positionType="Float" mode="Transparent" x="0" y="76" width="555" height="20"/>
+				<box>
+					<pen lineWidth="0.0"/>
+					<topPen lineWidth="0.0"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Розрахункова формула вартості приєднання, яке не стандартним: "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="0" y="56" width="555" height="20"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="true" isItalic="false" isUnderline="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Розрахунок плати за приєднання до електромереж АТ  «Херсонобленерго» електроустановок "+"<u>"+$F{building}+" "+$F{customer}+", який розташовано за адресою: "+$F{contragentaddresswork}+"</u>"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="10" y="275" width="545" height="25"/>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Вихідні дані для виконання розрахунку:"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="10" y="300" width="270" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Заявлена до приєднана потужність"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="10" y="315" width="270" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Ступінь напруги в точці приєднання"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="10" y="330" width="270" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Місцевість"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="10" y="345" width="270" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Категорія надійності електропостачання"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="10" y="360" width="270" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Тип електроустановки"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="10" y="375" width="270" height="30"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Обрана ставка плати за нестандартне приєднання, тис грн (без ПДВ)"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="10" y="405" width="270" height="46"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Плата за створення електричних мереж лінійної частини приєднання (визначається відповідно до кошторису)"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="280" y="300" width="258" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tyservicespower}+" кВт"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="280" y="315" width="258" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{powerpointrefname}+"кВт"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="280" y="330" width="258" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{settlename}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="280" y="345" width="258" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{categoryrefname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="280" y="360" width="258" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{installationtype}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="280" y="375" width="258" height="30"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tarvalue}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="280" y="405" width="258" height="46"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{calculationsum}.divide(new java.math.BigDecimal(1000), 5, java.math.BigDecimal.ROUND_HALF_UP)]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="10" y="451" width="544" height="22"/>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Тоді, остаточний розрахунок вартості приєднання буде виглядати:"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="10" y="473" width="544" height="21"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["П<sub>нст</sub>"+" = "+$F{tyservicespower}+" * "+$F{tarvalue}+" + "+ $F{calculationsum}.divide(new java.math.BigDecimal(1000), 5, java.math.BigDecimal.ROUND_HALF_UP)+" = "+ $F{tar1summa}.divide(new java.math.BigDecimal(1000), 5, java.math.BigDecimal.ROUND_HALF_UP)+ " тис. грн (без ПДВ)"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="10" y="494" width="544" height="21"/>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Висновок: плата за приєднання, яке не є стандартним становить "+$F{tar1summa}.divide(new java.math.BigDecimal(1000), 5, java.math.BigDecimal.ROUND_HALF_UP)+" тис. грн "+" без ПДВ"+" та "+$F{tyservicessumma}.divide(new java.math.BigDecimal(1000), 5, java.math.BigDecimal.ROUND_HALF_UP)+" тис. грн "+" з ПДВ"]]></textFieldExpression>
+			</textField>
+			<image>
+				<reportElement positionType="Float" x="10" y="96" width="545" height="179"/>
+				<imageExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/TechConditions/additionalAgreements/dodato1_formula_text_png.PNG")]]></imageExpression>
+			</image>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="9" y="526" width="267" height="69"/>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{mfobanka}.equals("320627")  ?
+$V{companyShortName} +" \n" +
+$V{companyAddress} + " \n" +
+"р/р UA923206270000026009010034604 \n" +
+"АТ «СБЕРБАНК РОСІЇ» \n" +
+"МФО 320627, ЄДРПОУ 05396638"
+:
+$V{companyShortName} +" \n" +
+$V{companyAddress} + " \n" +
+"р/р UA443005060000026002007037568 \n" +
+"ПАТ \"Перший Інвестиційний Банк\" \n" +
+"МФО 300506,  ЄДРПОУ 05396638"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="290" y="526" width="265" height="69"/>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{customer}+"\n"+
+$F{contragentaddress}+"\n"+
+new String($F{contragentpassport}).trim()+"\n"+
+$F{contragentokpo}+"\n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="9" y="595" width="267" height="21"/>
+				<textElement verticalAlignment="Bottom" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" isUnderline="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{enwarrant_warrantposition}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="9" y="637" width="267" height="10"/>
+				<textElement verticalAlignment="Top" markup="styled">
+					<font fontName="Times New Roman" size="8" isBold="false" isUnderline="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["             (посада)                          (підпис, П. І. Б.)"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="9" y="647" width="267" height="17"/>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" isUnderline="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["«______»__________________________20_____р."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="290" y="595" width="266" height="21"/>
+				<textElement verticalAlignment="Bottom" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" isUnderline="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new String(($F{contragentposition} != null) ? $F{contragentposition} : "")]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="290" y="637" width="266" height="10"/>
+				<textElement verticalAlignment="Top" markup="styled">
+					<font fontName="Times New Roman" size="8" isBold="false" isUnderline="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["             (посада)                          (підпис, П. І. Б.)"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="290" y="647" width="266" height="17"/>
+				<textElement verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" isUnderline="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["«______»__________________________20_____р."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="290" y="616" width="266" height="21"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" isUnderline="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["/"+$F{contragentbossname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="9" y="616" width="267" height="21"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" isUnderline="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["/"+$F{enwarrant_warrantshortfio}+"/"]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

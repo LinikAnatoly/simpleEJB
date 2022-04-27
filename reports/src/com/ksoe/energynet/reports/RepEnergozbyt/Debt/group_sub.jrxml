@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="group_sub" pageWidth="1740" pageHeight="802" orientation="Landscape" columnWidth="1740" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="dateStart" class="java.lang.String"/>
+	<parameter name="dateEnd" class="java.lang.String"/>
+	<parameter name="includeByt" class="java.lang.String">
+		<defaultValueExpression><![CDATA["1"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="includeProm" class="java.lang.String">
+		<defaultValueExpression><![CDATA["1"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="printDetail" class="java.lang.Integer"/>
+	<parameter name="sumdebt" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[select
+(select name from ren) as renname,
+rp.rpname,
+1 as rpc,
+rp.fio,
+rp.addr,
+rp.uch,
+(case when ((b.sm>rp.rpsaldo)or(b.sm<0)) then rp.rpsaldo else b.sm end) as sm,
+(case when w.rpcode is not null then 'предупр.-'||to_char(lastwdate,'dd.MM.yyyy') else 'нет' end)  as wr,
+(case when w.rpcode is not null then
+                                (case when ((b.sm>rp.rpsaldo)or(b.sm<0)) then rp.rpsaldo else b.sm end)
+else 0 end)  as wrs,
+
+(case when w.rpcode is not null then 1 else 0 end) as wrc,
+
+(case when rp_otkl.rpcode is not null then 'откл.-'||to_char(disconnectiondat,'dd.MM.yyyy') else 'нет' end)  as otk,
+(case when rp_otkl.rpcode is not null then
+                                   (case when ((b.sm>rp.rpsaldo)or(b.sm<0)) then rp.rpsaldo else b.sm end)
+else 0 end)  as otks,
+
+(case when rp_otkl.rpcode is not null then 1 else 0 end) as otkc
+,rp.dkp
+,
+cast(coalesce((select sum((case when coalesce(c.sumfromcourt,-1)>=0 then c.sumfromcourt else coalesce(sumcourt,0) end))
+ from claim c where c.statuscode>3 and c.resultcode<>2 and c.recordpontrfcode=rp.rpcode),0) as varchar)||
+coalesce(
+(' від '||(select to_char(max(c.datetocourt),'dd.MM.yyyy') from claim c where c.statuscode>3
+and c.resultcode<>2 and c.recordpontrfcode=rp.rpcode))
+,'') as court
+
+,coalesce((case
+  when b.isk>rp.rpsaldo then rp.rpsaldo
+  when b.isk<0 then 0
+  else b.isk
+ end),0) as isk
+
+from
+(
+select rp.code as rpcode,rp.name as rpname,fiojoint(p.code) as fio,
+--addressjoint(p.prsnaddrssrfcode)
+a.addresstxt as addr,
+cast('' as varchar) as uch,
+--coalesce(s.name,'') as uch,
+(rp.debet-rp.credit) as saldo,(rp.debet-rp.credit) as rpsaldo,
+
+(
+select max(cm.dategen)
+from controlmeasurement cm
+where cm.statuscode=1
+and cm.recordpontrfcode=rp.code
+and ((cm.inspectiontypecd<1000) or (cm.inspectiontypecd in (1002,1006)))
+and ((cm.subtypecode is null) or (cm.subtypecode=0))
+and cm.typecode=0
+)  as dkp
+
+from recordpoint rp,personalaccount pa,person p
+--left join address a on a.code=p.prsnaddrssrfcode
+--left join site s on s.code=a.sitecode
+left join addressjointlist a on a.code=p.prsnaddrssrfcode
+
+where rp.isworkingcode<>1
+and (rp.debet-rp.credit)>=cast($P{sumdebt} as double precision)
+and rp.prsnlaccntrfcode=pa.code
+and pa.personcode=p.code
+) rp
+inner join
+(
+select b.recordpontrfcode,
+sum(b.topayaftercrrctn
+-coalesce((
+select sum(p.value) from paymentdocument pd,payment p
+where pd.code=p.pymntdcmntrfcode
+and pd.statuscode=0
+and p.billrefcode=b.code
+and p.statuscode=0
+),0)
+) as sm,
+min(b.enddate) as lastdate,
+
+sum(
+case when b.periodrefcode>=cp.code-36 then 0
+else (b.topayaftercrrctn
+-coalesce((
+select sum(p.value) from paymentdocument pd,payment p
+where pd.code=p.pymntdcmntrfcode
+and pd.statuscode=0
+and p.billrefcode=b.code
+and p.statuscode=0
+),0))
+end
+) as isk
+
+from (select cp.code from currentperiod cp where cp.statecode=0) cp,bill b
+where b.invstatuscode=0
+and b.periodrefcode<cp.code-3
+and b.billtypecode in (0,1,6,7)
+group by b.recordpontrfcode
+) b on b.recordpontrfcode=rp.rpcode
+
+left join
+(
+select rp.code as rpcode,max(w.dategen) as lastwdate
+from warning w,recordpoint rp
+where rp.code=w.recordpontrfcode
+and w.warningtypecode in (0,1)
+and w.dategen>='01.01.2013'
+and coalesce(wrnngmd,-1)>=0
+group by rp.code
+) w on (w.rpcode=b.recordpontrfcode and w.lastwdate>=b.lastdate)
+
+
+left join
+(
+select rp.code as rpcode,coalesce(max(dh.dategen),max(h.disconnectiondat)) as disconnectiondat
+from recordpoint rp
+left join recordpointhstry h on rp.code=h.recordpontrfcode
+left join disconnecthistory dh on rp.code=dh.recordpontrfcode
+where rp.isworkingcode>1
+and rp.code=h.recordpontrfcode
+and h.disconnectiondat is not null
+group by rp.code
+)  rp_otkl on rp_otkl.rpcode=rp.rpcode
+
+where b.sm>=cast($P{sumdebt} as double precision)
+order by rp.uch,rp.addr]]>
+	</queryString>
+	<field name="renname" class="java.lang.String"/>
+	<field name="rpname" class="java.lang.String"/>
+	<field name="fio" class="java.lang.String"/>
+	<field name="addr" class="java.lang.String"/>
+	<field name="uch" class="java.lang.String"/>
+	<field name="sm" class="java.math.BigDecimal"/>
+	<field name="wr" class="java.lang.String"/>
+	<field name="wrs" class="java.math.BigDecimal"/>
+	<field name="otk" class="java.lang.String"/>
+	<field name="otks" class="java.math.BigDecimal"/>
+	<field name="rpc" class="java.lang.Integer"/>
+	<field name="wrc" class="java.lang.Integer"/>
+	<field name="otkc" class="java.lang.Integer"/>
+	<field name="dkp" class="java.util.Date"/>
+	<field name="court" class="java.lang.String"/>
+	<field name="isk" class="java.math.BigDecimal"/>
+	<variable name="rp_cnt" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{rpc}]]></variableExpression>
+	</variable>
+	<variable name="rp_sm" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{sm}]]></variableExpression>
+	</variable>
+	<variable name="wr_cnt" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{wrc}]]></variableExpression>
+	</variable>
+	<variable name="wr_sm" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{wrs}]]></variableExpression>
+	</variable>
+	<variable name="otk_cnt" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[$F{otkc}]]></variableExpression>
+	</variable>
+	<variable name="otk_sm" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{otks}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<printWhenExpression><![CDATA[new Boolean($P{printDetail}.intValue()==1)]]></printWhenExpression>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="170" y="0" width="124" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{rpname}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1" y="0" width="124" height="20"/>
+				<box>
+					<leftPen lineWidth="1.0"/>
+				</box>
+				<textElement/>
+				<text><![CDATA[]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="170" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{renname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="294" y="0" width="231" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{fio}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="525" y="0" width="239" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{addr}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="764" y="0" width="180" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{uch}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="944" y="0" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{sm}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1014" y="0" width="136" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{wr}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1150" y="0" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{wrs}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1220" y="0" width="136" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{otk}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1356" y="0" width="84" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{otks}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="dd.MM.yyyy" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1440" y="0" width="100" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{dkp}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="dd.MM.yyyy" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1540" y="0" width="100" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{court}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1640" y="0" width="100" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{isk}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="20">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="764" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA["Итого по "+$F{renname}+" РЕС:"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="764" y="0" width="180" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$V{rp_cnt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="944" y="0" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$V{rp_sm}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1014" y="0" width="136" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$V{wr_cnt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1150" y="0" width="70" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$V{wr_sm}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1220" y="0" width="136" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$V{otk_cnt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1356" y="0" width="84" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$V{otk_sm}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1440" y="0" width="100" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[" "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1540" y="0" width="100" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[" "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" mode="Opaque" x="1640" y="0" width="100" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[" "]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

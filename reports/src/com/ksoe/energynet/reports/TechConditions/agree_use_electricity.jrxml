@@ -1,0 +1,978 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="agree_use_electricity" pageWidth="595" pageHeight="842" whenNoDataType="AllSectionsNoDetail" columnWidth="539" leftMargin="28" rightMargin="28" topMargin="28" bottomMargin="28" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="308"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="plancode" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["500458431"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="agreeCode" class="java.lang.Integer"/>
+	<parameter name="counterTypeF1" class="java.lang.String"/>
+	<parameter name="counterCheckateF1" class="java.lang.String"/>
+	<parameter name="lastControlF1" class="java.lang.String"/>
+	<parameter name="counterTypeF3" class="java.lang.String"/>
+	<parameter name="counterCheckateF3" class="java.lang.String"/>
+	<parameter name="lastControlF3" class="java.lang.String"/>
+	<parameter name="powerSupplyPoint" class="java.lang.String"/>
+	<parameter name="voltageNominal" class="java.lang.String"/>
+	<parameter name="servicesPower" class="java.lang.String"/>
+	<parameter name="connectionPowerPoint" class="java.lang.String"/>
+	<parameter name="rightsDoc" class="java.lang.String"/>
+	<parameter name="connectionObj" class="java.lang.String"/>
+	<parameter name="numberDoc" class="java.lang.String"/>
+	<parameter name="buildersArea" class="java.lang.String"/>
+	<parameter name="printHolder" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[select
+
+case when entechconditionsservcs.contractdate > '02.06.2015' then '300506' else '320627' end as mfobanka,
+
+entechconditionsservcs.code,
+entechconditionsservcs.contractnumber,
+
+case when entechconditionsservcs.contractdatefinal is not null
+  then to_char(entechconditionsservcs.contractdatefinal,'dd.mm.yyyy')
+    else '__________' end as datfinal,
+
+to_char(entechconditionsservcs.contractdate,'dd.mm.yyyy') as contractdate,
+to_char(entechconditionsservcs.contractdate,'yyyy') as contractdate_year,
+entechconditionsservcs.fincontractnumber,
+entechconditionsservcs.fincontractdate,
+entechconditionsservcs.partnername,
+entechconditionsservcs.partnercode,
+entechconditionsservcs.findoccode,
+entechconditionsservcs.findocid,
+entechconditionsservcs.fincommentgen,
+ecnt.contragentname,
+case when contragentaddress <> '' then trim(replace(ecnt.contragentaddress,chr(10),' ')) else null end as contragentaddress ,
+
+coalesce(trim(replace(ecnt.contragentaddresswork,chr(10),' ')),' ') as contragentaddresswork ,
+case when ecnt.warrantaddress <> '' then trim(replace(ecnt.warrantaddress,chr(10),' ')) else null end as warrantaddress  ,
+case when ecnt.contragentokpo <> '' then 'Ідентифікаційний номер ' || ecnt.contragentokpo else null end as contragentokpo ,
+ecnt.contragentbankaccount,
+ecnt.contragentbankname,
+ecnt.contragentbankmfo,
+/* ecnt.contragentbossname,  */
+case when trim(replace(coalesce(ecnt.contragentbossname,''),chr(10),'')) = '' then  ecnt.contragentname  else trim(replace(ecnt.contragentbossname,chr(10),'')) end as contragentbossname,
+
+case when ecnt.contragentpassport <> '' then  case when bt.code = 6 then 'Паспорт '
+     when bt.code = 5 then 'Свідоцтво про державну реєстрацію '
+     else ' '  end || trim(replace(ecnt.contragentpassport,chr(10),' ')) else null end as contragentpassport ,
+coalesce(entechconditionsservcs.tyservicessumma,0) as tyservicessumma,
+
+/* SUPP-1221... +++ мощность по договору + существующая мощность */
+/* 25.04.2013 +++ мощность берем с ТУ */
+/* entechconditionsservcs.tyservicespower + coalesce(entechconditionsobjcts.tycurrentpower,0) as tyservicespower, */
+coalesce(entechconditionsobjcts.tyservicespower,0) as tyservicespower,
+
+entechconditionsservcs.commentservicesgen,
+entechconditionsservcs.usergen,
+entechconditionsservcs.dateedit,
+to_char(ecnt.warrantdate,'dd.mm.yyyy') as warrantdate,
+ecnt.warrantnumber,
+case when ecnt.warrantfio <> '' then ecnt.warrantfio else null end as warrantfio ,
+case when ecnt.warrantpassport <> '' then 'Паспорт ' || trim(replace(ecnt.warrantpassport,chr(10),'')) else null end as warrantpassport  ,
+entechconditionsservcs.domain_info,
+entechconditionsservcs.modify_time,
+ecnt.techconobjectscode as techcondobjectsrefcode,
+entechconditionsservcs.elementcode,
+entechconditionsservcs.departmentcode,
+entechconditionsservcs.techcondservicessttscd,
+entechconditionsservcs.techcondservicestypecd,
+entechconditionsservcs.contragentformcode,
+ecnt.contragenttypecode,
+ecnt.basistypecode ,
+endepartment.code as depcode ,
+endepartment.name as depname ,
+case
+  when entechconditionsobjcts.numbergen like '%EWF%'
+    then '__________'
+  else
+    entechconditionsobjcts.numbergen
+end as tunumber,
+trim(replace(entechconditionsobjcts.address,chr(10),'')) as tuaddress ,
+entechconditionsobjcts.building as tubuilding ,
+to_char(entechconditionsobjcts.dategen,'dd.mm.yyyy') as tudate ,
+entechconditionsobjcts.dategen,
+entechconditionsservcs.tysummagen  ,
+textgrivna(coalesce(entechconditionsservcs.tysummagen::numeric(15,2),0)) as txt_tysummagen,
+entechconditionsservcs.tysummavat  ,
+textgrivna(coalesce(entechconditionsservcs.tysummavat::numeric(15,2),0)) as txt_tysummavat ,
+textgrivna(coalesce(entechconditionsservcs.tyservicessumma::numeric(15,2),0)) as txt_tyservicessumma ,
+(entechconditionsservcs.tysummagen::numeric(15,2) - trunc(entechconditionsservcs.tysummagen::numeric(15,2) ))::numeric(15,2) * 100   as tysummagenKOP ,
+coalesce(ep.rencity,'') as rencity  ,
+
+   ecnt.contragentname ||
+   case when (trim(replace(coalesce(ecnt.contragentposition,''),chr(10),'')) <> ''
+         and trim(replace(coalesce(ecnt.contragentbossname,''),chr(10),'')) <> '' ) then
+       ' в особі ' || trim(replace(ecnt.contragentposition,chr(10),'')) || ' ' || trim(replace(ecnt.contragentbossname,chr(10),''))
+ else ' ' end  ||
+   case when trim(replace( ecnt.contragentpassport,chr(10),' ')) is not null and bt.code = 6  then  ' , паспорт ' || trim(replace( ecnt.contragentpassport,chr(10),' ')) else ' ' end  ||
+   case when bt.code not in (3,6) then ', що діє на підставі ' || bt.name else ' ' end ||
+   case when bt.code = 3 then ', від імені якого на підставі Довіреності  ' || ecnt.warrantnumber || ' від ' || to_char(ecnt.warrantdate,'dd.mm.yyyy') || ' діє ' || ecnt.warrantfio else ' ' end
+   as contragentname_txt_header        ,
+    coalesce( ecnt.techconditionsitem   , 'НЕВИЗНАЧЕНО' ) as techconditionsitem ,
+    coalesce( entechconditionsservcs.executionterm , 'НЕВИЗНАЧЕНО' ) as executionterm ,
+    coalesce( entechcondresponsibles.responsibleposition || '  ' || entechcondresponsibles.responsiblefio || ' тел. ' || coalesce(entechcondresponsibles.responsiblePhone,' ') , 'НЕВИЗНАЧЕНО' ) as entechcondresponsibles ,
+trim(replace(coalesce(ecnt.contragentposition,''),chr(10),'')) as contragentposition ,
+(entechconditionsservcs.tyservicessumma::numeric(15,2) - trunc(entechconditionsservcs.tyservicessumma::numeric(15,2) ))::numeric(15,2) * 100   as tyservicessummaKOP
+, (entechconditionsservcs.tysummavat::numeric(15,2) - trunc(entechconditionsservcs.tysummavat::numeric(15,2) ))::numeric(15,2) * 100   as tysummagenVatKOP
+
+, tar.powerlevel, tar.powerreliability
+, case when (tar.phasity = 1) then '0,23' else tar.powerpoint end as powerpoint
+
+, coalesce(entechconditionsobjcts.connectionpowerplaces,'не визначено') as connectionpowerplaces
+, coalesce(entechconditionsobjcts.connectionpowerpoint,'не визначено') as connectionpowerpoint
+, coalesce(entechconditionsobjcts.address,'не визначено') as connectionaddress
+---
+, ( select contragentphonenumber from enservicesobject so
+     where so.code in (select so2tc.servicesobjectrefcode from
+                                  enservicesobject2techcondtnsservices so2tc
+                       where so2tc.techcondservrefcode = entechconditionsservcs.code ) limit 1 ) as contragentphonenumber
+
+, coalesce((select so.personalaccountnumber from enservicesobject so
+     where so.code in (select so2tc.servicesobjectrefcode from
+                                  enservicesobject2techcondtnsservices so2tc
+                       where so2tc.techcondservrefcode = entechconditionsservcs.code ) ),'_________') as personalaccountnumber  ,
+
+--- warrants
+case when agree_warrant.agw_warrantrefcode is null then  entechconditionsservcs.warrantrefcode  else agree_warrant.agw_warrantrefcode end as warrantrefcode,
+case when agree_warrant.agw_warrantshortfio is null then  enwarrant.warrantshortfio else agree_warrant.agw_warrantshortfio end as enwarrant_warrantshortfio ,
+case when agree_warrant.agw_genitivefio is null then enwarrant.genitivefio else agree_warrant.agw_genitivefio end as genitivefio,
+case when agree_warrant.agw_genitiveposition is null then enwarrant.genitiveposition else agree_warrant.agw_genitiveposition end as genitiveposition,
+case when agree_warrant.agw_address is null then trim(replace(enwarrant.address,chr(10),'')) else agree_warrant.agw_address end as enwarrant_address ,
+case when agree_warrant.agw_warrantfio is null then enwarrant.warrantfio else agree_warrant.agw_warrantfio end as enwarrant_warrantfio ,
+case when agree_warrant.agw_warrantposition is null then enwarrant.warrantposition else agree_warrant.agw_warrantposition end as enwarrant_warrantposition ,
+case when agree_warrant.agw_numbergen is null then enwarrant.numbergen else agree_warrant.agw_numbergen end as enwarrant_numbergen ,
+case when agree_warrant.agw_datestart is null then to_char(enwarrant.datestart,'dd.mm.yyyy') else agree_warrant.agw_datestart end as enwarrant_datestart
+
+
+
+from entechconditionsservcs left join enwarrant on (enwarrant.code = entechconditionsservcs.warrantrefcode  )
+
+left join
+       (select
+        agw.code as agw_warrantrefcode,
+       agw.warrantshortfio as agw_warrantshortfio ,
+       agw.genitivefio as agw_genitivefio ,
+       agw.genitiveposition as  agw_genitiveposition,
+       (replace(agw.address,chr(10),'')) as agw_address ,
+       agw.warrantfio as agw_warrantfio ,
+	   agw.warrantposition as agw_warrantposition ,
+	   agw.numbergen as agw_numbergen ,
+       to_char(agw.datestart,'dd.mm.yyyy') as agw_datestart,
+so2tc.techcondservrefcode as agw_techcondservrefcode
+                         from enservicesobject2techcondtnsservices so2tc,
+                          enagreedata2servcsbjct   a2s ,  enwarrant agw
+                          where so2tc.servicesobjectrefcode = a2s.servicesobjectrefcode
+                          and a2s.warrantrefcode = agw.code
+                      ) as agree_warrant  on agree_warrant.agw_techcondservrefcode = entechconditionsservcs.code
+
+ left join entechcondresponsibles on (entechcondresponsibles.code = entechconditionsservcs.techcondresponsblsrfcd)
+
+left join (
+select enconnectionlevel.name as powerlevel,
+       enpowerreliabilityctgr.name /*|| ' - ' || ensettletype.name*/ as powerreliability,
+       enconnectionpowerpoint.name as powerpoint,
+       enconnectiontariffentr.code as tecode,
+       enconnectiontariff.phasityrefcode as phasity
+from enconnectionlevel,
+     enpowerreliabilityctgr,
+     enconnectionpowerpoint,
+     ensettletype,
+     enconnectiontariff,
+     enconnectiontariffentr
+where enconnectionlevel.code = enconnectiontariff.levelrefcode and
+      enpowerreliabilityctgr.code = enconnectiontariff.categoryrefcode and
+      enconnectionpowerpoint.code = enconnectiontariff.powerpointrefcode and
+      ensettletype.code = enpowerreliabilityctgr.settletyperefcode and
+      enconnectiontariff.code = enconnectiontariffentr.tariffrefcode
+) tar on tar.tecode = entechconditionsservcs.tariffentryrefcode
+
+, entechconditionsobjcts left join (endepartment as de
+    inner join
+    (endepartment as de1
+    inner join
+    (endepartment2epren as deep
+    inner join
+    epren as ep
+    on
+    deep.renrefcode = ep.code)
+    on
+    de1.code = deep.departmentrefcode)
+    on
+    de1.code = de.rencode)
+    on
+    entechconditionsobjcts.departmentcode = de.code
+, endepartment  , encontragent ecnt  , enbasistype bt
+
+where entechconditionsservcs.code = $P{agreeCode}
+  and ecnt.techconobjectscode = entechconditionsobjcts.code
+  and entechconditionsobjcts.departmentcode = endepartment.code
+  and ecnt.techcondservicesrefcod = entechconditionsservcs.code
+  and ecnt.basistypecode = bt.code
+
+order by ecnt.code
+limit 1]]>
+	</queryString>
+	<field name="code" class="java.lang.Double"/>
+	<field name="contractnumber" class="java.lang.String"/>
+	<field name="contractdate" class="java.lang.String"/>
+	<field name="fincontractnumber" class="java.lang.String"/>
+	<field name="fincontractdate" class="java.sql.Date"/>
+	<field name="partnername" class="java.lang.String"/>
+	<field name="partnercode" class="java.lang.String"/>
+	<field name="findoccode" class="java.lang.String"/>
+	<field name="findocid" class="java.lang.Double"/>
+	<field name="fincommentgen" class="java.lang.String"/>
+	<field name="contragentname" class="java.lang.String"/>
+	<field name="contragentaddress" class="java.lang.String"/>
+	<field name="contragentaddresswork" class="java.lang.String"/>
+	<field name="warrantaddress" class="java.lang.String"/>
+	<field name="contragentokpo" class="java.lang.String"/>
+	<field name="contragentbankaccount" class="java.lang.String"/>
+	<field name="contragentbankname" class="java.lang.String"/>
+	<field name="contragentbankmfo" class="java.lang.String"/>
+	<field name="contragentbossname" class="java.lang.String"/>
+	<field name="contragentpassport" class="java.lang.String"/>
+	<field name="tyservicessumma" class="java.lang.Integer"/>
+	<field name="tyservicespower" class="java.lang.Double"/>
+	<field name="commentservicesgen" class="java.lang.String"/>
+	<field name="usergen" class="java.lang.String"/>
+	<field name="dateedit" class="java.sql.Date"/>
+	<field name="warrantdate" class="java.lang.String"/>
+	<field name="warrantnumber" class="java.lang.String"/>
+	<field name="warrantfio" class="java.lang.String"/>
+	<field name="warrantpassport" class="java.lang.String"/>
+	<field name="domain_info" class="java.lang.String"/>
+	<field name="modify_time" class="java.lang.Double"/>
+	<field name="techcondobjectsrefcode" class="java.lang.Double"/>
+	<field name="elementcode" class="java.lang.Double"/>
+	<field name="departmentcode" class="java.lang.Double"/>
+	<field name="warrantrefcode" class="java.lang.Double"/>
+	<field name="techcondservicessttscd" class="java.lang.Double"/>
+	<field name="techcondservicestypecd" class="java.lang.Double"/>
+	<field name="contragentformcode" class="java.lang.Double"/>
+	<field name="contragenttypecode" class="java.lang.Double"/>
+	<field name="basistypecode" class="java.lang.Double"/>
+	<field name="enwarrant_address" class="java.lang.String"/>
+	<field name="enwarrant_warrantfio" class="java.lang.String"/>
+	<field name="enwarrant_warrantposition" class="java.lang.String"/>
+	<field name="enwarrant_numbergen" class="java.lang.String"/>
+	<field name="enwarrant_datestart" class="java.lang.String"/>
+	<field name="depcode" class="java.lang.Double"/>
+	<field name="depname" class="java.lang.String"/>
+	<field name="tunumber" class="java.lang.String"/>
+	<field name="tuaddress" class="java.lang.String"/>
+	<field name="tubuilding" class="java.lang.String"/>
+	<field name="tudate" class="java.lang.String"/>
+	<field name="tysummagen" class="java.lang.Double"/>
+	<field name="txt_tysummagen" class="java.lang.String"/>
+	<field name="tysummavat" class="java.lang.Double"/>
+	<field name="txt_tysummavat" class="java.lang.String"/>
+	<field name="txt_tyservicessumma" class="java.lang.String"/>
+	<field name="rencity" class="java.lang.String"/>
+	<field name="enwarrant_warrantshortfio" class="java.lang.String"/>
+	<field name="genitiveposition" class="java.lang.String"/>
+	<field name="genitivefio" class="java.lang.String"/>
+	<field name="contragentname_txt_header" class="java.lang.String"/>
+	<field name="entechcondresponsibles" class="java.lang.String"/>
+	<field name="executionterm" class="java.lang.String"/>
+	<field name="techconditionsitem" class="java.lang.String"/>
+	<field name="contragentposition" class="java.lang.String"/>
+	<field name="tysummagenKOP" class="java.lang.Integer"/>
+	<field name="tyservicessummaKOP" class="java.lang.Integer"/>
+	<field name="tysummagenVatKOP" class="java.lang.Integer"/>
+	<field name="powerlevel" class="java.lang.String"/>
+	<field name="powerreliability" class="java.lang.String"/>
+	<field name="powerpoint" class="java.lang.String"/>
+	<field name="connectionpowerplaces" class="java.lang.String"/>
+	<field name="connectionpowerpoint" class="java.lang.String"/>
+	<field name="datfinal" class="java.lang.String"/>
+	<field name="mfobanka" class="java.lang.String"/>
+	<field name="contractdate_year" class="java.lang.String"/>
+	<field name="contragentphonenumber" class="java.lang.String"/>
+	<field name="connectionaddress" class="java.lang.String"/>
+	<field name="personalaccountnumber" class="java.lang.String"/>
+	<field name="dategen" class="java.sql.Date"/>
+	<variable name="companyShortName" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyShortName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("company.shortname")]]></initialValueExpression>
+	</variable>
+	<variable name="companyAddress" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyAddress}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getContactValue(com.ksoe.energynet.valueobject.ENDepartment.ENDEPARTMENT_KSOE, com.ksoe.rqorder.valueobject.RQContactType.ADDRESS, $F{dategen})]]></initialValueExpression>
+	</variable>
+	<title>
+		<band height="31" splitType="Prevent">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" positionType="Float" mode="Transparent" x="0" y="0" width="539" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ДОГОВІР № " + ($P{numberDoc} == "" ? "_________________" : $P{numberDoc})  + " від _________________  року \n" +
+"про користування електричною енергією"]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="460" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-31" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="0" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["     "+$F{contragentname} +
+", який проживає за адресою: " + $F{contragentaddress} +
+", далі іменується \"Споживач\", з одного боку, та " +
+($F{depcode}.intValue() != 500000019 ?  $F{depname} +  "  " + $V{companyShortName} + " в особі " : "  " + $V{companyShortName} + " в особі  "  )
++ new String(($F{warrantrefcode}.intValue() == 500000023 || $F{warrantrefcode}.intValue() == 1017000140 ) ? " Голови правління " : $F{genitiveposition} )
++ " " +
+( ($F{genitivefio} != "") ? $F{genitivefio}  : "______________________________" )
++ ", що  діє на підставі "
++ ( ($F{warrantrefcode}.intValue() == 500000023 || $F{warrantrefcode}.intValue() == 1017000140 ) ? "статуту" :
+"довіреності " + $F{enwarrant_numbergen} + " від " + $F{enwarrant_datestart} ) +
+"р., далі іменується Енергопостачальник, з іншого боку, уклали цей договір про користування електричною енергією."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="30" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["1. Предмет договору "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="45" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 1. За цим договором Енергопостачальник бере на себе зобов'язання надійно постачати електричну енергію на об'єкт Споживача " + $P{connectionObj} + " який розташований за адресою " + $F{connectionaddress} + " та який належить на праві власності/користування (непотрібне закреслити) відповідно до " + $P{rightsDoc} + " у необхідних йому обсягах відповідно до потужності  <b>" + $F{tyservicespower} + " кВт </b>  електроустановок Споживача, з гарантованим рівнем надійності, безпеки і якості, а Споживач зобов'язується оплачувати одержану електричну енергію за обумовленими тарифами (цінами) у терміни, передбачені цим договором. \n" +
+" 2. Категорія надійності струмоприймачів Споживача <b>" + $F{powerreliability} + "</b>  (друга, третя). \n" +
+" 3. Параметри якості електричної енергії повинні відповідати державним стандартам. \n" +
+" 4. Встановлені запобіжники чи запобіжні автомати типу <b> BA </b> на напругу <b> " + ($P{voltageNominal} == null ? "" : $P{voltageNominal}) + " В</b>, струм <b> " + ($P{servicesPower} == null ? "" : $P{servicesPower}) + " </b>. \n" +
+" 5. Відомості про засіб обліку електричної енергії, що використовується в розрахунках за цим договором, зазначаються в акті про пломбування та є додатком 1 до цього договору. \n" +
+" 6. Наявність трифазного електрообладнання, дозволеного для застосування: \n" +
+"      1)  __________________<b><i><u>відсутнє</u></i></b>_______________________; \n" +
+"      2)  __________________<b><i><u>відсутнє</u></i></b>_______________________ \n" +
+" 7. Приміщення Споживача обладнані: \n"+
+" стаціонарною електроплитою ____________<b><i><u>відсутня</u></i></b>______________; "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="60" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["                                                                 (дозвіл на застосування) "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="75" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" стаціонарними електроустановками для опалення та нагрівання води: \n" +
+" __________________<b><i><u>відсутні</u></i></b>___________________; "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="90" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["           (тип приладу обігрівання, дозвіл на користування) "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="105" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 8. Межа розподілу встановлюється відповідно до акта розмежування балансової належності електричних мереж (за ознаками права власності) та експлуатаційної відповідальності сторін, який є додатком 2 до цього договору."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="120" width="539" height="25" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Права та обов'язки Споживача"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="145" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 9. Споживач має право на: \n" +
+" - вибір постачальника електричної енергії; \n" +
+" - підключення до електричної мережі за умови дотримання правил користування електричною енергією; \n" +
+" - отримання інформації щодо якості електричної енергії, тарифів (цін), порядку оплати, умов та режимів її споживання; \n" +
+" - отримання електричної енергії, якісні характеристики якої визначені державними стандартами; \n" +
+" - відшкодування згідно із законодавством збитків, заподіяних внаслідок порушення його прав; \n" +
+" - якісне обслуговування електричних мереж, розрахункових приладів обліку. "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="160" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 10. Споживач електричної енергії зобов’язується: \n"+
+" - дотримуватися вимог нормативно-технічних документів та договору про користування електричною енергією; \n"+
+" - забезпечувати належний технічний стан та безпечну експлуатацію своїх внутрішніх електромереж, електроустановок та побутових електроприладів; \n"+
+" - забезпечувати збереження приладів обліку і пломб на них у разі розміщення приладу обліку у квартирі або на іншому об'єкті Споживача; \n"+
+" - невідкладно повідомляти Енергопостачальника про недоліки в роботі приладу обліку; \n"+
+" - оплачувати спожиту електричну енергію відповідно до умов договору; \n"+
+" - вносити плату за спожиту електричну енергію виключно на розподільчий рахунок енергопостачальника в уповноваженому банку; \n"+
+" - узгоджувати з Енергопостачальником нові підключення та переобладнання внутрішньої електропроводки, здійснювані з метою збільшення споживання електричної потужності; \n"+
+" - надавати розрахункові документи на вимогу представників Енергопостачальника для перевірки правильності оплати та відповідності записів у ній показанням приладу обліку; \n"+
+" - забезпечувати доступ представникам Енергопостачальника, які пред'явили свої службові посвідчення, до квартири або іншого об'єкта для обстеження приладу обліку, електроустановок та електропроводки; \n"+
+" - не перешкоджати обрізуванню гілок дерев, які ростуть на території, що належить Споживачу, для забезпечення відстані не менше 1 метра від проводів повітряної лінії електромережі; \n"+
+" - не пізніше ніж за 7 днів до припинення користування електричною енергією у квартирі або на іншому об'єкті, письмово повідомити Енергопостачальника про розірвання договору та розрахуватися за спожиту електричну енергію, включаючи день виїзду; \n"+
+" - у разі отримання житлової субсидії на оплату електричної енергії своєчасно повідомляти Енергопостачальника про своє право на зменшення розміру плати за спожиту електричну енергію відповідно до порядку призначення та надання населенню субсидій для відшкодування витрат на оплату житлово-комунальних послуг, придбання скрапленого газу, твердого та рідкого пічного побутового палива. "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="175" width="539" height="25" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Права та обов'язки Енергопостачальника"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="200" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 11. Енергопостачальник має право: \n"+
+" пропонувати Споживачу надання додаткових послуг, пов'язаних з постачанням електричної енергії; \n"+
+" перевіряти стан приладів обліку та знімати показання відповідно до умов договору; \n"+
+" встановлювати технічні засоби, які обмежують постачання електричної енергії Споживачу у межах, передбачених договором; \n"+
+" вимагати від Споживача відшкодування збитків, завданих порушеннями, допущеними Споживачем під час користування електричною енергією; \n"+
+" робити перерву в постачанні електричної енергії або відключати Споживача без його згоди у випадках, передбачених Правилами користування електричною енергією для населення. \n"+
+" 12. Енергопостачальник зобов’язується: \n"+
+" - забезпечувати надійне постачання електричної енергії згідно з умовами ліцензій та договором про користування електричною енергією; \n"+
+" - надавати інформацію про послуги, пов'язані з електропостачанням, та про терміни обмежень і відключень; \n"+
+" - гарантувати безпечне користування послугами, пов'язаними з електропостачанням, за умови дотримання Споживачем вимог правил безпечної експлуатації внутрішньої електромережі, електроустановок та побутових електроприладів; \n"+
+" - у разі перерахування Споживачем коштів за електричну енергію на інші рахунки повернути ці кошти за заявою споживача або за власною ініціативою в триденний термін з моменту їх отримання; \n"+
+" - повідомляти Споживача письмово або через засоби масової інформації та в місцях оплати за електричну енергію про зміни тарифів не пізніше ніж за 5 днів до їх запровадження; \n"+
+" - проводити не менше як один раз на 6 місяців контрольне знімання показань приладів обліку у Споживача відповідно до затверджених графіків; \n"+
+" - проводити планові повірку, ремонт і заміну приладів обліку в терміни, встановлені нормативно-технічними документами та договором; \n"+
+" - розглядати звернення Споживача щодо надання послуг, пов'язаних з постачанням електричної енергії, та приймати з цього приводу рішення у терміни, передбачені Правилами користування електричною енергією для населення; \n"+
+" - ознайомити Споживача з Правилами користування електричною енергією для населення та провести інструктаж щодо умов безпечної експлуатації приладів обліку. \n"+
+" 13. Представник Енергопостачальника під час знімання показань приладів обліку, заміни приладів обліку, виписування платіжних документів за електричну енергію та інших дій, що виконуються відповідно до договору, зобов'язаний пред'являти своє службове посвідчення. \n"+
+" 14. Енергопостачальник безоплатно: \n"+
+" - здійснює планові повірку, обслуговування та ремонт приладів обліку; \n"+
+" - дає рекомендації щодо можливості та доцільності використання електричної енергії для опалення, а також щодо енергозбереження та режимів споживання електричної енергії; \n"+
+" - надає інформацію щодо якості електричної енергії, тарифів (цін), порядку оплати, умов та режимів її споживання; \n"+
+" - видає бланки типових договорів, розрахункові книжки з бланками квитанцій або платіжні документи, електронну картку на оплату електричної енергії. "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="215" width="539" height="25" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Умови та порядок оплати"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="240" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 15. Оплата за електричну енергію здійснюється відповідно до показань приладу обліку <b><i><u>за діючими тарифами (цінами) для населення, по платіжним документам виписаним Енергопостачальником, не пізніше 10 числа наступного місяця</u></i></b> \n"+
+"      У разі несплати за спожиту електричну енергію в термін, встановлений ч.1 п.16, Споживачу нараховується пеня у розмірі немає відсотків, але не більше немає відсотків заборгованості. \n"+
+"      У разі отримання житлової субсидії на оплату електричної енергії розмір плати споживача за використану електричну енергію визначається до порядку призначення та надання населенню субсидій для відшкодування витрат на оплату житлово-комунальних послуг, придбання скрапленого газу, твердого та рідкого пічного побутового палива. \n"+
+" 16. При зміні тарифів (цін) Енергопостачальник зобов'язаний довести до відома Споживача письмово або через засоби масової інформації, письмовим повідомленням та в місцях оплати за електричну енергію нові величини тарифів не пізніше ніж за 5 днів до їх запровадження. \n"+
+" 17. У разі заборгованості, що існує на час укладення договору, сторони погоджують графік її погашення за умови обов'язкової оплати поточних платежів. \n"+
+" Заборгованість на ----- року становить --- гривень, ---- кВт.год. \n"+
+" Графік погашення заборгованості відсутній. \n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="255" width="539" height="25" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Відповідальність сторін"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="280" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 18. Енергопостачальник несе відповідальність: \n"+
+" - за шкоду, заподіяну Споживачу або його майну в розмірі і порядку, визначених законодавством; \n"+
+" - у разі тимчасового припинення електропостачання (окрім випадків передбачених п. 34,35 ПКЕЕ для населення) з вини Енергопостачальника - у розмірі двократної вартості недовідпущеної споживачу електричної енергії; \n"+
+" - у разі відпуску Споживачу електричної енергії, параметри якості якої, на межі балансової належності, знаходяться поза межами показників, зазначених у договорі - сплачує 25 відсотків вартості такої енергії; \n"+
+" - у разі порушення прав Споживача (відмова в реалізації його прав, у наданні необхідної інформації, надання послуг, що за якістю не відповідають вимогам нормативно-технічних документів, ухилення від перевірки якості електричної енергії тощо). \n"+
+"      Енергопостачальник не несе відповідальності за тимчасове припинення постачання електричної енергії, відпуск електричної енергії, параметри якості якої не відповідають показникам, зазначеним у договорі, або за шкоду, заподіяну Споживачу, якщо доведе, що вони виникли не з його вини, а з вини Споживача або внаслідок дії обставин непереборної сили. \n"+
+" 19. Споживач несе відповідальність за: \n"+
+" прострочення внесення платежів за електричну енергію; порушення правил користування електричною енергією; \n"+
+" - ухилення від виконання або несвоєчасне виконання рішень і приписів Державної інспекції з енергетичного нагляду за режимами споживання електричної енергії; \n"+
+" - розкрадання електричної енергії у разі самовільного підключення до електромереж і споживання електричної енергії без приладів обліку; \n"+
+" - пошкодження приладів обліку; \n"+
+" - розукомплектування та пошкодження об'єктів електроенергетики, розкрадання майна цих об'єктів; \n"+
+" - насильницькі дії, що перешкоджають посадовим особам Енергопостачальника виконувати свої службові обов'язки. "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="295" width="539" height="25" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Інші умови"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="320" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 20. Взаємовідносини сторін, не врегульовані цим договором, регламентуються законодавством. \n"+
+" 21. Спори та розбіжності, що можуть виникнути під час користування електричною енергією, якщо вони не будуть узгоджені шляхом переговорів між сторонами, вирішуються в судовому порядку.\n"+
+" 22. Розбіжності з технічних питань під час виконання умов цього договору регулюються органами Держенергонагляду згідно з правилами користування електричною енергією, правилами улаштування електроустановок, правилами безпечної експлуатації електроустановок Споживача, правилами технічної експлуатації установок Споживача. \n"+
+" 23. Розбіжності щодо застосування тарифів вирішуються НКРЕ. \n"+
+" 24. У разі порушення Енергопостачальником умов договору Споживач викликає представника Енергопостачальника для складання та підписання акта-претензії Споживача, в якому зазначаються терміни, "+
+" види, показники порушень тощо (бланк типового акта-претензії надає Енергопостачальник). \n"+
+"    Акт-претензія складається Споживачем та представником Енергопостачальника і скріплюється їхніми підписами. \n"+
+"    У разі неприбуття представника Енергопостачальника у встановлений термін Споживач має право скласти акт-претензію у довільній формі. \n"+
+"    У разі відмови представника Енергопостачальника від підписання акт вважається дійсним, якщо його підписали не менше ніж три споживачі, або Споживач і виборна особа будинкового, вуличного, квартального чи іншого органу самоврядування. \n"+
+
+" 25. Акт-претензія Споживача подається Енергопостачальнику, який у десятиденний термін усуває недоліки або надає Споживачеві обгрунтовану відмову щодо задоволення його претензій. "+
+" Енергопостачальник може відмовити в задоволенні претензій Споживача щодо відхилення показників якості електричної енергії від встановлених державними стандартами на підставі даних реєстраційних технічних засобів, атестованих і опломбованих територіальними органами Держстандарту. "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="335" width="539" height="25" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Дія обставин непереборної сили"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="360" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 26. Енергопостачальник та Споживач не відповідають за невиконання умов договору, якщо це спричинено дією обставин непереборної сили. Факт дії обставин непереборної сили підтверджується відповідними документами. "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="375" width="539" height="25" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Термін дії договору"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="400" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 27.  Цей договір укладається на три роки, набирає чинності з дня його підписання та вважається продовженим на рік, якщо за місяць до закінчення терміну його дії жодна із сторін не висловила наміру внести до нього зміни або доповнення. \n"+
+" 28. Договір може бути розірваний достроково у разі зміни Споживачем місця проживання та остаточного припинення користування електричною енергією. \n"+
+" 29. Цей Договір складено у двох примірниках, один з них зберігається у Енергопостачальника, а другий у Споживача. \n"+
+" 30. Споживач з Правилами користування електричною енергією для населення ознайомлений. \n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="439" y="415" width="100" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["       (підпис Споживач)"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="430" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" Додатки до договору: \n" +
+new String(($P{buildersArea}.equals("1") ? " № 1 Перелік струмоприймачів встановлених на об'єкті Споживача \n" : " № 1 Акт встановлення / заміни / технічної перевірки / контрольного огляду / збереження пломб вузла обліку (засобу обліку), встановленого на об'єкті Споживача ")) +
+" № 2 Акт розмежування балансової належності електромереж та експлуатаційної відповідальності сторін; \n" +
+"  \n \n" +
+" З метою належного виконання вимог законодавства під час проведення зі мною розрахунків і відповідно до Закону України \"Про захист персональних даних\" даю згоду на оброблення моїх персональних даних. \n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="439" y="445" width="100" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["       (підпис Споживач)"]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<lastPageFooter>
+		<band height="502">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-56" positionType="Float" mode="Transparent" x="0" y="36" width="250" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Представник: " + $V{companyShortName} + " \n" +
+"Посада: " + $F{enwarrant_warrantposition} + " \n"+
+"П.І.Б. : " + $F{enwarrant_warrantfio} + " \n" +
+"Адреса: " + $V{companyAddress} + "  \n"+
+"Телефони: 48-06-20 \n" +
+"Номер поточного рахунка із спеціальним режимом використання _______________________________ \n" +
+"Номер поточного рахунка для інших платежів _________________"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-57" positionType="Float" mode="Transparent" x="278" y="36" width="260" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new String(($F{contragentname} != null) ? $F{contragentname}   : "") + "\n" +
+"Адреса: "+ new String(($F{contragentaddress} != null) ? $F{contragentaddress}  : "") + "\n" +
+"Телефон: "+ new String($F{contragentphonenumber} != null ? $F{contragentphonenumber} : "") + "\n" +
+"П.І.Б: " +  new String(($F{contragentname} != null) ? $F{contragentname}   : "") + "\n" +
+"Паспортні дані: " + new String(($F{contragentpassport} != null) ? $F{contragentpassport}  : "")]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-63" positionType="Float" mode="Transparent" x="0" y="71" width="100" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["(підпис)"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-64" positionType="Float" mode="Transparent" x="0" y="86" width="250" height="20" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["\"____\" _____________р. "]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-70" positionType="Float" mode="Transparent" x="0" y="21" width="250" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Енергопостачальник:"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-71" positionType="Float" mode="Transparent" x="278" y="21" width="260" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Споживач:"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-79" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="0" y="6" width="539" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" 31.Юридичні адреси сторін та їхні рахунки:"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-63" positionType="Float" mode="Opaque" x="0" y="150" width="534" height="138" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Сторони зобов'язуються своєчасно письмово сповіщати про всі зміни реквізитів (найменування організації, рахунки тощо). \n \n " +
+" * Примітка: Споживач підписуючи даний договір про користування електричною енергією: посвідчує та підтверджує наявність у нього відповідних прав власності (користування) на об’єкт електрозабезпечення, зазначений у даному Договорі; підтверджує достатній обсяг прав особи, що підписує даний договір; підтверджує виконання всіх заходів з реконструкції (будівництва) внутрішньо будинкових мереж від точки приєднання до квартири (приміщення) у відповідності до містобудівного законодавства (для споживачів, що є власниками (користувачами) квартир та інших приміщень в багатоквартирних будинках). \n" +
+" Підключення електроустановки замовника до електричних мереж електропередавальної організації здійснюється на підставі його Заяви протягом 5 днів, якщо підключення не потребує припинення електропостачання інших споживачів, або 10 днів, якщо підключення потребує припинення електропостачання інших споживачів, після введення в експлуатацію об'єкта замовника в порядку, встановленому законодавством у сфері містобудування. "]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-63" positionType="Float" mode="Transparent" x="278" y="71" width="100" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["(підпис)"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-64" positionType="Float" mode="Transparent" x="278" y="86" width="250" height="20" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["\"____\" _____________р. "]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-63" positionType="Float" mode="Transparent" x="0" y="487" width="100" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-64" positionType="Float" mode="Transparent" x="0" y="119" width="250" height="15" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF">
+					<printWhenExpression><![CDATA[$P{printHolder}.equals("1")]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["<b>Балансоутримувач будинку:</b>\n"+
+"_________________________________\n"+
+"_________________________________\n"+
+"_________________________________\n"+
+"_________________________________\n"+
+"_________________________________\n"+
+"М.П.\n"+
+"_________________________________\n"+
+"     посада        підпис         ПІБ    "]]></textFieldExpression>
+			</textField>
+		</band>
+	</lastPageFooter>
+</jasperReport>

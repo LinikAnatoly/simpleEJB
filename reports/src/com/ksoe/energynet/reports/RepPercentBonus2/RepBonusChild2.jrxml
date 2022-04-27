@@ -1,0 +1,935 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="RepBonusChild2" pageWidth="839" pageHeight="595" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="839" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet">
+	<property name="ireport.scriptlethandling" value="2"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="Ppodrkod" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(580)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="Ppodr_name" class="java.lang.String">
+		<defaultValueExpression><![CDATA["podr -name "]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pdate1" class="java.lang.String">
+		<defaultValueExpression><![CDATA["01.05.2010"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pdate2" class="java.lang.String">
+		<defaultValueExpression><![CDATA["31.05.2010"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="sumhoursotpusk" class="java.math.BigDecimal">
+		<defaultValueExpression><![CDATA[new BigDecimal(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="fio_fin" class="java.lang.String">
+		<defaultValueExpression><![CDATA["Баранова Надежда"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="post_fin" class="java.lang.String">
+		<defaultValueExpression><![CDATA["инженер"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="tabn_fin" class="java.lang.String"/>
+	<parameter name="plankind" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(4)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="v_getAllTabnInBrigada" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[select period ,
+      fio_worker ,
+      name_position_fin ,
+
+sum(realizac_invest_progr) as realizac_invest_progr ,
+sum(vikonan_work_priconection) as vikonan_work_priconection ,
+sum(work_kr) as work_kr ,
+sum(fact_zagr_all_work) as fact_zagr_all_work ,
+sum(coalesce(deliverytimefact , 0)) as deliverytimefact ,
+sum(realizac_invest_progr) + sum(vikonan_work_priconection) + sum(work_kr) as fact_zagr_kr_pr_inv_work ,
+sum(delivery_realizac_invest_progr) + sum(delivery_vikonan_work_priconection) + sum(delivery_work_kr) as delivery_fact_zagr_kr_pr_inv_work
+,
+/*>>>>выборка отработаных человеко часов вообщем по бригаде по всем работам */
+coalesce((select  sum(br_w_all.countfact)  from
+(SELECT  enhumenitem.countfact ,
+        enplanwork.typerefcode as enp_typerefcode ,
+        enplanwork.staterefcode ,
+        enelement.typerefcode as element_typerefcode ,
+        finworker.name as fio_worker ,
+        finworker.positionname ,
+        enhumenitem.code as humanitemcode  ,
+        sum( endeliverytime.deliverytimefact ) as deliverytimefact
+           from enhumenitem   left join endeliverytime on (endeliverytime.humenitemrefcode = enhumenitem.code  )
+           , enplanworkitem , finworker , enplanwork
+           ,  enelement , tkposition
+                   Where  enhumenitem.planitemrefcode = enplanworkitem.code
+                     and  enplanworkitem.planrefcode = enplanwork.code
+                     and  coalesce(enhumenitem.countfact  , 0 ) <> 0
+                     and  enhumenitem.finworkercode = finworker.code
+                     and  enplanwork.datestart between to_date($P{pdate1}, 'dd.mm.yyyy') and to_date($P{pdate2},'dd.mm.yyyy')
+                     and  enplanwork.statuscode /*NOT IN (1,2,6)*/ = 3
+                     and  enplanwork.kindcode = $P{plankind}  /* задание факт */
+                     and  enplanwork.elementrefcode = enelement.code
+                     and  enplanworkitem.countgen <> 0
+                     and  enhumenitem.positiongencode = tkposition.code
+                     and  finworker.kindrefcode = 1
+                     and  finworker.tabnumber in $P!{v_getAllTabnInBrigada}
+GROUP BY enhumenitem.countfact ,
+        enplanwork.typerefcode ,
+        enplanwork.staterefcode ,
+        enelement.typerefcode ,
+        finworker.name ,
+        finworker.positionname ,
+        enhumenitem.code
+
+
+) br_w_all ),0) as brig_work_all
+/*<<<<конец выборки отработаных человеко часов вообщем по бригаде по всем работам*/
+,
+/*>>>>выборка отработаных человеко часов вообщем по бригаде по КР , Приссооединению Инвест программе */
+coalesce((select  sum(br_w_all.countfact)  from
+(SELECT
+
+      case when enplanwork.typerefcode = 5 then coalesce(enhumenitem.countfact,0)  /* инвест программа */
+           when enplanwork.typerefcode = 7 then coalesce(enhumenitem.countfact,0) /* присоединения */
+/* работы КР плановые или КР АВР */
+ when (
+          (
+           (enplanwork.staterefcode = 1 )
+      and  (
+                (enplanwork.typerefcode in (1 /*, 10*/)   and  ($P{Ppodrkod} <> 755) )
+                or
+                (enplanwork.typerefcode in (1, 10)   and  ($P{Ppodrkod} = 755) )  /*если СПС дильниця з ремонту трансформ то учитываем и неплановые работы*/
+                or
+                ($P{Ppodrkod} = 605) /*если бригада кабельніх линий  ХГЕС то берем все кап ремонты в процент по кап ремонтам*/
+              )
+          ) /*по КР попадают тока плановые работы */ /*выборка по класическому принципу определения работ КР */
+          or  /*или если есть в таблице entablehuman признак 1 - непогода  то к работам Кр приравниваем другие типы работ (какие пока не определились) */
+          (
+            ( select
+                case
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '01' then  th.d01
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '02' then  th.d02
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '03' then  th.d03
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '04' then  th.d04
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '05' then  th.d05
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '06' then  th.d06
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '07' then  th.d07
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '08' then  th.d08
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '09' then  th.d09
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '10' then  th.d10
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '11' then  th.d11
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '12' then  th.d12
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '13' then  th.d13
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '14' then  th.d14
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '15' then  th.d15
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '16' then  th.d16
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '17' then  th.d17
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '18' then  th.d18
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '19' then  th.d19
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '20' then  th.d20
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '21' then  th.d21
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '22' then  th.d22
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '23' then  th.d23
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '24' then  th.d24
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '25' then  th.d25
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '26' then  th.d26
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '27' then  th.d27
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '28' then  th.d28
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '29' then  th.d29
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '30' then  th.d30
+                 when (select trim(to_char(enplanwork.datestart,'dd'))) = '31' then  th.d31
+                end
+                from entablehuman th where th.dategen = cast(date_trunc('month', enplanwork.datestart) as date)
+                and  th.tabnumber = finworker.tabnumber
+            ) = '1'
+            And /*условия по которым вытягиваем в работы КР работы из планов не относящиеся при нормальных условий погоды к работам КР*/ /*выбиираем АВР и КР*/
+              (
+               ( enplanwork.staterefcode = 1 ) /*КР*/
+                 And
+               ( enplanwork.typerefcode = 2 ) /*АВР*/
+              )
+          )
+          or /* NET-3595 если    Дільниця з ремонту  силових трансформаторів код = 755
+                             или Майстерня з ремонту трансформаторів код 437  то в капремонты учитываем капремонты + доробку + демонтаж */
+          (
+           ( $P{Ppodrkod} = 755 or $P{Ppodrkod} = 437 )  and enplanwork.staterefcode in ( 1,8,19)
+           )
+          or /*NET-3838 если код подр 755 или 437 то в КР кидаем реконстр можернизац по неплановым работам*/
+          (
+           ( $P{Ppodrkod} = 755 or $P{Ppodrkod} = 437 )  and enplanwork.staterefcode = 2 and  enplanwork.typerefcode = 10
+           )
+           or
+           /*SUPP-22235  доробку тип акта и доробку под вид работ относим как КР для спс  */
+            ( ( $P{Ppodrkod} = 73 )  and enplanwork.staterefcode in ( 1,8) )
+
+        )
+
+        then coalesce(enhumenitem.countfact,0) else 0 end as countfact ,
+        enplanwork.typerefcode as enp_typerefcode ,
+        enplanwork.staterefcode ,
+        enelement.typerefcode as element_typerefcode ,
+        finworker.name as fio_worker ,
+        finworker.positionname ,
+        enhumenitem.code as humanitemcode   ,
+        sum( endeliverytime.deliverytimefact) as deliverytimefact ,
+        enplanwork.datestart
+
+           from enhumenitem   left join endeliverytime on (endeliverytime.humenitemrefcode = enhumenitem.code  )
+           , enplanworkitem , finworker , enplanwork
+           , enelement , tkposition
+                   Where  enhumenitem.planitemrefcode = enplanworkitem.code
+                     and  enplanworkitem.planrefcode = enplanwork.code
+                     and  coalesce(enhumenitem.countfact  , 0 ) <> 0
+                     and  enhumenitem.finworkercode = finworker.code
+
+
+                     and  enplanwork.datestart between to_date($P{pdate1}, 'dd.mm.yyyy') and to_date($P{pdate2},'dd.mm.yyyy')
+                     and  enplanwork.statuscode /*NOT IN (1,2,6)*/ = 3
+                     and  enplanwork.kindcode = $P{plankind}     /* задание факт */
+                     and  enplanwork.elementrefcode = enelement.code
+                     and  enplanworkitem.countgen <> 0
+                     and  enhumenitem.positiongencode = tkposition.code
+
+                     and  finworker.kindrefcode = 1
+                     and  finworker.tabnumber in $P!{v_getAllTabnInBrigada}
+
+
+      GROUP BY enhumenitem.countfact ,
+               enplanwork.typerefcode  ,
+               enplanwork.staterefcode ,
+               enelement.typerefcode ,
+               finworker.name ,
+               finworker.positionname ,
+               enhumenitem.code ,
+               enplanwork.datestart  ,
+               finworker.tabnumber
+
+
+
+
+) br_w_all ),0) as brig_work_kr_pr_inv
+/*<<<<конец выборки отработаных человеко часов вообщем по бригаде по КР , Приссооединению Инвест программе*/
+
+
+
+
+
+,
+/*>>>>выборка времени доставки бригады по всем работам */
+coalesce((select  sum(br_w_all.deliverytimefact)  from
+(SELECT  enhumenitem.countfact ,
+        enplanwork.typerefcode as enp_typerefcode ,
+        enplanwork.staterefcode ,
+        enelement.typerefcode as element_typerefcode ,
+        finworker.name as fio_worker ,
+        finworker.positionname ,
+        enhumenitem.code as humanitemcode  ,
+        sum( endeliverytime.deliverytimefact ) as deliverytimefact
+           from enhumenitem   left join endeliverytime on (endeliverytime.humenitemrefcode = enhumenitem.code  )
+           , enplanworkitem , finworker , enplanwork
+           ,  enelement , tkposition
+                   Where  enhumenitem.planitemrefcode = enplanworkitem.code
+                     and  enplanworkitem.planrefcode = enplanwork.code
+                     and  coalesce(enhumenitem.countfact  , 0 ) <> 0
+                     and  enhumenitem.finworkercode = finworker.code
+
+
+                     and  enplanwork.datestart between to_date($P{pdate1}, 'dd.mm.yyyy') and to_date($P{pdate2},'dd.mm.yyyy')
+                     and  enplanwork.statuscode /*NOT IN (1,2,6)*/ = 3
+                     and  enplanwork.kindcode = $P{plankind}  /* задание факт */
+                     and  enplanwork.elementrefcode = enelement.code
+                     and  enplanworkitem.countgen <> 0
+                     and  enhumenitem.positiongencode = tkposition.code
+
+                     and  finworker.kindrefcode = 1
+                     and  finworker.tabnumber in $P!{v_getAllTabnInBrigada}
+GROUP BY enhumenitem.countfact ,
+        enplanwork.typerefcode ,
+        enplanwork.staterefcode ,
+        enelement.typerefcode ,
+        finworker.name ,
+        finworker.positionname ,
+        enhumenitem.code
+
+) br_w_all ),0) as delivery_brig_work_all
+/*<<<<конец выборки доставки бригады  по всем работам*/
+,
+/*>>>>выборка доставки  бригаде по КР , Приссооединению Инвест программе */
+coalesce((select  sum(br_w_all.deliverytimefact)  from
+(SELECT  enhumenitem.countfact ,
+         enplanwork.typerefcode as enp_typerefcode ,
+         enplanwork.staterefcode ,
+         enelement.typerefcode as element_typerefcode ,
+         finworker.name as fio_worker ,
+         finworker.positionname ,
+         enhumenitem.code as humanitemcode   ,
+         sum( endeliverytime.deliverytimefact) as deliverytimefact
+
+           from enhumenitem  left join endeliverytime on (endeliverytime.humenitemrefcode = enhumenitem.code  )
+           , enplanworkitem , finworker , enplanwork
+           ,  enelement , tkposition
+                   Where  enhumenitem.planitemrefcode = enplanworkitem.code
+                     and  enplanworkitem.planrefcode = enplanwork.code
+                     and  coalesce(enhumenitem.countfact  , 0 ) <> 0
+                     and  enhumenitem.finworkercode = finworker.code
+                     and  enplanwork.datestart between to_date($P{pdate1}, 'dd.mm.yyyy') and to_date($P{pdate2},'dd.mm.yyyy')
+                     and  enplanwork.statuscode /*NOT IN (1,2,6)*/ = 3
+                     and  enplanwork.kindcode = $P{plankind}   /* задание факт */
+                     and  enplanwork.elementrefcode = enelement.code
+                     and  enplanworkitem.countgen <> 0
+                     and  enhumenitem.positiongencode = tkposition.code
+                     and  finworker.tabnumber in $P!{v_getAllTabnInBrigada}
+                     and  finworker.kindrefcode = 1
+                     and  (
+                               (enplanwork.typerefcode in (5,7)) or
+                              (
+                                ( enplanwork.staterefcode in (1 /*, 8*/ ) )   and ( (enplanwork.typerefcode = 1 and $P{Ppodrkod} <> 755 ) or  (enplanwork.typerefcode in (1,10) and $P{Ppodrkod}  = 755) or ($P{Ppodrkod} = 605)   )
+                               )
+                              or /* NET-3595 если    Дільниця з ремонту  силових трансформаторів код = 755
+                             или Майстерня з ремонту трансформаторів код 437  то в капремонты учитываем капремонты + доробку + демонтаж */
+                             (
+                             ( $P{Ppodrkod} = 755 or $P{Ppodrkod} = 437 )  and enplanwork.staterefcode in ( 1,8,19)
+                             )
+                             or /*NET-3838 если код подр 755 или 437 то в КР кидаем реконстр можернизац по неплановым работам*/
+                            (
+                             ( $P{Ppodrkod} = 755 or $P{Ppodrkod} = 437 )  and enplanwork.staterefcode = 2 and  enplanwork.typerefcode = 10
+                             )
+                              or
+                            /*SUPP-22235  доробку тип акта и доробку под вид работ относим как КР для спс  */
+                            ( ( $P{Ppodrkod} = 73 )  and enplanwork.staterefcode in ( 1,8) )
+                              ) /*по КР попадают тока плановые работы*/
+
+      GROUP BY enhumenitem.countfact ,
+        enplanwork.typerefcode  ,
+        enplanwork.staterefcode ,
+        enelement.typerefcode ,
+        finworker.name ,
+        finworker.positionname ,
+        enhumenitem.code
+
+
+
+) br_w_all ),0) as delivery_brig_work_kr_pr_inv
+/*<<<<конец выборки доставки  бригады по КР , Приссооединению Инвест программе*/
+
+
+      From (
+
+
+select (select  case when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '01' then 'Січень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '02' then 'Лютий'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '03' then 'Березень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '04' then 'Квітень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '05' then 'Травень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '06' then 'Червень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '07' then 'Липень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '08' then 'Серпень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '09' then 'Вересень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '10' then 'Жовтень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '11' then 'Листопад'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '12' then 'Грудень'
+            end  ) as period ,
+ $P{fio_fin}  as fio_worker ,  $P{post_fin} as name_position_fin  ,
+
+
+sum(realizac_invest_progr) as realizac_invest_progr ,
+sum(vikonan_work_priconection) as vikonan_work_priconection ,
+sum(work_kr)  as work_kr ,
+sum(fact_zagr_all_work) as fact_zagr_all_work ,
+sum(deliverytimefact)   as  deliverytimefact ,
+sum(delivery_realizac_invest_progr) as delivery_realizac_invest_progr ,
+sum(delivery_vikonan_work_priconection) as delivery_vikonan_work_priconection ,
+sum(delivery_work_kr) as delivery_work_kr
+
+from (
+select
+baz_sel.fio_worker , baz_sel.positionname ,
+
+/* инвест программа */ case when baz_sel.enp_typerefcode = 5 then coalesce(baz_sel.countfact,0) else 0 end as realizac_invest_progr ,
+/* присоединения */ case when baz_sel.enp_typerefcode = 7 then coalesce(baz_sel.countfact,0) else 0 end as vikonan_work_priconection ,
+/* работы КР  */
+case when (
+          (
+           (baz_sel.staterefcode in (1 /*, 8*/ ) )
+      and  (
+                (baz_sel.enp_typerefcode in (1 /*, 10*/)   and  ($P{Ppodrkod} <> 755) )
+                or
+                (baz_sel.enp_typerefcode in (1, 10)   and  ($P{Ppodrkod} = 755) )  /*если СПС дильниця з ремонту трансформ то учитываем и неплановые работы*/
+                or
+                ($P{Ppodrkod} = 605 ) /*если бригада кабельніх линий  ХГЕС то берем все кап ремонты в процент по кап ремонтам*/
+              )
+          ) /*по КР попадают тока плановые работы */ /*выборка по класическому принципу определения работ КР */
+          or  /*или если есть в таблице entablehuman признак 1 - непогода  то к работам Кр приравниваем другие типы работ (какие пока не определились) */
+          (
+            (select
+                case
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '01' then  th.d01
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '02' then  th.d02
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '03' then  th.d03
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '04' then  th.d04
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '05' then  th.d05
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '06' then  th.d06
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '07' then  th.d07
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '08' then  th.d08
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '09' then  th.d09
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '10' then  th.d10
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '11' then  th.d11
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '12' then  th.d12
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '13' then  th.d13
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '14' then  th.d14
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '15' then  th.d15
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '16' then  th.d16
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '17' then  th.d17
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '18' then  th.d18
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '19' then  th.d19
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '20' then  th.d20
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '21' then  th.d21
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '22' then  th.d22
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '23' then  th.d23
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '24' then  th.d24
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '25' then  th.d25
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '26' then  th.d26
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '27' then  th.d27
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '28' then  th.d28
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '29' then  th.d29
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '30' then  th.d30
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '31' then  th.d31
+                end
+                from entablehuman th where th.dategen = cast(date_trunc('month', baz_sel.datestart) as date)
+                and th.tabnumber = $P{tabn_fin}
+            ) = '1'
+            And /*условия по которым вытягиваем в работы КР работы из планов не относящиеся при нормальных условий погоды к работам КР*/ /*выбиираем АВР и КР*/
+              (
+               ( baz_sel.staterefcode = 1 ) /*КР*/
+                 And
+               ( baz_sel.enp_typerefcode = 2 ) /*АВР*/
+              )
+          )
+          or /* NET-3595 если    Дільниця з ремонту  силових трансформаторів код = 755
+                             или Майстерня з ремонту трансформаторів код 437  то в капремонты учитываем капремонты + доробку + демонтаж */
+          (
+           ( $P{Ppodrkod} = 755 or $P{Ppodrkod} = 437 )  and baz_sel.staterefcode in ( 1,8,19)
+           )
+           or /*NET-3838 если код подр 755 или 437 то в КР кидаем реконстр можернизац по неплановым работам*/
+          (
+           ( $P{Ppodrkod} = 755 or $P{Ppodrkod} = 437 )  and baz_sel.staterefcode = 2 and  baz_sel.enp_typerefcode = 10
+           )
+           or
+           /*SUPP-22235  доробку тип акта и доробку под вид работ относим как КР для спс  */
+            ( ( $P{Ppodrkod} = 73 )  and baz_sel.staterefcode in ( 1,8) )
+        )
+
+        then coalesce(baz_sel.countfact,0) else 0 end as work_kr ,
+
+/*доставка инвест программа */ case when baz_sel.enp_typerefcode = 5 then coalesce(baz_sel.deliverytimefact,0) else 0 end as delivery_realizac_invest_progr ,
+/*доставка присоединения */ case when baz_sel.enp_typerefcode = 7 then coalesce(baz_sel.deliverytimefact,0) else 0 end as delivery_vikonan_work_priconection ,
+/*доставка работы КР  */
+  case when (
+          (
+           (baz_sel.staterefcode in (1 /*, 8*/ ) )
+        and  (
+                (baz_sel.enp_typerefcode in (1 /*, 10*/)   and  ($P{Ppodrkod} <> 755) )
+                or
+                (baz_sel.enp_typerefcode in (1, 10)   and  ($P{Ppodrkod} = 755) )  /*если СПС дильниця з ремонту трансформ то учитываем и неплановые работы*/
+                or
+                ($P{Ppodrkod} = 605) /*если бригада кабельніх линий  ХГЕС то берем все кап ремонты в процент по кап ремонтам*/
+              )
+          ) /*по КР попадают тока плановые работы */ /*выборка по класическому принципу определения работ КР */
+          or  /*или если есть в таблице entablehuman признак 1 - непогода  то к работам Кр приравниваем другие типы работ (какие пока не определились) */
+          (
+            (select
+                case
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '01' then  th.d01
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '02' then  th.d02
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '03' then  th.d03
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '04' then  th.d04
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '05' then  th.d05
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '06' then  th.d06
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '07' then  th.d07
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '08' then  th.d08
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '09' then  th.d09
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '10' then  th.d10
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '11' then  th.d11
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '12' then  th.d12
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '13' then  th.d13
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '14' then  th.d14
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '15' then  th.d15
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '16' then  th.d16
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '17' then  th.d17
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '18' then  th.d18
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '19' then  th.d19
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '20' then  th.d20
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '21' then  th.d21
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '22' then  th.d22
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '23' then  th.d23
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '24' then  th.d24
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '25' then  th.d25
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '26' then  th.d26
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '27' then  th.d27
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '28' then  th.d28
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '29' then  th.d29
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '30' then  th.d30
+                 when (select trim(to_char(baz_sel.datestart,'dd'))) = '31' then  th.d31
+                end
+                from entablehuman th where th.dategen = cast(date_trunc('month', baz_sel.datestart) as date)
+                and th.tabnumber = $P{tabn_fin}::varchar
+            ) = '1'
+            And /*условия по которым вытягиваем в работы КР работы из планов не относящиеся при нормальных условий погоды к работам КР*/ /*выбиираем АВР и КР*/
+              (
+               (baz_sel.staterefcode = 1 ) /*КР*/
+                and
+               (baz_sel.enp_typerefcode = 2 ) /*АВР*/
+              )
+          )
+          or /* NET-3595 если    Дільниця з ремонту  силових трансформаторів код = 755
+                             или Майстерня з ремонту трансформаторів код 437  то в капремонты учитываем капремонты + доробку + демонтаж */
+          (
+           ( $P{Ppodrkod} = 755 or $P{Ppodrkod} = 437 )  and baz_sel.staterefcode in ( 1,8,19)
+           )
+           or /*NET-3838 если код подр 755 или 437 то в КР кидаем реконстр можернизац по неплановым работам*/
+          (
+           ( $P{Ppodrkod} = 755 or $P{Ppodrkod} = 437 )  and baz_sel.staterefcode = 2 and  baz_sel.enp_typerefcode = 10
+           )
+          or
+           /*SUPP-22235  доробку тип акта и доробку под вид работ относим как КР для спс  */
+            ( ( $P{Ppodrkod} = 73 )  and baz_sel.staterefcode in ( 1,8) )
+
+        )
+           then coalesce(baz_sel.deliverytimefact,0) else 0 end as delivery_work_kr ,
+
+baz_sel.countfact as fact_zagr_all_work ,  baz_sel.deliverytimefact ,  baz_sel.humanitemcode
+
+ From (
+SELECT  enhumenitem.countfact ,
+        enplanwork.typerefcode as enp_typerefcode ,
+        enplanwork.staterefcode ,
+        enelement.typerefcode as element_typerefcode ,
+        finworker.name as fio_worker ,
+        finworker.positionname ,
+        sum( endeliverytime.deliverytimefact ) as deliverytimefact  ,
+        enhumenitem.code as humanitemcode  ,
+        enplanwork.datestart
+
+           from enhumenitem   left join endeliverytime on (endeliverytime.humenitemrefcode = enhumenitem.code  )
+           , enplanworkitem , finworker , enplanwork
+           ,  enelement , tkposition
+                   Where  enhumenitem.planitemrefcode = enplanworkitem.code
+                     and  enplanworkitem.planrefcode = enplanwork.code
+                     and  coalesce(enhumenitem.countfact  , 0 ) <> 0
+                     and  enhumenitem.finworkercode = finworker.code
+
+
+                     and  enplanwork.datestart between to_date($P{pdate1} , 'dd.mm.yyyy') and to_date($P{pdate2},'dd.mm.yyyy')
+                     and  enplanwork.statuscode /*NOT IN (1,2,6)*/ = 3
+                     and  enplanwork.kindcode = $P{plankind}   /* задание факт */
+                     and  enplanwork.elementrefcode = enelement.code
+                     and  enplanworkitem.countgen <> 0
+                     and  finworker.tabnumber = $P{tabn_fin}
+                     and  enhumenitem.positiongencode = tkposition.code
+
+                     and  finworker.kindrefcode = 1
+
+            group by enhumenitem.countfact ,
+        enplanwork.typerefcode  ,
+        enplanwork.staterefcode ,
+        enelement.typerefcode ,
+        finworker.name  ,
+        finworker.positionname ,
+        enhumenitem.code ,
+        enplanwork.datestart
+
+
+
+
+) baz_sel
+) baz_sum
+group by baz_sum.fio_worker , baz_sum.positionname /*,  baz_sum.deliverytimefact */
+
+
+
+UNION
+select
+(select  case when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '01' then 'Січень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '02' then 'Лютий'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '03' then 'Березень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '04' then 'Квітень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '05' then 'Травень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '06' then 'Червень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '07' then 'Липень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '08' then 'Серпень'
+              when to_char(to_date($P{pdate2},'dd.mm.yyyy'),'mm') = '09' then 'Вересень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '10' then 'Жовтень'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '11' then 'Листопад'
+              when to_char(to_date($P{pdate2} ,'dd.mm.yyyy'),'mm') = '12' then 'Грудень'
+            end  ) as period  ,
+ $P{fio_fin} as fio_worker ,  $P{post_fin} as name_position_fin  ,
+
+
+0 as realizac_invest_progr ,
+0 as vikonan_work_priconection ,
+0 as work_in_energozbut ,
+0 as fact_zagr_all_work ,
+0 as  deliverytimefact ,
+0 as delivery_realizac_invest_progr ,
+0 as delivery_vikonan_work_priconection ,
+0 as delivery_work_kr
+
+  where not exists ( select * from
+             enhumenitem , finworker , enplanwork
+                   Where  enhumenitem.planrefcode = enplanwork.code
+                     and  coalesce(enhumenitem.countfact  , 0 ) <> 0
+                     and  enhumenitem.finworkercode = finworker.code
+                     and  enplanwork.datestart between to_date($P{pdate1} , 'dd.mm.yyyy') and to_date($P{pdate2}  ,'dd.mm.yyyy')
+                     and  enplanwork.statuscode /*NOT IN (1,2,6)*/ = 3
+                     and  enplanwork.kindcode = $P{plankind}  /* задание факт */
+                     and  finworker.tabnumber = $P{tabn_fin}
+                     and  finworker.kindrefcode = 1
+
+
+               )
+
+
+) sel_zag
+
+group by period , fio_worker , name_position_fin
+
+
+order by fio_worker , name_position_fin]]>
+	</queryString>
+	<field name="period" class="java.lang.String"/>
+	<field name="realizac_invest_progr" class="java.math.BigDecimal"/>
+	<field name="vikonan_work_priconection" class="java.math.BigDecimal"/>
+	<field name="work_kr" class="java.math.BigDecimal"/>
+	<field name="fio_worker" class="java.lang.String"/>
+	<field name="name_position_fin" class="java.lang.String"/>
+	<field name="deliverytimefact" class="java.math.BigDecimal"/>
+	<field name="fact_zagr_all_work" class="java.math.BigDecimal"/>
+	<field name="fact_zagr_kr_pr_inv_work" class="java.math.BigDecimal"/>
+	<field name="brig_work_all" class="java.math.BigDecimal"/>
+	<field name="brig_work_kr_pr_inv" class="java.math.BigDecimal"/>
+	<field name="delivery_fact_zagr_kr_pr_inv_work" class="java.math.BigDecimal"/>
+	<field name="delivery_brig_work_kr_pr_inv" class="java.math.BigDecimal"/>
+	<field name="delivery_brig_work_all" class="java.math.BigDecimal"/>
+	<variable name="v_count_personal" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[new BigDecimal(1)]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(1)]]></initialValueExpression>
+	</variable>
+	<variable name="v_countworkhours" class="java.math.BigDecimal" resetType="None">
+		<variableExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getCountWorkHoursByWorker($P{pdate2} , $P{tabn_fin} )]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getCountWorkHoursByWorker($P{pdate2} , $P{tabn_fin} )]]></initialValueExpression>
+	</variable>
+	<variable name="v_counthoursotpusk" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getCountHoursOtpuskByHuman($P{pdate2}, $P{Ppodrkod} , $P{tabn_fin} )
+/*new BigDecimal(50)*/]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="v_z_1" class="java.math.BigDecimal" resetType="Group" resetGroup="rr">
+		<variableExpression><![CDATA[$V{v_countworkhours}.doubleValue() != 0.0 &&
+   ($V{v_countworkhours}.subtract($P{sumhoursotpusk})).doubleValue() != 0.0
+ ?
+($F{fact_zagr_all_work}.add(($V{v_countworkhours}.subtract($P{sumhoursotpusk})).multiply(new BigDecimal(0.05))).add($F{deliverytimefact}) ).divide
+($V{v_countworkhours}.subtract($P{sumhoursotpusk}) ,8,2)
+.multiply(new BigDecimal(100)) : new BigDecimal(0)]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="v_z_2" class="java.math.BigDecimal" resetType="Group" resetGroup="rr">
+		<variableExpression><![CDATA[/*($F{fact_zagr_kr_pr_inv_work}.doubleValue() != 0.0 ) && */
+  ($V{v_countworkhours}.doubleValue() != 0.0 ) &&
+   ($V{v_countworkhours}.subtract($P{sumhoursotpusk})).doubleValue() != 0.0
+/*  (($V{v_countworkhours}.subtract($P{sumhoursotpusk})).doubleValue() != 0.0 )*/ ?
+(($F{fact_zagr_kr_pr_inv_work}.add($F{delivery_fact_zagr_kr_pr_inv_work})).divide(
+                            ($V{v_countworkhours}.subtract($P{sumhoursotpusk}))
+
+                              ,8,2)).multiply(new BigDecimal(100))
+: new BigDecimal(0)
+/* new BigDecimal(60) */]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="brig_pr_ip_kr_work" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$F{brig_work_kr_pr_inv}]]></variableExpression>
+		<initialValueExpression><![CDATA[$F{brig_work_kr_pr_inv}]]></initialValueExpression>
+	</variable>
+	<variable name="brig_all_work" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$F{brig_work_all}]]></variableExpression>
+		<initialValueExpression><![CDATA[$F{brig_work_all}]]></initialValueExpression>
+	</variable>
+	<group name="rr">
+		<groupExpression><![CDATA[$P{fio_fin}]]></groupExpression>
+		<groupHeader>
+			<band splitType="Stretch"/>
+		</groupHeader>
+		<groupFooter>
+			<band splitType="Stretch"/>
+		</groupFooter>
+	</group>
+	<group name="zatr_hours">
+		<groupExpression><![CDATA[$P{fio_fin}+ $P{post_fin}]]></groupExpression>
+		<groupHeader>
+			<band splitType="Stretch"/>
+		</groupHeader>
+		<groupFooter>
+			<band splitType="Stretch"/>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Prevent">
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-4" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="239" y="0" width="100" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{fio_fin}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-5" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="339" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{tabn_fin}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-6" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="499" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{v_countworkhours}.subtract($P{sumhoursotpusk})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-7" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="539" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($V{v_countworkhours}.subtract($P{sumhoursotpusk}))
+.multiply(new BigDecimal(0.05))]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-8" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="659" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{delivery_fact_zagr_kr_pr_inv_work}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-9" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="739" y="0" width="35" height="20" forecolor="#000000" backcolor="#FFFFFF">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{v_countworkhours}.doubleValue() != 0.0 &&
+   ($V{v_countworkhours}.subtract($P{sumhoursotpusk})).doubleValue() != 0.0
+ ?
+($F{fact_zagr_all_work}.add(($V{v_countworkhours}.subtract($P{sumhoursotpusk})).multiply(new BigDecimal(0.05))).add($F{deliverytimefact}) ).divide
+($V{v_countworkhours}.subtract($P{sumhoursotpusk}) ,8,2)
+.multiply(new BigDecimal(100)) : new BigDecimal(0)]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-10" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="774" y="0" width="35" height="20" forecolor="#000000" backcolor="#FFFFFF">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="local_mesure_unitwidth" value="pixel"/>
+				</reportElement>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[/*($F{fact_zagr_kr_pr_inv_work}.doubleValue() != 0.0 ) && */
+  ($V{v_countworkhours}.doubleValue() != 0.0 ) &&
+   ($V{v_countworkhours}.subtract($P{sumhoursotpusk})).doubleValue() != 0.0
+/*  (($V{v_countworkhours}.subtract($P{sumhoursotpusk})).doubleValue() != 0.0 )*/ ?
+(($F{fact_zagr_kr_pr_inv_work}.add($F{delivery_fact_zagr_kr_pr_inv_work})).divide(
+                            ($V{v_countworkhours}.subtract($P{sumhoursotpusk}))
+
+                              ,8,2)).multiply(new BigDecimal(100))
+: new BigDecimal(0)
+/* new BigDecimal(60) */]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0" isBlankWhenNull="true">
+				<reportElement key="textField-11" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="809" y="0" width="30" height="20" forecolor="#000000" backcolor="#FFFFFF">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($V{v_z_1}.doubleValue() >= 90 & $V{v_z_2}.doubleValue() >= 60) ? new BigDecimal(70) :
+($V{v_z_1}.doubleValue() >= 90 & $V{v_z_2}.doubleValue() < 60) ? new BigDecimal(50) :
+($V{v_z_1}.doubleValue() < 90 )  ? new BigDecimal(0) : new BigDecimal(0)]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-12" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="379" y="0" width="120" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{post_fin}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-13" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="579" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{deliverytimefact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-14" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="619" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fact_zagr_all_work}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-15" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="699" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fact_zagr_kr_pr_inv_work}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-16" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="199" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{brig_work_kr_pr_inv}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-17" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="159" y="0" width="40" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{brig_work_all}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-18" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="159" height="20" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{Ppodr_name}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

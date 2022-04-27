@@ -1,0 +1,1084 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="servicesRegistryPrint2Term" pageWidth="3000" pageHeight="842" orientation="Landscape" columnWidth="2960" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" isIgnorePagination="true">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="New Data Adapter 1"/>
+	<property name="ireport.zoom" value="3.132936127061744"/>
+	<property name="ireport.x" value="3023"/>
+	<property name="ireport.y" value="312"/>
+	<style name="style1" mode="Opaque">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{enservicescontractstts_code} == 8]]></conditionExpression>
+			<style mode="Opaque" backcolor="#C0C0C0"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{is_red} > 0]]></conditionExpression>
+			<style backcolor="#FF0000"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{is_yellow}> 0 & $F{is_red} == 0]]></conditionExpression>
+			<style backcolor="#FFFF66"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="datestart" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="datefinal" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="renCode" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="OnlyOverdue" class="java.lang.Integer"/>
+	<parameter name="renName" class="java.lang.String"/>
+	<parameter name="showStatusProveden" class="java.lang.Integer"/>
+	<parameter name="show_enservicescontractstts_terminated" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[1]]></defaultValueExpression>
+	</parameter>
+	<parameter name="isOnlyReplaсeCounter" class="java.lang.Integer"/>
+	<parameter name="isShowInfoCounters" class="java.lang.Integer"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\Projects\\EnergyServerEclipse\\EnergyNet\\reports\\src\\com\\ksoe\\energynet\\reports\\Services\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="finConnection" class="java.lang.Object" isForPrompting="false"/>
+	<parameter name="tkclassificationtypecodes" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("0")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="ServicesWithoutFact" class="java.lang.Integer"/>
+	<queryString>
+		<![CDATA[select
+( select   f.numberdoc || ' / ' || to_char(f.dategen,'dd.mm.yyyy') as num_date_ord  from enplanwork p , enestimateitem ei ,
+rqfkorderitem2enstmttm f2e , rqfkorderitem fi ,
+rqfkorder f
+where p.elementrefcode = elementcode
+and p.kindcode = 2
+and ei.planrefcode = p.code
+and ei.accountingtyperefcode = 2
+and ei.countfact > 0
+and ei.code = f2e.estimateitemcode
+and f2e.fkorderitemrefcode = fi.code
+and fi.fkorderrefcode = f.code
+and f.statuscode in (3,4,5)
+order by f.dategen desc limit 1 ) as num_date_ord_counter,
+contractnumberservices	,
+contractdateservices	,
+servicesname	,
+contragentname	,
+contragentaddress,
+contragentaddresswork,
+depname	,
+case when statusname = 'Роботи не виконані'  and failure_work is not null then 'Роботи не виконані по причині:' ||failure_work
+     when statusname = 'Роботи виконані' then statusname
+    else statusname || '( '|| (select name_plan ||' статус ' || name_status_plan
+          from (
+          select 'Завдання Факт' as name_plan ,
+          ps.name as name_status_plan  from
+          enplanwork p ,  enplanworkstatus ps
+          where p.elementrefcode = elementcode
+          and p.kindcode =4
+          and p.statuscode = ps.code
+          union all
+          select 'Завдання План' as name_plan ,
+          ps.name as name_status_plan  from
+          enplanwork p ,  enplanworkstatus ps
+          where p.elementrefcode = elementcode
+          and p.kindcode = 3
+          and p.statuscode = ps.code
+          union all
+          select 'Місячний План' as name_plan ,
+          ps.name as name_status_plan  from
+          enplanwork p ,  enplanworkstatus ps
+          where p.elementrefcode = elementcode
+          and p.kindcode = 2
+          and p.statuscode = ps.code
+          union all
+          select 'Кошторис' as name_plan ,
+          ps.name as name_status_plan  from
+          enplanwork p ,  enplanworkstatus ps
+          where p.elementrefcode = elementcode
+          and p.kindcode = 5
+          and p.statuscode = ps.code
+          ) as selpl limit 1 )
+
+  ||')'  end
+            as statusname ,
+failure_work,
+buh_status	,
+typename	,
+contragenttype,
+act	,
+executor_fact,
+is_red	,
+is_yellow,
+to_char(executeworkdate,'dd.mm.yyyy') as executeworkdate,
+case when dateinpay is null and contragenttyperefcode = 2 then 'Бюджет' else dateinpay 	end  as dateinpay ,
+/*SUPP-32920 - если дог. с рез. по времени и дата выполнения по дог больше даты граничной то граничную дату примем как дата вып договора */
+
+to_char( boundarydatework ,'dd.mm.yyyy') as limit_date  ,
+
+contragenttyperefcode, /*тип контрагента*/
+nameclassif_in_dogovor ,
+/*сума оплати */
+(select sum(p2s.sumtotal) from enpayment2so p2s where p2s.servicesobjectrefcode = contractcode ) as sumtotal
+/*калькуляционная стоимость */
+, (select cct.totalcost from encalccontracttotal cct  where cct.planrefcode = (select p.code from enplanwork p , enservicesobject so
+          																		where p.elementrefcode = so.elementcode
+                                                                                and so.code=contractcode
+                                                                                and p.kindcode = 5 )  ) as calctotalcost
+, /*статус договора если 8 т.е скасований то красить в серый */
+enservicescontractstts_code
+, elementcode
+, contractcode
+, ( select string_agg( m2m.tkmaterialsoutrefcode::text ,',')  from tkmaterials2tkmaterils m2m
+where m2m.tkmaterialsinrefcode in (2000001969,2000001970)  ) as str_materials_code_counters
+, ( select string_agg( m2m.tkmaterialsoutrefcode::text ,',')  from tkmaterials2tkmaterils m2m
+where m2m.tkmaterialsinrefcode in (2000001969)  ) as str_materials_code_counters_1f
+, ( select string_agg( m2m.tkmaterialsoutrefcode::text ,',')  from tkmaterials2tkmaterils m2m
+where m2m.tkmaterialsinrefcode in (2000001970)  ) as str_materials_code_counters_3f
+ , personalaccountnumber
+ , case isnopay when 1 then 'Безоплатний' else 'Платний' end as isnopay
+ , term
+ , regulation
+ , case when coalesce(regulation,0) = 0 and coalesce(term,0) >0 then term::text || '(робоч.)'
+        when coalesce(regulation,0) = 1 and coalesce(term,0) >0 then term::text || '(календ.)'
+		else ''
+		end as termtxt
+ from
+
+(
+
+select so.personalaccountnumber ,
+        so.code as contractcode ,
+        ( select  string_agg(distinct ( tct.kod || ' ' || tct.name ),' , ') from enplanwork2classfctntp p2c, enplanwork p , tkclassificationtype tct
+          where p2c.planrefcode = p.code
+          and p2c.classificationtyperfcd = tct.code
+          and p.kindcode = 5
+          and p.elementrefcode = so.elementcode
+            ) as nameclassif_in_dogovor ,
+       so.contragenttyperefcode ,/*тип контрагента*/
+       so.contractnumberservices ,
+       to_char(so.contractdateservices,'dd.MM.yyyy') as contractdateservices,
+       --so.contractnumber,
+       --to_char(so.contractdate,'dd.MM.yyyy') as contractdate,
+       so.name as servicesname,
+       so.contragentname,
+       so.contragentaddress,
+	   so.contragentaddresswork,
+       dep.name as depname,
+
+       /* робота виконана если по услуге есть акт вып работ и в хоть одном задание план из этого акта нету акта невыполнения   */
+       case when coalesce(( select count(enact.code) from enact , enplanwork p , enact2enplanwork a2p
+                             where enact.elementcode = so.elementcode
+                               and enact.elementcode = p.elementrefcode
+                               and p.kindcode = 3
+                               and ( select p2af.planrefcode from enplanwork2actfailure p2af where p2af.planrefcode = p.code ) is null
+                               and enact.code = a2p.actrefcode
+                          ),0) > 0 then
+       'Роботи виконані'
+           else 'Роботи не виконані' end as statusname,
+       -- причины невыполнения работы
+       ( select string_agg( distinct afr.name || '( акт№'||coalesce(af.numbergen,'') || case when af.dateact is not null then ' від '||to_char(af.dateact,'dd.mm.yyyy') else '' end ||')',',' )
+          from enplanwork2actfailure p2af , enplanwork p ,  enactfailure af , enactfailurereason afr
+          where p2af.planrefcode = p.code
+            and p.kindcode = 3
+            and p.elementrefcode = so.elementcode
+            and p2af.actfailurerefcode = af.code
+            and af.reasonrefcode = afr.code ) as failure_work  ,
+
+       sobjs.name as buh_status,
+       ct.name as typename,
+       ctype.name as contragenttype,
+
+
+       ( select string_agg(distinct enact.numbergen || ' от ' || to_char(enact.dateact,'dd.MM.yyyy')||'('||actst.name||')',',')
+          from enact , enactstatus actst , enact2enplanwork a2p
+         where enact.statusrefcode = actst.code
+           and enact.code = a2p.actrefcode
+           and enact.elementcode = so.elementcode limit 1 ) as act,
+
+       -- исполнитель факт
+        ( select string_agg(distinct fex.name,',')
+        from finexecutor fex , enplanwork p
+        where p.elementrefcode = so.elementcode
+        and fex.code = p.finexecutorcode
+        and p.kindcode = 4
+        limit 1   ) as executor_fact
+
+,  /*IS_RED*/
+    /*case when so.statusrefcode in (2,4)
+         or so.contractstatusrefcode = 11 --SUPP-34177 - проведенным считаются договора также со енерджинетовским статусом "закритий"
+    then 0  -- SUPP-33046 если провед в фин кол то не просроч
+    else
+             (case when
+             so.boundarydatework < current_date
+             then
+	              (case when coalesce(( select count(enact.code) from enact , enplanwork p , enact2enplanwork a2p
+	                                 where enact.elementcode = so.elementcode
+	                                   and enact.elementcode = p.elementrefcode
+	                                   and p.kindcode = 3
+	                                   and ( select p2af.planrefcode from enplanwork2actfailure p2af where p2af.planrefcode = p.code ) is null
+	                                   and enact.code = a2p.actrefcode
+	                              ),0) > 0
+	              then 0 else  -- кол-во дней просрочки от оплаты(красный цвет )
+	                         current_date -  so.boundarydatework
+	              end)
+             else 0 end)
+      end*/
+     (get_number_day_delay_services_redterm(so.code)) as is_red
+      ,
+ /*is_yellow*/
+ case when so.statusrefcode in (2,4)
+            or so.contractstatusrefcode = 11 /*SUPP-34177 - проведенным считаются договора также со енерджинетовским статусом "закритий"*/
+            then 0
+     else  /* SUPP-33046 если провед в фин кол то не просроч*/
+      case when
+      coalesce(so.boundarydatework,current_date) < current_date
+        then
+          case when coalesce(( select count(enact.code) from enact , enplanwork p , enact2enplanwork a2p
+                             where enact.elementcode = so.elementcode
+                               and enact.elementcode = p.elementrefcode
+                               and p.kindcode = 3
+                               and ( select p2af.planrefcode from enplanwork2actfailure p2af where p2af.planrefcode = p.code ) is null
+                               and enact.code = a2p.actrefcode
+                          ),0) > 0
+          then 0 else -- кол-во дней просрочки от намеченой даты выполнения для
+                    current_date - so.boundarydatework
+         end
+        else 0 end
+       end /* SUPP-33046 если провед в фин кол то не просроч*/
+      as is_yellow
+
+  , so.executeworkdate as executeworkdate  -- согласовання дата вып работ
+  , (select to_char(min(dategen),'dd.mm.yyyy') from enpayment2so
+        where enpayment2so.servicesobjectrefcode = so.code) as dateinpay -- дата надходження коштыв
+
+   -- предельни дата выполнения
+   , /* case when so.contragenttyperefcode <> 2 then
+
+        case when isjobsbytime = 1 and so.executeworkdate >= table_isjobsbytime.limit_date_by_pay
+              then so.executeworkdate
+        else
+              table_isjobsbytime.limit_date_by_pay
+        end
+      else
+       limit_number_day + so.executeworkdate
+      end  as*/ so.boundarydatework
+
+   , sc.code as enservicescontractstts_code
+   , so.elementcode
+   , table_isjobsbytime.isjobsbytime
+   , table_isjobsbytime.limit_number_day
+
+   , so.isnopay
+   , so.term
+   , so.regulation
+from  enservicesobject so left join enwarrant war on (war.code = so.warrantrefcode) ,
+      enservicescontractstts sc,
+     endepartment dep,
+     enservicescontracttype ct,
+     enservicescontragenttp ctype,
+     enservicesobjectstatus sobjs,
+     (select so.code as socode , so.contractnumberservices
+    , (select coalesce(p2c.isjobsbytime,0)
+         from enplanwork pw , enplanwork2classfctntp p2c
+        where pw.elementrefcode = so.elementcode
+        and pw.kindcode = 5
+        and pw.code = p2c.planrefcode
+        order by coalesce(p2c.isjobsbytime,0) desc
+        limit 1  ) as isjobsbytime
+        , (select min(dategen) from enpayment2so
+                    where enpayment2so.servicesobjectrefcode = so.code) as datepay
+        , so.executeworkdate
+        ,  so.term as limit_number_day
+
+     from enservicesobject so
+
+
+     ) as table_isjobsbytime
+
+where so.contractstatusrefcode =  sc.code
+  and dep.code = so.departmentcode
+  and ct.code = so.contracttyperefcode
+  and ctype.code = so.contragenttyperefcode
+  and sobjs.code = so.statusrefcode
+  and so.code = table_isjobsbytime.socode
+
+  and so.contractdateservices between to_date($P{datestart},'dd.MM.yyyy') and to_date($P{datefinal},'dd.MM.yyyy')
+  and (  $P{renCode}::integer <> 0 and so.departmentcode = $P{renCode}::integer or  $P{renCode}::integer = 0 )
+  and ( (so.statusrefcode not in (2,4)
+           and  so.contractstatusrefcode <> 11 /*SUPP-34177 - проведенным считаются договора также со енерджинетовским статусом "закритий"*/
+           and  $P{showStatusProveden} = 0 )
+      or ($P{showStatusProveden} = 1)
+      )
+ -- and so.contractnumberservices = '1088731'   /* tezzzt */
+  and so.contracttyperefcode in (1,2) -- что б не брались приэднання всякие и продажи .
+  and so.contractstatusrefcode not in (2,10) -- не берем договора которые в статусе "отказ от услуги" , отмененные и скасованые
+-- только лиценнз работы
+   and so.elementcode in (
+                         select p.elementrefcode from enplanwork p , enplanwork2classfctntp pc, tkclassificationtype cl , enelement el
+                         where p.code = pc.planrefcode
+                         and pc.classificationtyperfcd = cl.code
+                         and cl.isnotlicensedactivity =0
+                         and p.elementrefcode = el.code
+                         and el.typerefcode = 23
+                         )
+   /*показывать или нет скасованые договора */
+   and case when $P{show_enservicescontractstts_terminated} = 1 then 1=1 else sc.code <> 8 end
+
+   and case when $P{isOnlyReplaсeCounter} = 1 then  so.code in (select s.code
+            from enservicesobject s where s.elementcode in (
+            select distinct pl.elementrefcode from enplanwork pl where pl.code in (
+            select tcl.planrefcode
+            from enplanwork2classfctntp tcl, tkclassificationtype t
+            where tcl.classificationtyperfcd = t.code  and t.replacecounterkindcode = 1 ) ))
+      else 1 = 1 end
+
+  /*фильтр по калькуляциям в договоре */
+  and case when $P{tkclassificationtypecodes}  <> '' then  so.code in
+     (select distinct so.code from tkclassificationtype tcl  , enplanwork2classfctntp p2clt , enplanwork p           , enservicesobject so
+    where tcl.kod like replace($P{tkclassificationtypecodes} ,'*','%')
+         and p2clt.classificationtyperfcd = tcl.code
+         and p2clt.planrefcode = p.code
+         and p.elementrefcode = so.elementcode
+         and p.kindcode = 5
+   ) else 1 = 1 end
+
+   /* 04.12.2017 - добавили условие что бы можно было бы не отображать договора с фактами*/
+   and case when $P{ServicesWithoutFact} =1 then so.elementcode not in ( select pp.elementrefcode from enplanwork pp
+                                                                              where pp.kindcode = 4
+                                                                              and pp.elementrefcode=so.elementcode )
+                                              else 1=1 end
+
+ GROUP BY so.contractnumberservices ,
+       so.contractdateservices,
+       so.name ,
+       so.contragentname,
+       so.contragentaddress,
+	   so.contragentaddresswork,
+       dep.name,
+       sobjs.name ,
+       ct.name,
+       ctype.name ,
+       so.elementcode,
+       so.contragenttyperefcode ,
+       so.regionaltype,
+       so.code ,
+       sc.code ,
+       table_isjobsbytime.datepay ,
+       table_isjobsbytime.isjobsbytime ,
+       so.personalaccountnumber ,
+       table_isjobsbytime.limit_number_day,
+       so.isnopay
+ ) as qqq
+ where case when  $P{OnlyOverdue} = 1 then is_red > 0 /*or is_yellow > 0*/ else 1=1 end
+ ORDER BY depname , contractdateservices,  contractnumberservices]]>
+	</queryString>
+	<field name="contractnumberservices" class="java.lang.String">
+		<fieldDescription><![CDATA[Номер договору по послугам на сторону]]></fieldDescription>
+	</field>
+	<field name="contractdateservices" class="java.lang.String">
+		<fieldDescription><![CDATA[Дата договору]]></fieldDescription>
+	</field>
+	<field name="servicesname" class="java.lang.String"/>
+	<field name="contragentname" class="java.lang.String">
+		<fieldDescription><![CDATA[Замовник]]></fieldDescription>
+	</field>
+	<field name="contragentaddress" class="java.lang.String">
+		<fieldDescription><![CDATA[Адреса замовника]]></fieldDescription>
+	</field>
+	<field name="depname" class="java.lang.String">
+		<fieldDescription><![CDATA[Підрозділ (ФК)]]></fieldDescription>
+	</field>
+	<field name="statusname" class="java.lang.String"/>
+	<field name="buh_status" class="java.lang.String"/>
+	<field name="typename" class="java.lang.String">
+		<fieldDescription><![CDATA[марка или тип]]></fieldDescription>
+	</field>
+	<field name="contragenttype" class="java.lang.String"/>
+	<field name="act" class="java.lang.String"/>
+	<field name="executor_fact" class="java.lang.String"/>
+	<field name="is_red" class="java.lang.Integer"/>
+	<field name="is_yellow" class="java.lang.Integer"/>
+	<field name="executeworkdate" class="java.lang.String"/>
+	<field name="dateinpay" class="java.lang.String"/>
+	<field name="limit_date" class="java.lang.String"/>
+	<field name="nameclassif_in_dogovor" class="java.lang.String"/>
+	<field name="sumtotal" class="java.math.BigDecimal"/>
+	<field name="calctotalcost" class="java.math.BigDecimal"/>
+	<field name="enservicescontractstts_code" class="java.lang.Integer"/>
+	<field name="contractcode" class="java.lang.Integer"/>
+	<field name="str_materials_code_counters" class="java.lang.String"/>
+	<field name="str_materials_code_counters_1f" class="java.lang.String"/>
+	<field name="str_materials_code_counters_3f" class="java.lang.String"/>
+	<field name="personalaccountnumber" class="java.lang.String"/>
+	<field name="num_date_ord_counter" class="java.lang.String"/>
+	<field name="isnopay" class="java.lang.String"/>
+	<field name="termtxt" class="java.lang.String"/>
+	<field name="contragentaddresswork" class="java.lang.String"/>
+	<variable name="services_with_counter" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[$V{counter_for_service}.isEmpty() ? 0 : 1]]></variableExpression>
+	</variable>
+	<variable name="counter_for_service" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="51">
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="115" y="0" width="955" height="50"/>
+				<textElement markup="none">
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Звіт по послугам на сторону з " + $P{datestart} + " по " + $P{datefinal}
++ new String( $P{renCode}.equals("0")  ? "\n Всі підрозділи" :
+"\n Підрозділ " + $P{renName} )]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="92" splitType="Stretch">
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="115" y="0" width="270" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Роботи по договору]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="50" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Номер договору по послугам на сторону]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="830" y="0" width="240" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Замовник]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1070" y="0" width="120" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Адреса замовника]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1310" y="0" width="150" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Статус виконання робіт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1520" y="0" width="60" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Тип договору]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1460" y="0" width="60" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Бух.статус]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1580" y="0" width="60" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Тип контрагенту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1840" y="0" width="150" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Виконавець]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1640" y="0" width="200" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Номер , дата , статус акта вик. робіт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="700" y="0" width="60" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Кількість днів просрочки(календ. дні)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="385" y="0" width="65" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Максимально доступний термін виконання робіт(дні)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="450" y="0" width="65" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Дата надходження коштів]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="635" y="0" width="65" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Гранична дата виконання робіт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="50" y="0" width="65" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Дата договору]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="515" y="0" width="60" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Сума оплати(з ПДВ)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="575" y="0" width="60" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Калькуляційна вартість(з ПДВ)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1990" y="0" width="150" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Підрозділ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="760" y="0" width="70" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Особовий рахунок]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="2140" y="0" width="200" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="false"/>
+				</textElement>
+				<text><![CDATA[Платний\безоплатний]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="2340" y="0" width="200" height="92">
+					<printWhenExpression><![CDATA[$P{isShowInfoCounters} == 1]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Інформація про прилади обліку]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="2540" y="0" width="200" height="92">
+					<printWhenExpression><![CDATA[$P{isShowInfoCounters} == 1]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Номер/дата останнього ордеру на переміщення лічильника ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1190" y="0" width="120" height="92"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Адреса місця проведення робіт]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="115" y="0" width="270" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nameclassif_in_dogovor}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="50" y="0" width="65" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{contractdateservices}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{contractnumberservices}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="1070" y="0" width="120" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{contragentaddress}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="830" y="0" width="240" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{contragentname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="1310" y="0" width="150" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{statusname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="1460" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{buh_status}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="1580" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{contragenttype}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="1520" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{typename}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="1840" y="0" width="150" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{executor_fact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="1640" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{act}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="700" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{is_red} > 0 ? $F{is_red} :
+($F{is_red} == 0 & $F{is_yellow} > 0) ? $F{is_yellow} : 0]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="385" y="0" width="65" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{termtxt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="450" y="0" width="65" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{dateinpay}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="635" y="0" width="65" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{limit_date}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="515" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{sumtotal}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="575" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{calctotalcost}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="1990" y="0" width="150" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{depname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="760" y="0" width="70" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{personalaccountnumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="2140" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{isnopay}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="2340" y="0" width="200" height="20" isPrintWhenDetailOverflows="true">
+					<printWhenExpression><![CDATA[$P{isShowInfoCounters} == 1]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{counter_for_service}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="2540" y="0" width="200" height="20" isPrintWhenDetailOverflows="true">
+					<printWhenExpression><![CDATA[$P{isShowInfoCounters} == 1]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{num_date_ord_counter}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="1190" y="0" width="120" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{contragentaddresswork}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="20" splitType="Stretch">
+			<printWhenExpression><![CDATA[$P{isShowInfoCounters} == 1]]></printWhenExpression>
+		</band>
+	</pageFooter>
+	<summary>
+		<band height="294">
+			<subreport runToBottom="true">
+				<reportElement x="0" y="0" width="760" height="20">
+					<printWhenExpression><![CDATA[$P{isShowInfoCounters} == 1]]></printWhenExpression>
+				</reportElement>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/Services/servicesRegistryPrint2_ordered.jasper")]]></subreportExpression>
+			</subreport>
+			<subreport runToBottom="true">
+				<reportElement positionType="Float" x="0" y="20" width="760" height="20">
+					<printWhenExpression><![CDATA[$P{isShowInfoCounters} == 1]]></printWhenExpression>
+				</reportElement>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="str_materials_code_counters_1f">
+					<subreportParameterExpression><![CDATA[$F{str_materials_code_counters_1f}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="str_materials_code_counters_3f">
+					<subreportParameterExpression><![CDATA[$F{str_materials_code_counters_3f}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="str_materials_code_counters">
+					<subreportParameterExpression><![CDATA[$F{str_materials_code_counters}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[(java.sql.Connection)$P{finConnection}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/Services/servicesRegistryPrint2_rest.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</summary>
+</jasperReport>

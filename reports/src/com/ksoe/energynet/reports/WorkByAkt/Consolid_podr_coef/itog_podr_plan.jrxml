@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="itog_podr_plan" pageWidth="480" pageHeight="802" columnWidth="480" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="datestart" class="java.lang.String"/>
+	<parameter name="datefinal" class="java.lang.String"/>
+	<parameter name="podr" class="java.lang.Integer"/>
+	<parameter name="budgetstringcode" class="java.lang.String"/>
+	<parameter name="obj" class="java.lang.Integer"/>
+	<parameter name="formplan" class="java.lang.Integer"/>
+	<parameter name="onlydraftactstatus" class="java.lang.Integer"/>
+	<parameter name="worktypecode" class="java.lang.Integer"/>
+	<parameter name="typeact" class="java.lang.Integer"/>
+	<parameter name="executorcode" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="conditionExecutor" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[/*sub query plan */
+Select depcode ,
+       group_concat(planrefcodemonth::text,',') as planrefcodemonth  ,
+       tkworkname ,
+       workcode ,
+      /*(select tkmeasurement.name
+from tkmeasurement ,
+enplanworkitem ,
+tktechcard
+where
+tkmeasurement.code = tktechcard.measurementcode
+and tktechcard.code = workcode
+and tktechcard.code = enplanworkitem.kartarefcode
+limit 1
+   )*/ 'шт' as measurework ,
+       sum(workcountmonth) as workcountmonth , sum(worktimemonth) as worktimemonth
+FROM (
+Select coalesce(eld.ename,'') ||' Інв.№ '|| coalesce(eld.invnumber,'') as obj ,
+       elementcode ,
+       typeact ,
+       budjname ,
+       budjcode ,
+       depname ,
+       depcode ,
+       planrefcode as planrefcodemonth  ,
+       tkworkname ,
+       workcode as workcode , sum(workcountmonth) as workcountmonth , sum(worktimemonth) as worktimemonth ,
+       startwork ,
+       endwork ,
+       typework
+       ,
+       /*признак для черновых актов*/
+
+       (Select
+coalesce(sum(act.code),0) as prdraftact
+ from  enplanwork enp left join  enact2enplanwork act2plan on ( act2plan.plancode = enp.code  )
+            left join enact act on (  act2plan.actrefcode = act.code        )
+            left join enactstatus statact on ( act.statusrefcode = statact.code)
+            left join enplanworkstate enps on ( enps.code = act.acttyperefcode) ,
+       enworkorder2enplanwork ord2enp  , enplanworkitem epi , tktechcard tkd ,
+       enplanworktype enpt , enworkorder ord
+ where enp.code in  ( select eh2.plannewrefcode from enplancorrecthistory eh2 where eh2.reasoncode =  5 and  eh2.planoldrefcode in (select eh1.plannewrefcode from enplancorrecthistory eh1 where eh1.planoldrefcode =  s_wormonthfact.planrefcode  and eh1.reasoncode = 4)
+                      )
+   and enp.code = ord2enp.plancode
+   and epi.kartarefcode = tkd.code
+   and epi.kartarefcode = s_wormonthfact.workcode
+   and epi.planrefcode = enp.code
+   and epi.countgen <> 0
+   and enp.kindcode = 4
+   and enp.typerefcode = enpt.code
+   and enp.departmentrefcode = s_wormonthfact.depcode
+   and enp.budgetrefcode = s_wormonthfact.budjcode
+   and ord2enp.workordercode = ord.code
+   and enp.statuscode in (1, 3) /*черновые и утвержденные*/
+   and enp.elementrefcode = s_wormonthfact.elementcode
+   and act.statusrefcode = 1 /*признак что акт черновой*/
+) as pr_draft_act  /*1- есть черновой акт 0 - нет чернового акта */
+, priconnectionnumber
+, (select net.get_date_start_works(planrefcode::numeric , to_date($P{datestart},'dd.mm.yyyy') , to_date($P{datefinal},'dd.mm.yyyy') ) ) as date_start_work
+FROM
+(
+Select distinct
+       enps.shortname as typeact ,
+       enp.elementrefcode as elementcode ,
+       budg.name as budjname ,
+       enp.budgetrefcode as budjcode ,
+       dep.name as depname ,
+       dep.code as depcode ,
+       enim.planrefcode ,
+       tk.name as tkworkname , enim.kartarefcode  as workcode , enim.countgen as workcountmonth ,
+       /*enim.timegen*/coalesce((select sum(coalesce(hhi.countfact,0)) from net.enhumenitem hhi where hhi.planitemrefcode = enim.code and hhi.countfact > 0 ),0) as worktimemonth ,
+       cast( 0 as numeric ) as workccountfact , cast( 0 as numeric ) as worktimefact ,
+       to_char(enp.datestart,'dd.mm.yyyy') as startwork ,
+       to_char(enp.datefinal,'dd.mm.yyyy') as endwork  ,
+       enpt.shortname as typework
+       , enp.commentgen as priconnectionnumber
+        from
+    enplanworkitem enim , tktechcard tk , enplanwork enp  ,
+    endepartment dep , endepartment budg , enplanworkstate enps , enplanworktype enpt , finexecutor f , enelement elt
+Where enp.elementrefcode=elt.code
+  and elt.typerefcode not in (19,20) -- пооткидывать лишние типы объектов
+  and enim.planrefcode = enp.code
+  and enim.kartarefcode = tk.code
+  and enp.departmentrefcode = dep.code
+  and enim.planrefcode = enp.code
+  and enp.budgetrefcode = budg.code
+  and enps.code = enp.staterefcode
+  and enp.kindcode = 2 /*берем только месячные планы*/
+  and enim.countgen <> 0
+  and ( enp.departmentrefcode = $P{podr} or $P{podr} = 0 )
+  and $P!{budgetstringcode}
+  and ( enp.elementrefcode = $P{obj} or $P{obj} = 0 )
+  and enp.datestart between to_date($P{datestart},'dd.mm.yyyy') and to_date($P{datefinal},'dd.mm.yyyy')
+  and ( enp.formrefcode = $P{formplan} or $P{formplan} = 0   ) /*работы плановые позаплановые*/
+  and ( enp.typerefcode = $P{worktypecode} or $P{worktypecode} = 0   ) /*подвид работ*/
+  and ( enp.staterefcode = $P{typeact} or $P{typeact} = 0   ) /*тип акта */
+  and enpt.code = enp.typerefcode
+  and f.code = enp.finexecutorcode
+  and f.axorgid = $P{executorcode}
+
+) s_wormonthfact , enelementdata eld
+Where  s_wormonthfact.elementcode = eld.ecode
+
+
+GROUP BY  planrefcode ,  tkworkname , depname , depcode , budjname  , budjcode ,   elementcode , eld.ename , eld.invnumber , typeact , workcode
+, startwork , endwork , typework , priconnectionnumber
+) sel_alll
+
+Where (( pr_draft_act > 0 and  $P{onlydraftactstatus}   = 1 ) or (1=1 and $P{onlydraftactstatus}  <> 1))
+Group by depcode , tkworkname , workcode
+Order by  tkworkname]]>
+	</queryString>
+	<field name="depcode" class="java.lang.Integer"/>
+	<field name="planrefcodemonth" class="java.lang.String"/>
+	<field name="tkworkname" class="java.lang.String"/>
+	<field name="workcode" class="java.lang.Integer"/>
+	<field name="measurework" class="java.lang.String"/>
+	<field name="workcountmonth" class="java.math.BigDecimal"/>
+	<field name="worktimemonth" class="java.math.BigDecimal"/>
+	<variable name="hoursplan" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{worktimemonth}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="hoursfact" class="java.math.BigDecimal" calculation="Sum"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band splitType="Stretch">
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" stretchType="RelativeToTallestObject" x="330" y="0" width="150" height="0" isPrintWhenDetailOverflows="true"/>
+				<subreportParameter name="onlydraftactstatus">
+					<subreportParameterExpression><![CDATA[$P{onlydraftactstatus}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="workcode">
+					<subreportParameterExpression><![CDATA[$F{workcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="podr">
+					<subreportParameterExpression><![CDATA[$P{podr}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="planrefcodemonth">
+					<subreportParameterExpression><![CDATA[$F{planrefcodemonth}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="budgetstringcode">
+					<subreportParameterExpression><![CDATA[$P{budgetstringcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="obj">
+					<subreportParameterExpression><![CDATA[$P{obj}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="typeact">
+					<subreportParameterExpression><![CDATA[$P{typeact}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="worktypecode">
+					<subreportParameterExpression><![CDATA[$P{worktypecode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<returnValue subreportVariable="hoursfact" toVariable="hoursfact" calculation="Sum"/>
+				<subreportExpression><![CDATA[/*"C:/iReport-3.0.0/tmp/itog_podr_fact.jasper"*/
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/WorkByAkt/Consolid_podr_coef/itog_podr_fact.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

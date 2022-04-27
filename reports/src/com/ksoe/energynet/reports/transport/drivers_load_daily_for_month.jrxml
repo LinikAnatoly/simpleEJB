@@ -1,0 +1,1322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="drivers_load_daily_for_month" pageWidth="2340" pageHeight="170" whenNoDataType="NoDataSection" columnWidth="2300" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" scriptletClass="com.ksoe.energynet.reports.common.mDaxScriptlet" isIgnorePagination="true">
+	<property name="ireport.zoom" value="0.9090909090909128"/>
+	<property name="ireport.x" value="922"/>
+	<property name="ireport.y" value="0"/>
+	<import value="java.text.SimpleDateFormat"/>
+	<import value="com.ksoe.energynet.util.Tools"/>
+	<import value="java.text.DateFormat"/>
+	<parameter name="yearGen" class="java.lang.String">
+		<parameterDescription><![CDATA[Рік]]></parameterDescription>
+		<defaultValueExpression><![CDATA["2020"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="monthGen" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Місяць]]></parameterDescription>
+		<defaultValueExpression><![CDATA[8]]></defaultValueExpression>
+	</parameter>
+	<parameter name="departmentCode" class="java.lang.String">
+		<parameterDescription><![CDATA[Код підрозділу]]></parameterDescription>
+		<defaultValueExpression><![CDATA["043"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateStart" class="java.util.Date" isForPrompting="false">
+		<parameterDescription><![CDATA[Дата початку періоду]]></parameterDescription>
+		<defaultValueExpression><![CDATA[Tools.dateFormatDefault.parse(String.format("01.%s.%s"
+    , String.format("%02d", $P{monthGen}), $P{yearGen}))]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateFinal" class="java.util.Date" isForPrompting="false">
+		<parameterDescription><![CDATA[Дата кінця періоду]]></parameterDescription>
+		<defaultValueExpression><![CDATA[Tools.getLastDayOfMonth($P{dateStart})]]></defaultValueExpression>
+	</parameter>
+	<parameter name="monthName" class="java.lang.String" isForPrompting="false">
+		<parameterDescription><![CDATA[Найменування місяця]]></parameterDescription>
+		<defaultValueExpression><![CDATA[Tools.getUkrNameOfMonth($P{monthGen})]]></defaultValueExpression>
+	</parameter>
+	<parameter name="departmentName" class="java.lang.String" isForPrompting="false">
+		<parameterDescription><![CDATA[Найменування підрозділу]]></parameterDescription>
+		<defaultValueExpression><![CDATA[((com.ksoe.energynet.reports.common.mDaxScriptlet)$P{REPORT_SCRIPTLET}).getPodrName($P{departmentCode}, $P{dateFinal})]]></defaultValueExpression>
+	</parameter>
+	<parameter name="lastDayOfMonth" class="java.lang.Integer" isForPrompting="false">
+		<parameterDescription><![CDATA[Число останнього дня місяця]]></parameterDescription>
+		<defaultValueExpression><![CDATA[Integer.valueOf(new SimpleDateFormat("dd").format($P{dateFinal}))]]></defaultValueExpression>
+	</parameter>
+	<parameter name="tabnumber" class="java.lang.String">
+		<parameterDescription><![CDATA[Табельный номер водитель (необязательный параметр)]]></parameterDescription>
+	</parameter>
+	<parameter name="timeFormat" class="java.text.DateFormat" isForPrompting="false">
+		<parameterDescription><![CDATA[Формат дати і часу]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new SimpleDateFormat("dd.MM.yyyy HH:mm")]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT finworker_info.tabnumber
+	, finworker_info.name
+	, finworker_info.position
+	, finworker_info.departmentname
+	, EXTRACT(DAY FROM coalesce(data_on_date_by_travel_sheets.data_date, acts_data.data_date)) AS day
+	, round(cast(coalesce(machinehours, 0) + coalesce(hours_in_move, 0) + coalesce(data_on_date_by_travel_sheets.act_hours_technician, 0)
+		+ coalesce(acts_data.act_hours_technician, 0) + coalesce(acts_data.act_hours_repairer, 0)
+		+ coalesce(hours_wait_on_object, 0) AS decimal), 2) AS worked_hours
+FROM
+(SELECT f.tabnumber
+	, string_agg(DISTINCT f.name, ',') AS name
+	, string_agg(DISTINCT f.positionname, chr(10)||' + ') AS position
+	, string_agg(DISTINCT f.departmentname, chr(10)||',') AS departmentname
+FROM finworker f
+WHERE
+f.departmentcode like $P{departmentCode}||'%'
+AND (f.tabnumber = $P{tabnumber} OR $P{tabnumber} IS NULL  OR length(trim($P{tabnumber})) = 0)
+AND ((EXISTS (SELECT FROM entravelsheet AS ts1
+	WHERE ts1.datefinal BETWEEN $P{dateStart} AND $P{dateFinal}
+	AND ts1.finworkercode = f.code))
+OR position('ВОДІЙ' IN upper(f.positionname)) > 0
+OR position('ТРАКТОРИСТ' IN upper(f.positionname)) > 0
+OR position('МАШИНІСТ' IN upper(f.positionname)) > 0)
+GROUP BY f.tabnumber) AS finworker_info
+INNER JOIN ((
+SELECT data_by_travel_sheets.tabnumber
+	, data_by_travel_sheets.tabnumber||data_by_travel_sheets.data_date AS id
+	, data_by_travel_sheets.data_date
+	, sum(coalesce(distance_covered, 0)) AS distance_covered
+	, sum(coalesce(machinehours, 0)) AS machinehours
+	, sum(coalesce(hours_in_move, 0)) AS hours_in_move
+	, sum(coalesce(data_by_travel_sheets.act_hours_technician, 0)) AS act_hours_technician
+	, sum(CASE WHEN (coalesce(machinehours, 0) + coalesce(data_by_travel_sheets.act_hours_technician, 0)) = 0
+		THEN coalesce(hours_wait_on_object, 0)
+		ELSE 0 END) AS hours_wait_on_object
+	FROM
+(SELECT f.tabnumber
+	, ts.code AS travel_sheet_code
+	, ts.datefinal AS data_date
+	, sum(round(cast(EXTRACT(epoch FROM tsi.timefinal - tsi.timestart) / 3600 AS decimal), 2)) AS hours_wait_on_object
+	, sum(coalesce(CASE WHEN coalesce(tsi.speedometerfinal,0) - coalesce(tsi.speedometerstart,0) = 0
+		THEN  tsi.sumdistances
+		ELSE coalesce(tsi.speedometerfinal,0) - coalesce(tsi.speedometerstart,0)
+		END, 0)) AS distance_covered
+	, coalesce(sum(tsi.summachinehours),0) AS machinehours
+	, round(cast(sum(coalesce( CASE WHEN coalesce(tsi.hoursinmotionbygps, 0) <> 0
+			THEN tsi.hoursinmotionbygps
+			ELSE coalesce(CASE WHEN coalesce(tsi.speedometerfinal,0) - coalesce(tsi.speedometerstart,0) = 0
+				THEN  tsi.sumdistances
+				ELSE coalesce(tsi.speedometerfinal,0) - coalesce(tsi.speedometerstart,0)
+				END, 0) / 30
+			END, 0)) AS DECIMAL), 2) AS hours_in_move
+	, sum(coalesce((SELECT sum(coalesce(hu1.timeworkfact, 0)) FROM
+		enact2humen AS hu1 WHERE hu1.tabnumber = f.tabnumber AND hu1.humenkindrefcode = 1
+			AND hu1.actrefcode = a.code), 0)) AS act_hours_technician
+FROM entravelsheet AS ts
+INNER JOIN finworker AS f ON ts.finworkercode = f.code
+INNER JOIN entravelsheetitem AS tsi ON ts.code = tsi.travelsheetrefcode
+LEFT JOIN (enact2enplanwork AS acpw
+	INNER JOIN enact AS a ON acpw.actrefcode = a.code)
+	ON (tsi.planrefcode = acpw.plancode)
+WHERE ts.datefinal BETWEEN $P{dateStart} AND $P{dateFinal}
+AND tsi.kindrefcode = 2
+AND (f.tabnumber = $P{tabnumber} OR $P{tabnumber} IS NULL OR length(trim($P{tabnumber})) = 0)
+GROUP BY f.tabnumber, ts.code) AS data_by_travel_sheets
+GROUP BY data_by_travel_sheets.tabnumber, data_by_travel_sheets.data_date) AS data_on_date_by_travel_sheets
+
+FULL JOIN
+(
+	SELECT hu.tabnumber
+		, hu.tabnumber||to_char(a.dateact, 'dd.mm.yyyy') AS id
+		, a.dateact AS data_date
+		, coalesce(sum(CASE WHEN NOT (a.acttyperefcode IN (3, 5, 19) AND el.typerefcode = 12)
+				THEN hu.timeworkfact
+			ELSE 0 END), 0) AS act_hours_technician
+		, coalesce(sum(CASE WHEN a.acttyperefcode IN (3, 5, 19) AND el.typerefcode = 12
+				THEN hu.timeworkfact
+			ELSE 0 END), 0) AS act_hours_repairer
+	FROM enact AS a
+		INNER JOIN enact2humen AS hu ON a.code = hu.actrefcode
+		INNER JOIN enelement AS el ON a.elementcode = el.code
+	WHERE
+		a.dateact BETWEEN $P{dateStart} AND $P{dateFinal}
+		AND hu.humenkindrefcode = 1
+		AND (hu.tabnumber = $P{tabnumber} OR $P{tabnumber} IS NULL OR length(trim($P{tabnumber})) = 0)
+		AND NOT EXISTS (
+			SELECT FROM enact2enplanwork AS acpw1
+				INNER JOIN entransportitem as ti1 ON acpw1.plancode = ti1.planrefcode
+				INNER JOIN entravlshttm2trnsprttm AS tvti1 ON ti1.code = tvti1.transportitemrefcode
+				INNER JOIN entravelsheetitem AS tv1 ON tvti1.travelsheetitemrefcode = tv1.code
+				INNER JOIN entravelsheet AS ts1 ON tv1.travelsheetrefcode = ts1.code
+				INNER JOIN finworker AS fw1 ON ts1.finworkercode = fw1.code
+				WHERE acpw1.actrefcode = a.code AND fw1.tabnumber = hu.tabnumber
+		)
+		GROUP BY hu.tabnumber, data_date) AS acts_data
+			ON (data_on_date_by_travel_sheets.id = acts_data.id)) ON finworker_info.tabnumber = coalesce(data_on_date_by_travel_sheets.tabnumber, acts_data.tabnumber)]]>
+	</queryString>
+	<field name="tabnumber" class="java.lang.String"/>
+	<field name="name" class="java.lang.String"/>
+	<field name="position" class="java.lang.String"/>
+	<field name="departmentname" class="java.lang.String"/>
+	<field name="day" class="java.lang.Integer"/>
+	<field name="worked_hours" class="java.math.BigDecimal"/>
+	<variable name="total_1" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 1 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_2" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 2 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_3" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 3 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_4" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 4 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_5" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 5 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_6" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 6 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_7" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 7 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_8" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 8 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_9" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 9 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_10" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 10 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_11" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 11 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_12" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 12 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_13" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 13 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_14" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 14 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_15" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 15 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_16" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 16 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_17" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 17 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_18" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 18 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_19" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 19 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_20" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 20 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_21" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 21 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_22" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 22 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_23" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 23 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_24" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 24 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_25" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 25 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_26" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 26 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_27" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 27 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_28" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 28 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_29" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 29 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_30" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 30 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total_31" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[($F{day} == 31 ? $F{worked_hours} : BigDecimal.ZERO)]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="total" class="java.math.BigDecimal" resetType="Group" resetGroup="total_values" calculation="Sum">
+		<variableExpression><![CDATA[$F{worked_hours}]]></variableExpression>
+		<initialValueExpression><![CDATA[BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP)]]></initialValueExpression>
+	</variable>
+	<variable name="itemCount" class="java.lang.Integer" resetType="Group" resetGroup="total_values" calculation="DistinctCount">
+		<variableExpression><![CDATA[$F{tabnumber}]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="variable1" class="java.lang.String" calculation="System"/>
+	<group name="total_values">
+		<groupExpression><![CDATA[$F{tabnumber}]]></groupExpression>
+		<groupFooter>
+			<band height="20">
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="100" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{tabnumber}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="100" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{name}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="300" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{position}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="500" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{departmentname}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="700" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_1}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="750" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_2}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="800" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_3}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="850" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_4}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="900" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_5}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="950" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_6}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1000" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_7}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1050" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_8}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1100" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_9}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1150" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_10}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1200" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_11}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1250" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_12}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1300" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_13}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1350" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_14}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1400" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_15}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1450" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_16}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1500" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_17}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1550" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_18}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1600" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_19}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1650" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_20}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1700" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_21}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1750" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_22}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1800" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_23}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1850" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_24}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1900" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_25}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="1950" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_26}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="2000" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_27}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="2050" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total_28}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="2100" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[($P{lastDayOfMonth} < 29 ? "X" : $V{total_29})]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="2150" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[($P{lastDayOfMonth} < 30 ? "X" : $V{total_30})]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="2200" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[($P{lastDayOfMonth} < 31 ? "X" : $V{total_31})]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true">
+					<reportElement stretchType="RelativeToTallestObject" x="2250" y="0" width="50" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="1.0"/>
+						<leftPen lineWidth="1.0"/>
+						<bottomPen lineWidth="1.0"/>
+						<rightPen lineWidth="1.0"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{total}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="50">
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="2040" height="50" isPrintWhenDetailOverflows="true"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="18"/>
+				</textElement>
+				<textFieldExpression><![CDATA[String.format("Щоденний звіт відпрацьованого часу працівником водійського складу час на роботах виробничого характеру, год. за %s %s р. по підрозділу %s\n%s"
+    , $P{monthName}, $P{yearGen}, $P{departmentCode} + " " + $P{departmentName}
+, ($P{tabnumber} != null && $P{tabnumber}.trim().length() > 0
+        ? String.format("Табельний номер: " + $P{tabnumber})
+        : ""))]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="Float" x="2040" y="0" width="260" height="50"/>
+				<textElement textAlignment="Right" verticalAlignment="Top" markup="none"/>
+				<textFieldExpression><![CDATA[$P{timeFormat}.format(new Date())]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="40">
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="100" y="0" width="200" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[П.І.Б. працівника водійського складу]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="500" y="0" width="200" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Назва підрозділу]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="300" y="0" width="200" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Назва посади]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="100" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Таб.№]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="700" y="0" width="1550" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Відпрацьований працівником час на роботах виробничого характеру, год.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="700" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[1]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="750" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[2]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="800" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[3]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="850" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[4]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="900" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[5]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="950" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[6]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1000" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[7]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1050" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[8]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1100" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[9]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1150" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[10]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1200" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[11]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1250" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[12]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1300" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[13]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1350" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[14]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1400" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[15]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1450" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[16]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1500" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[17]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1550" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[18]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1600" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[19]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1650" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[20]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1700" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[21]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1750" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[22]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1800" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[23]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1850" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[24]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1900" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[25]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="1950" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[26]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="2000" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[27]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="2050" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[28]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="2100" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[29]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="2150" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[30]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="2200" y="20" width="50" height="20"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[31]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="2250" y="0" width="50" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Всього годин]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<noData>
+		<band height="50">
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="2300" height="50" isPrintWhenDetailOverflows="true"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="18"/>
+					<paragraph leftIndent="150"/>
+				</textElement>
+				<textFieldExpression><![CDATA[String.format("Немає даних для формування звіту по заданих параметрах.\nПеріод: %s %s р.\nПідрозділ: %s.\n"
+    , $P{monthName}, $P{yearGen}, $P{departmentCode} + " " + $P{departmentName})
++ ($P{tabnumber} != null && $P{tabnumber}.trim().length() > 0
+        ? String.format("Табельний номер: " + $P{tabnumber})
+        : "")]]></textFieldExpression>
+			</textField>
+		</band>
+	</noData>
+</jasperReport>

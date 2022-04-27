@@ -1,0 +1,879 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="stateMaterialsByObject" pageWidth="2140" pageHeight="595" orientation="Landscape" columnWidth="2140" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="startDate" class="java.lang.String"/>
+	<parameter name="endDate" class="java.lang.String"/>
+	<parameter name="budgcode" class="java.lang.String"/>
+	<parameter name="rencode" class="java.lang.String"/>
+	<parameter name="elementtypecode" class="java.lang.String"/>
+	<parameter name="plancode" class="java.lang.String"/>
+	<parameter name="elementcode" class="java.lang.Integer"/>
+	<parameter name="staterefcode" class="java.lang.Integer"/>
+	<parameter name="komplekt" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="formplancode" class="java.lang.String"/>
+	<parameter name="strGroupmaterials" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[select kindname ,
+ kindcode    ,
+         eicode ,
+         eistatus ,
+         countfact ,
+         materialrefcode ,
+         materialname ,
+         namemeasure ,
+         code ,
+         workname ,
+         techkartnumber ,
+         countmotion ,
+         ordernumber ,
+         orderperiod ,
+         aaaa ,
+(
+         Select sum(enplanworkitem.timegen) from  enplanwork , enact2enplanwork , enact ,  enplanworkitem
+    Where enplanwork.code in (
+                                                Select h1.plannewrefcode  from  enplancorrecthistory h1
+                                                where h1.reasoncode = 5 /* перенос в ФАКТ */
+                                                    and h1.planoldrefcode in (
+                                                                                            Select h.plannewrefcode  from  enplancorrecthistory h
+                                                                                            where h.planoldrefcode in ( select pi.planrefcode from enplanworkitem pi  where  pi.code = selall.code )
+                                                                                                and  h.reasoncode = 4 /* перенос в ПЛАН */ )
+                                                    /*выбираем код плана если есть работа с задания ПЛАН */
+                                                    UNION
+
+                                                Select h.plannewrefcode  from  enplancorrecthistory h
+                                                where h.planoldrefcode in ( select pi.planrefcode from enplanworkitem pi  where  pi.code = selall.code )
+                                                    and  h.reasoncode = 5 /* перенос в ПЛАН */
+                                               /*выбираем код плана если есть Фактическая работа*/
+                                                   UNION
+                                               select pi.planrefcode as plannewrefcode from enplanworkitem pi  where  pi.code = selall.code    and selall.kindcode = 4
+                                              )
+      and  enplanwork.code =  enact2enplanwork.plancode
+      and  enact.code =      enact2enplanwork.actrefcode
+      and  enact.statusrefcode <> 2 /*не равно отмененным актам */
+      and  enplanworkitem.planrefcode =   enplanwork.code
+      and  enplanworkitem.kartarefcode = (select  pk.kartarefcode from enplanworkitem pk  where  pk.code = selall.code )
+            ) as timegen
+
+  from (
+
+select  case when kindcode = 2 then 'П'
+             when kindcode = 3 then 'НПЗ'
+             when kindcode = 4 then 'НПЗ-Ф' else ' ' end as kindname ,
+         kindcode    ,
+         eicode ,
+         eistatus ,
+         countfact ,
+         materialrefcode ,
+         materialname ,
+         namemeasure ,
+         code ,
+         coalesce(workname,' ') as workname ,
+         techkartnumber
+           , (  Select sum(countrecord)   from  (
+
+  Select count(*)  as countrecord from
+
+          rqfkorderitem2enstmttm fi2ei, rqfkorderitem rqfkit ,  rqfkorder rqfkor
+       ,  /*finmaterials fin  , */ rqfkorderstatus  rqfkorstatu
+where fi2ei.estimateitemcode = eicode
+  and rqfkit.code = fi2ei.fkorderitemrefcode
+  and rqfkor.code = rqfkit.fkorderrefcode
+  /*and fin.estimateitemrefcode = fi2ei.estimateitemcode
+  and fin.code = fi2ei.finmaterialsrefcode*/
+  and rqfkorstatu.code = rqfkor.statuscode
+  and rqfkor.statuscode <> 1
+
+
+  UNION
+
+                  Select  count(*) as countrecord
+                    from enestimateitem2nstmttm enit2enit2 /*наличие материала на факте*/
+                , finmaterials fin , enestimateitem ene , enplanwork enp , enact2enplanwork act2wor ,
+                  enact act , enactstatus actstatu
+                 Where  fin.estimateitemrefcode = enit2enit2.estimateitemoutrefcode
+                  and  fin.estimateitemrefcode = ene.code
+                  and  ene.planrefcode = enp.code
+                  and  act2wor.plancode  =  enp.code
+                  and  act2wor.actrefcode = act.code
+                  and  fin.statusrefcode = 1 /*действительный*/
+                  and  actstatu.code = act.statusrefcode
+                   /*and  actstatu.code = 3*/
+                  and ( enit2enit2.estimateiteminrefcode /*=*/ in  (
+                   Select enit2enit1.estimateitemoutrefcode from enestimateitem2nstmttm enit2enit1 /*наличие материала на плане*/
+                    Where enit2enit1.estimateiteminrefcode = eicode )
+                     and selsprizn.kindcode = 2 )
+
+                  UNION
+
+                  Select  count(*) as countrecord
+                    from enestimateitem2nstmttm enit2enit2 /*наличие материала на факте*/
+                , finmaterials fin , enestimateitem ene , enplanwork enp , enact2enplanwork act2wor ,
+                  enact act , enactstatus actstatu
+                 Where  fin.estimateitemrefcode = enit2enit2.estimateitemoutrefcode
+                  and  fin.estimateitemrefcode = ene.code
+                  and  ene.planrefcode = enp.code
+                  and  act2wor.plancode  =  enp.code
+                  and  act2wor.actrefcode = act.code
+                  and  fin.statusrefcode = 1 /*действительный*/
+                  and  actstatu.code = act.statusrefcode
+   /*              and  actstatu.code = 3*/
+                  and ( enit2enit2.estimateiteminrefcode =  ( eicode )
+                     and selsprizn.kindcode = 3 )
+
+                  UNION
+
+                  Select  count(*) as countrecord
+                    from /*enestimateitem2nstmttm enit2enit2*/  /*наличие материала на факте*/
+                /*, */ finmaterials fin , enestimateitem ene , enplanwork enp , enact2enplanwork act2wor ,
+                  enact act , enactstatus actstatu
+                 Where  /*fin.estimateitemrefcode = enit2enit2.estimateitemoutrefcode
+                  and*/   fin.estimateitemrefcode = ene.code
+                  and  ene.planrefcode = enp.code
+                  and  act2wor.plancode  =  enp.code
+                  and  act2wor.actrefcode = act.code
+                  and  fin.statusrefcode = 1 /*действительный*/
+                  and  actstatu.code = act.statusrefcode
+                  /*and  actstatu.code = 3*/
+                 /* and ( enit2enit2.estimateitemoutrefcode =  ( eicode )*/
+                  and ( ene.code = eicode
+                     and selsprizn.kindcode = 4 )
+
+
+
+
+    ) www ) as countmotion
+/*выбор номера заявки */
+  , (select rq.numberdoc from rqorderitem2enestimttm rqq2en , rqorderitem rqo ,  rqorder rq
+      where rqq2en.estimateitemcode =  eicode
+        and rqq2en.orderitemcode = rqo.code
+        and rqo.orderrefcode = rq.code
+        and rq.kindrefcode in (4,5)  ) as ordernumber
+/*выбор даты заявки */
+  , (select rq.orderperiod from rqorderitem2enestimttm rqq2en , rqorderitem rqo ,  rqorder rq
+      where rqq2en.estimateitemcode =  eicode
+        and rqq2en.orderitemcode = rqo.code
+        and rqo.orderrefcode = rq.code
+        and rq.kindrefcode in (4,5)  ) as orderperiod
+,
+ /**/
+ ( select coalesce(sum(countfact),0) from (
+select cast(eicode||' | '|| selsprizn.kindcode as varchar) as slujfield ,
+        estimateitemcode  ,  countfact  , nomenclaturename , nomenclatureunitname  , partycode ,
+        kindcode  , statusname ,   modify_time ,
+        moloutcode , moloutname ,  prizn
+ ,
+
+        /*условие если партии не совпадают с приходом то объект не выводим */
+ /* case when (
+         select count(rqfkorderdata2fkparty.partycode)  from rqfkorderdata2fkparty
+             where rqfkorderdata2fkparty.estimateitemrefcode = wwww.estimateitemcode
+               and  rqfkorderdata2fkparty.partycode =  wwww.partycode
+
+        ) > 0 then
+         (select group_concat(obj.obj  ,';  ')
+
+from (
+
+select enelementdata.ename || ' Инв.№ ' ||enelementdata.invnumber as obj
+  from enelementdata , enplanwork , enestimateitem
+              where  enplanwork.elementrefcode = enelementdata.ecode
+                and  enplanwork.code = enestimateitem.planrefcode
+                and  enestimateitem.code =  wwww.estimateitemcode
+                and  enestimateitem.statusrefcode in (1,2,3)
+
+          union
+
+          select enelementdata.ename || ' Инв.№ ' ||enelementdata.invnumber as obj
+           from enestimateitem2nstmttm en2en , enestimateitem , enplanwork ,  enelementdata
+
+                  where en2en.typerefcode in ( 2, 3 )
+                    and en2en.estimateitemoutrefcode = wwww.estimateitemcode
+                    and enestimateitem.code = en2en.estimateiteminrefcode
+                    and enestimateitem.planrefcode = enplanwork.code
+                    and enplanwork.elementrefcode = enelementdata.ecode
+                    and enestimateitem.statusrefcode in (1,2,3)
+
+
+                 ) obj)
+         else ' ' end */
+         ' '
+                as objfactname
+/*выбор фактического состояния материала */
+     ,
+      wwww.factstat  as factstatt
+,
+
+    ( select min(em1.monthgen)|| ' ' || min(em1.yeargen) from  enplanworkmovehistory em1
+where em1.modify_time = (
+  select min(em.modify_time)   from enplanworkmovehistory em where em.planrefcode in (
+         select ep.code from enestimateitem e , enplanwork ep
+           where e.planrefcode = ep.code
+             and e.code = estimateitemcode )
+             )
+             ) as movedateplan
+     from (
+
+select  estimateitemcode  ,  sum(countfact) as countfact  , nomenclaturename , nomenclatureunitname  , partycode ,
+        kindcode  , statusname ,   max(modify_time) as modify_time ,
+        moloutcode , moloutname
+      ,  f_analyse_motion(estimateitemcode  , sum(countfact) ,
+                          nomenclaturename , nomenclatureunitname ,
+                          partycode , kindcode , max(modify_time)  , kindcode ) as prizn , factstat
+       from (
+
+ /* << два юниона  на выборку приходов если проведеный то с партиями если нет то с нулевой партией .*/
+              Select   fi2ei.modify_time   , fi2ei.estimateitemcode  , fi2ei.countgen as countfact ,  rqfkor.moloutcode ,
+                       rqfkor.moloutname  , rqfkit.nomenclaturename , rqfkit.nomenclatureunitname
+                       , rqfk2part.partycode ,  rqfkor.kindcode  ,rqfkorstatu.name as statusname ,
+         case when rqfkor.kindcode = 1 and upper(rqfkorstatu.name) = 'СКЛАДЕНИЙ' then ' '
+
+         when rqfkor.kindcode = 1 and upper(rqfkorstatu.name) = 'ПРОВЕДЕНИЙ'
+                          then rqfkor.moloutcode||' '||rqfkor.moloutname
+         when rqfkor.kindcode = 1 and upper(rqfkorstatu.name) = 'ПРОВЕДЕНИЙ ЯК ОЗ'
+                          then  rqfkor.moloutcode||' '||rqfkor.moloutname
+         else ' ' end  as factstat
+
+               From  rqfkorderitem2enstmttm fi2ei , rqfkorderitem rqfkit ,  rqfkorder rqfkor
+                   , rqfkorderdata2fkparty rqfk2part , rqfkorderstatus rqfkorstatu
+              where fi2ei.estimateitemcode =  selsprizn.eicode
+                and rqfkit.code = fi2ei.fkorderitemrefcode
+                and rqfkor.code = rqfkit.fkorderrefcode
+                and rqfkor.kindcode = 1 /*Приходный ордер*/
+                and rqfk2part.fkorderitemrefcode = rqfkit.code
+                and rqfk2part.estimateitemrefcode = fi2ei.estimateitemcode
+                and rqfkorstatu.code =  rqfkor.statuscode
+                and rqfkorstatu.code in (4,3) /*для провуеденых приходов */
+                and fi2ei.countgen <> 0 /* не учитываем нулевые приходы так как по нему уже было дальше движение */
+                UNION
+                Select   fi2ei.modify_time   , fi2ei.estimateitemcode  , fi2ei.countgen as countfact ,  rqfkor.moloutcode ,
+                       rqfkor.moloutname  , rqfkit.nomenclaturename , rqfkit.nomenclatureunitname
+                       , 0 as partycode ,  rqfkor.kindcode  ,rqfkorstatu.name as statusname ,
+                       case when rqfkor.kindcode = 1 and upper(rqfkorstatu.name) = 'СКЛАДЕНИЙ' then ' '
+
+         when rqfkor.kindcode = 1 and upper(rqfkorstatu.name) = 'ПРОВЕДЕНИЙ'
+                          then rqfkor.moloutcode||' '||rqfkor.moloutname
+         when rqfkor.kindcode = 1 and upper(rqfkorstatu.name) = 'ПРОВЕДЕНИЙ ЯК ОЗ'
+                          then  rqfkor.moloutcode||' '||rqfkor.moloutname
+         else ' ' end  as factstat
+
+
+               From  rqfkorderitem2enstmttm fi2ei , rqfkorderitem rqfkit ,  rqfkorder rqfkor
+                   ,  rqfkorderstatus rqfkorstatu
+              where fi2ei.estimateitemcode = selsprizn.eicode
+                and rqfkit.code = fi2ei.fkorderitemrefcode
+                and rqfkor.code = rqfkit.fkorderrefcode
+                and rqfkor.kindcode = 1 /*Приходный ордер*/
+                and rqfkorstatu.code =  rqfkor.statuscode
+                and rqfkorstatu.code = 2  /*для  приходов  складеных */
+                and fi2ei.countgen <> 0 /* не учитываем нулевые приходы так как по нему уже было дальше движение */
+
+  UNION ALL
+
+ Select  fi2ei.modify_time  , fi2ei.estimateitemcode  ,
+          case when fin.statusrefcode  = 3 then /*если статус перенесен на другой план */
+               (select  coalesce(sum(fin1.quantity), 0)
+                  from finmaterials fin1
+                 where fin1.estimateitemrefcode = selsprizn.eicode
+                   and fin1.parentrefcode in
+                           (select fin.code from finmaterials fin where
+                                   fin.estimateitemrefcode = selsprizn.eicode and fin.statusrefcode = 3)
+                   and   fin1.modify_time = (select max(fin3.modify_time)
+                                               from finmaterials fin3
+                                              where fin3.estimateitemrefcode = selsprizn.eicode
+                                                and fin3.parentrefcode in
+                                                  (select fin4.code from finmaterials fin4
+                                                    where fin4.estimateitemrefcode = selsprizn.eicode
+                                                      and fin4.statusrefcode = 3)
+                            )
+               )
+                           else fin.quantity end as countfact ,
+          rqfkor.moloutcode ,
+          rqfkor.moloutname  , rqfkit.nomenclaturename , rqfkit.nomenclatureunitname
+         , fin.party_id as partycode ,  rqfkor.kindcode ,rqfkorstatu.name as statusname ,
+
+          /* для расходного ордера */
+        case
+         when kindcode = 2 and upper(rqfkorstatu.name) = 'СКЛАДЕНИЙ'
+                          then  rqfkor.molincode||' '||rqfkor.molinname
+         when kindcode = 2 and upper(rqfkorstatu.name) = 'ПРОВЕДЕНИЙ'
+                          then  rqfkor.moloutcode||' '||rqfkor.moloutname
+         when kindcode = 2 and upper(rqfkorstatu.name) = 'ПРОВЕДЕНИЙ ЯК ОЗ'
+                          then  rqfkor.moloutcode||' '||rqfkor.moloutname
+         else ' ' end as factstat
+
+
+ from
+   rqfkorderitem2enstmttm fi2ei, rqfkorderitem rqfkit ,  rqfkorder rqfkor
+       ,  finmaterials fin  , rqfkorderstatus  rqfkorstatu
+where fi2ei.estimateitemcode = selsprizn.eicode
+  and rqfkit.code = fi2ei.fkorderitemrefcode
+  and rqfkor.code = rqfkit.fkorderrefcode
+  and rqfkor.kindcode =2 /*Видатковий  ордер*/
+  and fin.estimateitemrefcode = fi2ei.estimateitemcode
+  and fin.code = fi2ei.finmaterialsrefcode
+  and rqfkorstatu.code = rqfkor.statuscode
+  and rqfkor.statuscode <> 1
+
+
+
+
+
+  UNION ALL
+  /*акты списание по месячным естимейтам  */
+
+  Select  fin.modify_time as  modify_time ,  selsprizn.eicode as estimateitemcode , fin.quantity as countfact  ,
+  act.numbergen as moloutcode , to_char(act.dategen ,'dd.mm.yyyy') as moloutname ,
+  fin.mat_name as nomenclaturename , fin.mu_name as nomenclatureunitname ,
+  fin.party_id as partycode , 10 as kindcode , actstatu.name as statusname  ,
+  case when act.statusrefcode = 3  then /* не показываем фактическое состояние материала если акт проведен */
+    ' '
+     else
+     fin.div_code ||' '|| fin.div_name  end as factstat
+    from enestimateitem2nstmttm enit2enit2 /*наличие материала на факте*/
+, finmaterials fin , enestimateitem ene , enplanwork enp , enact2enplanwork act2wor ,
+  enact act , enactstatus actstatu
+ Where
+
+   fin.estimateitemrefcode = enit2enit2.estimateitemoutrefcode
+  /*убрали привязку к партии прихода */
+  and  fin.estimateitemrefcode = ene.code
+  and  ene.planrefcode = enp.code
+  and  act2wor.plancode  =  enp.code
+  and  act2wor.actrefcode = act.code
+  and  fin.statusrefcode = 1 /*действительный*/
+   /*and  act.statusrefcode = 3 проведенный в финколекции */
+  and actstatu.code = act.statusrefcode
+
+
+
+
+
+ and     enit2enit2.estimateiteminrefcode /*=*/ in  (
+   Select enit2enit1.estimateitemoutrefcode from enestimateitem2nstmttm enit2enit1 /*наличие материала на плане*/
+    Where enit2enit1.estimateiteminrefcode = selsprizn.eicode )
+ and (SELECT selsprizn.kindcode) = 2 /*если признак месячній  план */
+
+    UNION ALL
+
+      /*акты списание по естимейтем План  */
+
+  Select  fin.modify_time as  modify_time , selsprizn.eicode as estimateitemcode , fin.quantity as countfact  ,
+  act.numbergen as moloutcode , to_char(act.dategen ,'dd.mm.yyyy') as moloutname ,
+  fin.mat_name as nomenclaturename , fin.mu_name as nomenclatureunitname ,
+  fin.party_id as partycode , 10 as kindcode , actstatu.name as statusname ,
+  case when act.statusrefcode = 3  then  /*не показываем фактическое состояние материала если акт проведен*/
+    ' '
+     else
+     fin.div_code ||' '|| fin.div_name  end as factstat
+    from enestimateitem2nstmttm enit2enit2 /*наличие материала на факте*/
+, finmaterials fin , enestimateitem ene , enplanwork enp , enact2enplanwork act2wor ,
+  enact act , enactstatus actstatu
+ Where
+
+   fin.estimateitemrefcode = enit2enit2.estimateitemoutrefcode
+  /*убрали привязку к партии прихода */
+  and  fin.estimateitemrefcode = ene.code
+  and  ene.planrefcode = enp.code
+  and  act2wor.plancode  =  enp.code
+  and  act2wor.actrefcode = act.code
+  and  fin.statusrefcode = 1 /*действительный*/
+  /* and  act.statusrefcode = 3 проведенный в финколекции*/
+  and actstatu.code = act.statusrefcode
+
+  and ( enit2enit2.estimateiteminrefcode = selsprizn.eicode )
+  and (SELECT selsprizn.kindcode) = 3 /*если признак задание план  */
+
+   UNION ALL
+
+      /*акты списание по естимейтем Факт  */
+
+  Select  fin.modify_time as  modify_time ,  selsprizn.eicode  as estimateitemcode , fin.quantity as countfact  ,
+  act.numbergen as moloutcode , to_char(act.dategen ,'dd.mm.yyyy') as moloutname ,
+  fin.mat_name as nomenclaturename , fin.mu_name as nomenclatureunitname ,
+  fin.party_id as partycode , 10 as kindcode , actstatu.name as statusname ,
+  case when act.statusrefcode = 3  then  /*не показываем фактическое состояние материала если акт проведен */
+    ' '
+     else
+     fin.div_code ||' '|| fin.div_name  end as factstat
+    from /*enestimateitem2nstmttm enit2enit2*/ /*наличие материала на факте*/
+/*, */ finmaterials fin , enestimateitem ene , enplanwork enp , enact2enplanwork act2wor ,
+  enact act , enactstatus actstatu
+ Where
+
+  /* fin.estimateitemrefcode = enit2enit2.estimateitemoutrefcode         */
+  /*убрали привязку к партии прихода */
+  /*and */  fin.estimateitemrefcode = ene.code
+  and  ene.planrefcode = enp.code
+  and  act2wor.plancode  =  enp.code
+  and  act2wor.actrefcode = act.code
+  and  fin.statusrefcode = 1 /*действительный*/
+  /*and  act.statusrefcode = 3 проведенный в финколекции*/
+  and actstatu.code = act.statusrefcode
+
+  /*and ( enit2enit2.estimateitemoutrefcode = selsprizn.eicode ) */
+  and ene.code = selsprizn.eicode
+  and (SELECT selsprizn.kindcode)  = 4 /*если признак задание   факт */
+
+
+
+
+
+
+
+
+
+  ) www
+
+
+
+
+  Group by  estimateitemcode  ,  /*countfact ,*/ nomenclaturename , nomenclatureunitname  , partycode ,
+           kindcode  ,statusname , moloutcode , moloutname , factstat
+
+
+  ) wwww
+  where ( prizn = 0 or kindcode = 10 )
+
+UNION  /*======================================================================================*/
+
+
+select cast(eicode||' | '|| selsprizn.kindcode as varchar) as slujfield ,
+       f.estimateitemrefcode as estimateitemcode , f.quantity as countfact ,
+       f.mat_name as nomenclaturename  , f.mu_name as nomenclatureunitname ,
+       coalesce(f.party_id,0) as partycode ,  0 as kindcode  , ' '  as statusname ,    0 as modify_time ,
+       ' ' as moloutcode , 'Зарезерв. під акти' as  moloutname , 0 as prizn , ' ' as objfactname
+
+       , f.div_code ||' '|| f.div_name  as factstatt
+       , ( select min(em1.monthgen)|| ' ' || min(em1.yeargen) from  enplanworkmovehistory em1
+where em1.modify_time = (
+  select min(em.modify_time)   from enplanworkmovehistory em where em.planrefcode in (
+         select ep.code from enestimateitem e , enplanwork ep
+           where e.planrefcode = ep.code
+             and e.code = estimateitemrefcode )
+             )
+             ) as movedateplan
+
+from finmaterials f
+where f.statusrefcode = 1
+and f.code in (select fi.code  from finmaterials  fi
+where fi.modify_time in (
+select max(modify_time)   from finmaterials  f where f.statusrefcode = 1
+and f.estimateitemrefcode in ( /*если с месячного задания то  развязаные материалы на плане и на факте */
+
+select estimatecode from (
+Select en2en.estimateitemoutrefcode as estimatecode
+   from  enestimateitem2nstmttm en2en
+   where en2en.estimateiteminrefcode = selsprizn.eicode
+     and  (SELECT selsprizn.kindcode)  = 2
+UNION
+Select en2en.estimateitemoutrefcode as estimatecode
+   from  enestimateitem2nstmttm en2en
+   where en2en.estimateiteminrefcode in ( Select en2en.estimateitemoutrefcode as estimatecode
+                                                from  enestimateitem2nstmttm en2en
+                                                where en2en.estimateiteminrefcode = selsprizn.eicode )
+     and (SELECT selsprizn.kindcode) = 2
+) sel_if_month
+UNION
+/* если с задания План то развязаные материалы на плане и на факте */
+select estimatecode from (
+Select selsprizn.eicode as estimatecode
+where (SELECT selsprizn.kindcode) = 3
+UNION
+Select en2en.estimateitemoutrefcode as estimatecode
+   from  enestimateitem2nstmttm en2en
+   where en2en.estimateiteminrefcode = selsprizn.eicode
+     and  (SELECT selsprizn.kindcode) = 3
+
+
+) sel_if_plan
+UNION
+/* если с задания Факт то развязаные материалы на факте и на плане */
+select estimatecode from (
+Select selsprizn.eicode as estimatecode
+where  (SELECT selsprizn.kindcode)  = 4
+UNION
+Select en2en.estimateiteminrefcode as estimatecode
+   from  enestimateitem2nstmttm en2en
+   where en2en.estimateitemoutrefcode = selsprizn.eicode
+     and  (SELECT selsprizn.kindcode) = 4
+
+
+) sel_if_plan
+    		    )
+
+              group by   f.mat_id
+
+
+       )  )
+
+
+and ( /* ищем в ордерах */
+    coalesce((
+           Select coalesce(sum(countgen),0) from (
+            Select  coalesce(sum(fi2ei.countgen),0) as  countgen
+               From  rqfkorderitem2enstmttm fi2ei
+              where fi2ei.estimateitemcode = selsprizn.eicode
+                and (SELECT selsprizn.kindcode) = 2 /*Мес*/
+             UNION
+              Select  coalesce(sum(fi2ei.countgen),0) as countgen
+               From  rqfkorderitem2enstmttm fi2ei
+              where fi2ei.estimateitemcode in (select en2en.estimateiteminrefcode from enestimateitem2nstmttm en2en
+                                               where en2en.estimateitemoutrefcode  = selsprizn.eicode )
+                and (SELECT selsprizn.kindcode) = 3 /*план*/
+              UNION
+              Select  coalesce(sum(fi2ei.countgen),0) as countgen
+               From  rqfkorderitem2enstmttm fi2ei
+              where fi2ei.estimateitemcode in (select en2en.estimateiteminrefcode from  enestimateitem2nstmttm en2en
+                                               where en2en.estimateitemoutrefcode in
+                                                 (select estimateiteminrefcode from enestimateitem2nstmttm en2en
+                                               where en2en.estimateitemoutrefcode  = selsprizn.eicode
+                                                 )
+                                              )
+                and (SELECT selsprizn.kindcode) = 4 /*факт*/
+                ) selord
+
+                 ),0) = 0
+
+ And  /* ищем в актах */
+                            (   select coalesce(sum(countfact),0)  from (
+                          /*акты списание по месячным естимейтам  */
+                          Select  fin.modify_time as  modify_time ,  selsprizn.eicode as estimateitemcode , coalesce(fin.quantity,0) as countfact  ,
+                          act.numbergen as moloutcode , to_char(act.dategen ,'dd.mm.yyyy') as moloutname ,
+                          fin.mat_name as nomenclaturename , fin.mu_name as nomenclatureunitname ,
+                          fin.party_id as partycode , 10 as kindcode , actstatu.name as statusname
+                            from enestimateitem2nstmttm enit2enit2 /*наличие материала на факте*/
+                        , finmaterials fin , enestimateitem ene , enplanwork enp , enact2enplanwork act2wor ,
+                          enact act , enactstatus actstatu
+                         Where
+
+                           fin.estimateitemrefcode = enit2enit2.estimateitemoutrefcode
+                          and  fin.estimateitemrefcode = ene.code
+                          and  ene.planrefcode = enp.code
+                          and  act2wor.plancode  =  enp.code
+                          and  act2wor.actrefcode = act.code
+                          and  fin.statusrefcode = 1 /*действительный*/
+                          and actstatu.code = act.statusrefcode
+                          and  enit2enit2.estimateiteminrefcode /*=*/ in  (
+                           Select enit2enit1.estimateitemoutrefcode from enestimateitem2nstmttm enit2enit1 /*наличие материала на плане*/
+                            Where enit2enit1.estimateiteminrefcode = selsprizn.eicode )
+                         and (SELECT selsprizn.kindcode) = 2 /*если признак месячній  план */
+
+                            UNION
+
+                              /*акты списание по естимейтем План  */
+
+                          Select  fin.modify_time as  modify_time , selsprizn.eicode as estimateitemcode , coalesce(fin.quantity,0) as countfact  ,
+                          act.numbergen as moloutcode , to_char(act.dategen ,'dd.mm.yyyy') as moloutname ,
+                          fin.mat_name as nomenclaturename , fin.mu_name as nomenclatureunitname ,
+                          fin.party_id as partycode , 10 as kindcode , actstatu.name as statusname
+                            from enestimateitem2nstmttm enit2enit2 /*наличие материала на факте*/
+                        , finmaterials fin , enestimateitem ene , enplanwork enp , enact2enplanwork act2wor ,
+                          enact act , enactstatus actstatu
+                         Where
+
+                           fin.estimateitemrefcode = enit2enit2.estimateitemoutrefcode
+
+                          and  fin.estimateitemrefcode = ene.code
+                          and  ene.planrefcode = enp.code
+                          and  act2wor.plancode  =  enp.code
+                          and  act2wor.actrefcode = act.code
+                          and  fin.statusrefcode = 1 /*действительный*/
+                          and actstatu.code = act.statusrefcode
+
+                          and ( enit2enit2.estimateiteminrefcode = selsprizn.eicode )
+                          and (SELECT selsprizn.kindcode) = 3 /*если признак задание план  */
+
+                           UNION
+
+                              /*акты списание по естимейтем Факт  */
+
+                          Select  fin.modify_time as  modify_time , selsprizn.eicode  as estimateitemcode , coalesce(fin.quantity,0) as countfact  ,
+                          act.numbergen as moloutcode , to_char(act.dategen ,'dd.mm.yyyy') as moloutname ,
+                          fin.mat_name as nomenclaturename , fin.mu_name as nomenclatureunitname ,
+                          fin.party_id as partycode , 10 as kindcode , actstatu.name as statusname
+                            from /*enestimateitem2nstmttm enit2enit2*/ /*наличие материала на факте*/
+                        /*,*/ finmaterials fin , enestimateitem ene , enplanwork enp , enact2enplanwork act2wor ,
+                          enact act , enactstatus actstatu
+                         Where
+
+                           /*fin.estimateitemrefcode = enit2enit2.estimateitemoutrefcode
+                          and*/  fin.estimateitemrefcode = ene.code
+                          and  ene.planrefcode = enp.code
+                          and  act2wor.plancode  =  enp.code
+                          and  act2wor.actrefcode = act.code
+                          and  fin.statusrefcode = 1 /*действительный*/
+                          and actstatu.code = act.statusrefcode
+                          and ene.code = selsprizn.eicode
+                          /*and ( enit2enit2.estimateitemoutrefcode = selsprizn.eicode ) */
+                          and (SELECT selsprizn.kindcode)  = 4 /*если признак задание   факт */
+
+
+                          ) selact
+
+     ) = 0
+
+ )
+) selcountfact) as aaaa
+ /**/
+
+ from (
+
+select  enpl.kindcode    ,
+        enit.code as eicode ,
+        case when enit.statusrefcode = 3 then 'У наявності' else cast( null as varchar ) end as eistatus ,
+        enit.countfact ,
+        enit.materialrefcode ,
+        tkm.name as materialname ,
+        enpi.code ,
+        tk.name as workname ,
+        tk.techkartnumber ,
+        tkmesu.name as namemeasure
+
+
+ , case when enpl.kindcode = 2 then 1
+        when enpl.kindcode = 3 then
+        case
+             /*если есть в месячном то не  берем План */
+             when   coalesce(( select case when sum(en2en.countgen) > 0 then 999999
+                                           when sum(en2en.countgen) is null then -1 else 0 end
+                               from enestimateitem2nstmttm en2en where en2en.estimateitemoutrefcode = enit.code
+                                and en2en.typerefcode = 1  ),0) > 0    then 0
+             /* если нету в месячном  берем План  */
+             when coalesce(( select case when sum(en2en.countgen) > 0 then 999999
+                                         when sum(en2en.countgen) is null then -1 else 0 end
+                               from enestimateitem2nstmttm en2en where en2en.estimateitemoutrefcode = enit.code
+                                and en2en.typerefcode = 1  ),0) in ( -1 , 0 )   then 1
+                                end
+
+        when enpl.kindcode = 4 then
+             /* если есть на месячном или на Плане то не берем */
+        case  when ( coalesce(( select case when sum(en2en.countgen) > 0 then 999999
+                                            when sum(en2en.countgen) is null then -1 else 0 end
+                               from enestimateitem2nstmttm en2en where en2en.estimateitemoutrefcode = enit.code
+                                and en2en.typerefcode = 1  ),0) > 0
+
+                                or
+                   coalesce(( select  case when sum(en2en.countgen) > 0 then 999999
+                                           when sum(en2en.countgen) is null then -1 else 0 end
+                               from enestimateitem2nstmttm en2en where en2en.estimateitemoutrefcode = (select en2en.estimateiteminrefcode from enestimateitem2nstmttm en2en where en2en.estimateitemoutrefcode = enit.code)
+                                and en2en.typerefcode = 1  ),0) > 0
+                    )   then 0  else 1
+                                end
+
+    end
+
+      as prizn
+
+
+From enestimateitem enit left join enplanworkitem enpi on (enit.planitemrefcode = enpi.code) left join tktechcard tk on (enpi.kartarefcode = tk.code )
+,
+     enplanwork enpl ,
+     enelementdata  ,
+     tkmaterials tkm ,
+     tkmeasurement tkmesu
+
+where enit.planrefcode = enpl.code
+  and enit.kindrefcode = 1 /*только материалы*/
+  and enit.statusrefcode in (1,2,3)
+  and enit.countfact <> 0
+  and enpl.kindcode <> 1 /*не учитываем годовые планы */
+  and enelementdata.ecode = enpl.elementrefcode
+  and tkm.code = enit.materialrefcode
+  and tkmesu.code = tkm.measurementcode
+
+      /* группа материалов или конкретный материал */
+
+    and
+         tkm.code in
+                  (select tm.code from tkmaterials tm
+                   where $P!{strGroupmaterials}
+                  )
+
+
+
+  and enelementdata.ecode = $P!{elementcode}
+  and enpl.datestart between to_date($P{startDate},'dd.mm.yyyy') and  to_date($P{endDate},'dd.mm.yyyy')
+  and ( enpl.budgetrefcode = $P!{budgcode}  or 0 = $P!{budgcode} )
+  and ( enpl.departmentrefcode = $P!{rencode}  or 0 = $P!{rencode})
+  and (enelementdata.etype = $P!{elementtypecode} or 0 = $P!{elementtypecode} )
+  and (enpl.code = $P!{plancode} or  0 = $P!{plancode} )
+  and (enpl.formrefcode = $P!{formplancode} or 0 = $P!{formplancode} )
+
+
+   and enpl.staterefcode = $P!{staterefcode}
+   /*and enpl.code = 500000675*/
+
+  group by enit.code ,  enit.materialrefcode   , enpl.kindcode , tkm.name , enpi.code   , tk.name ,  enit.countfact ,tk.techkartnumber  , tkmesu.name , enit.statusrefcode
+  order by materialrefcode , enpl.kindcode
+
+  ) selsprizn
+
+   where prizn = 1
+
+    ) selall
+
+     /*проверка недоукоплектованых или переукомплектованих материалов*/
+        Where
+     (
+          ( (select $P{komplekt} ) = (select 0) ) /*все материалы */
+          or
+          ( ( (select $P{komplekt} )  = (select 1) ) and (countfact > aaaa) ) /*недоукомплектованые*/
+          or
+          ( (  (select $P{komplekt} ) = (select 2) ) and (countfact < aaaa) ) /*переукомплектованые */
+          or
+          ( (  (select $P{komplekt} ) = (select 3) ) and (countfact = aaaa) ) /*укомплектованы нормативн = переданым*/
+     )
+
+
+   order by workname , materialname]]>
+	</queryString>
+	<field name="workname" class="java.lang.String"/>
+	<field name="techkartnumber" class="java.lang.String"/>
+	<field name="materialname" class="java.lang.String"/>
+	<field name="namemeasure" class="java.lang.String"/>
+	<field name="countfact" class="java.lang.Double"/>
+	<field name="eicode" class="java.lang.Integer"/>
+	<field name="countmotion" class="java.lang.Double"/>
+	<field name="kindcode" class="java.lang.Integer"/>
+	<field name="kindname" class="java.lang.String"/>
+	<field name="ordernumber" class="java.lang.String"/>
+	<field name="orderperiod" class="java.util.Date"/>
+	<field name="eistatus" class="java.lang.String"/>
+	<field name="timegen" class="java.math.BigDecimal"/>
+	<field name="code" class="java.math.BigDecimal"/>
+	<variable name="vreportcount" class="java.lang.Integer">
+		<variableExpression><![CDATA[$V{REPORT_COUNT}]]></variableExpression>
+		<initialValueExpression><![CDATA[new Integer(0)]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="false">
+				<reportElement key="textField-10" stretchType="RelativeToTallestObject" mode="Transparent" x="320" y="0" width="200" height="20" isPrintWhenDetailOverflows="true" backcolor="#EFEDED"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{materialname} + " " + "'" + $F{kindname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="false">
+				<reportElement key="textField-11" stretchType="RelativeToTallestObject" mode="Transparent" x="520" y="0" width="40" height="20" isPrintWhenDetailOverflows="true" backcolor="#EFEDED"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{namemeasure}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="false">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" mode="Transparent" x="560" y="0" width="40" height="20" isPrintWhenDetailOverflows="true" backcolor="#EFEDED"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countfact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-29" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="0" y="0" width="320" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{workname} + "   " +
+
+new String(
+$F{timegen} != null ? "ВСЬОГО ЧАСУ :" + $F{timegen}.toString() : " ")
+/*+ $F{code}  + " kind" + $F{kindcode}*/]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" stretchType="RelativeToTallestObject" x="800" y="0" width="1300" height="20" isPrintWhenDetailOverflows="true"/>
+				<subreportParameter name="eicode">
+					<subreportParameterExpression><![CDATA[$F{eicode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="kindcode">
+					<subreportParameterExpression><![CDATA[$F{kindcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="eistatus">
+					<subreportParameterExpression><![CDATA[$F{eistatus}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[/*"C:/iReport-3.0.0/tmp/substateMaterialsByObject.jasper"*/
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/material/state/substateMaterialsByObject.jasper")]]></subreportExpression>
+			</subreport>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-30" stretchType="RelativeToTallestObject" mode="Transparent" x="600" y="0" width="100" height="20" isPrintWhenDetailOverflows="true" backcolor="#EFEDED"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ordernumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="dd.MM.yyyy" isBlankWhenNull="true">
+				<reportElement key="textField-31" stretchType="RelativeToTallestObject" mode="Transparent" x="700" y="0" width="100" height="20" isPrintWhenDetailOverflows="true" backcolor="#EFEDED"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{orderperiod}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

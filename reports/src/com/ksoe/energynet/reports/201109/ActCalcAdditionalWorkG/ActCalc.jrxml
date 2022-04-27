@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ActCalc" pageWidth="538" pageHeight="2000" columnWidth="538" leftMargin="0" rightMargin="0" topMargin="10" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="263"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="kartacode" class="java.lang.Integer"/>
+	<parameter name="soCode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="reportType" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Тип отчет:
+1 - отчет формируется по данным из планов сметы (по коду договора);
+2 - отчет формируется по данным из расчетов по калькуляциям;
+3 - отчет формируется по данным из расчетов по калькуляциям из договоров;
+4 - отчет формируется по данным из планов сметы (по коду плана).]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="calcCostCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[код расчета для калькуляции]]></parameterDescription>
+		<defaultValueExpression><![CDATA[Integer.MIN_VALUE]]></defaultValueExpression>
+	</parameter>
+	<parameter name="servicesCostCodes" class="java.lang.String">
+		<parameterDescription><![CDATA[коды объектов ENServicesCost перечисленные через запятую]]></parameterDescription>
+		<defaultValueExpression><![CDATA["-1"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="plancode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[Integer.MIN_VALUE]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select
+p.code as plancode
+, -1 as servicescostcode
+, so.code as servicesobjectrefcode
+/*13.07.2018 Определяем есть ли новый метод расчета для того, чтобы скрыть таблички с расчетом для материалов и транспорта*/
+, exists (select 1 from net.enplanwork2classfctntp pwct1 where pwct1.calckindrefcode = 2 and pwct1.planrefcode = p.code) as is_new_calc_kind
+from
+enplanwork as p
+inner join enservicesobject as so on p.elementrefcode = so.elementcode
+where p.kindcode = 5
+and ((so.code = $P{soCode} and $P{reportType} = 1) or (p.code = $P{plancode} and $P{reportType} = 4))
+
+union all
+
+select
+-1 as plancode
+, -1 as servicescostcode
+, -1 as servicesobjectrefcode
+, cc.calckindrefcode = 2 as is_new_calc_kind
+from tkcalccost as cc
+where
+cc.code = $P{calcCostCode}
+and $P{reportType} = 2
+
+union all
+
+select
+-1 as plancode
+, sc.code as servicescostcode
+, sc.servicesobjectrefcode as servicesobjectrefcode
+, cc.calckindrefcode = 2 as is_new_calc_kind
+from enservicescost as sc
+inner join tkcalccost as cc on sc.tkcalccostrefcode = cc.code
+where
+sc.code in ($P!{servicesCostCodes})
+and $P{reportType} = 3]]>
+	</queryString>
+	<field name="plancode" class="java.lang.Integer"/>
+	<field name="servicescostcode" class="java.lang.Integer"/>
+	<field name="is_new_calc_kind" class="java.lang.Boolean">
+		<fieldDescription><![CDATA[Расчитан ли данный договор по новому]]></fieldDescription>
+	</field>
+	<field name="servicesobjectrefcode" class="java.lang.Integer"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="85" splitType="Stretch">
+			<textField isStretchWithOverflow="true" evaluationTime="Report" isBlankWhenNull="true">
+				<reportElement key="textField-10" positionType="Float" mode="Transparent" x="281" y="11" width="250" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ЗАТВЕРДЖУЮ"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" isBlankWhenNull="true">
+				<reportElement key="textField-35" positionType="Float" mode="Transparent" x="281" y="21" width="250" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["______________________________________"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" isBlankWhenNull="true">
+				<reportElement key="textField-36" positionType="Float" mode="Transparent" x="281" y="31" width="250" height="10" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["(підпис)                         (уповноважена особа)"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" evaluationTime="Report" isBlankWhenNull="true">
+				<reportElement key="textField-37" positionType="Float" mode="Transparent" x="281" y="41" width="250" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="7" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["\""+"_____"+"\"" + "_________________________" + "20   року"]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="54" splitType="Prevent">
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-7" positionType="Float" x="0" y="26" width="538" height="28"/>
+				<subreportParameter name="reportType">
+					<subreportParameterExpression><![CDATA[$P{reportType}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="calcCostCode">
+					<subreportParameterExpression><![CDATA[$P{calcCostCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="servicesCostCode">
+					<subreportParameterExpression><![CDATA[$F{servicescostcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="kartacode">
+					<subreportParameterExpression><![CDATA[$P{kartacode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="plancode">
+					<subreportParameterExpression><![CDATA[$F{plancode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[/*"C:/iReport-3.0.0/tmp/ActCalc_calculForm1.jasper"*/
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/201109/ActCalcAdditionalWorkG/ActCalc_calculForm1.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+		<band height="28">
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" positionType="Float" x="0" y="0" width="538" height="28"/>
+				<subreportParameter name="reportType">
+					<subreportParameterExpression><![CDATA[$P{reportType}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="calcCostCode">
+					<subreportParameterExpression><![CDATA[$P{calcCostCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="servicesCostCode">
+					<subreportParameterExpression><![CDATA[$F{servicescostcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="kartacode">
+					<subreportParameterExpression><![CDATA[$P{kartacode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="plancode">
+					<subreportParameterExpression><![CDATA[$F{plancode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[/*"C:/iReport-3.0.0/tmp/ActCalc_material.jasper"*/
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/201109/ActCalcAdditionalWorkG/ActCalc_material.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+		<band height="30">
+			<printWhenExpression><![CDATA[!$F{is_new_calc_kind}]]></printWhenExpression>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-2" positionType="Float" x="0" y="0" width="538" height="30"/>
+				<subreportParameter name="reportType">
+					<subreportParameterExpression><![CDATA[$P{reportType}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="calcCostCode">
+					<subreportParameterExpression><![CDATA[$P{calcCostCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="servicesCostCode">
+					<subreportParameterExpression><![CDATA[$F{servicescostcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="kartacode">
+					<subreportParameterExpression><![CDATA[$P{kartacode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="plancode">
+					<subreportParameterExpression><![CDATA[$F{plancode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[/*"C:/iReport-3.0.0/tmp/ActCalc_transport.jasper"*/
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/201109/ActCalcAdditionalWorkG/ActCalc_transport.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+		<band height="30">
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-3" positionType="Float" x="0" y="0" width="538" height="30"/>
+				<subreportParameter name="reportType">
+					<subreportParameterExpression><![CDATA[$P{reportType}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="calcCostCode">
+					<subreportParameterExpression><![CDATA[$P{calcCostCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="servicesCostCode">
+					<subreportParameterExpression><![CDATA[$F{servicescostcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="kartacode">
+					<subreportParameterExpression><![CDATA[$P{kartacode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="plancode">
+					<subreportParameterExpression><![CDATA[$F{plancode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[/*"C:/iReport-3.0.0/tmp/ActCalc_zp.jasper"*/
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/201109/ActCalcAdditionalWorkG/ActCalc_zp.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+		<band height="30">
+			<printWhenExpression><![CDATA[!$F{is_new_calc_kind}]]></printWhenExpression>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-4" positionType="Float" x="0" y="0" width="538" height="30"/>
+				<subreportParameter name="reportType">
+					<subreportParameterExpression><![CDATA[$P{reportType}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="calcCostCode">
+					<subreportParameterExpression><![CDATA[$P{calcCostCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="servicesCostCode">
+					<subreportParameterExpression><![CDATA[$F{servicescostcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="kartacode">
+					<subreportParameterExpression><![CDATA[$P{kartacode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="plancode">
+					<subreportParameterExpression><![CDATA[$F{plancode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[/*"C:/iReport-3.0.0/tmp/ActCalc_cost1hours.jasper"*/
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/201109/ActCalcAdditionalWorkG/ActCalc_cost1hours.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+		<band height="30">
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-5" positionType="Float" x="0" y="0" width="538" height="30"/>
+				<subreportParameter name="reportType">
+					<subreportParameterExpression><![CDATA[$P{reportType}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="calcCostCode">
+					<subreportParameterExpression><![CDATA[$P{calcCostCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="servicesCostCode">
+					<subreportParameterExpression><![CDATA[$F{servicescostcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="kartacode">
+					<subreportParameterExpression><![CDATA[$P{kartacode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="plancode">
+					<subreportParameterExpression><![CDATA[$F{plancode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[/*"C:/iReport-3.0.0/tmp/ActCalc_remainingcost.jasper"*/
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/201109/ActCalcAdditionalWorkG/ActCalc_remainingcost.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+		<band height="30">
+			<printWhenExpression><![CDATA[!$F{is_new_calc_kind}]]></printWhenExpression>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-6" positionType="Float" x="0" y="0" width="538" height="30"/>
+				<subreportParameter name="reportType">
+					<subreportParameterExpression><![CDATA[$P{reportType}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="calcCostCode">
+					<subreportParameterExpression><![CDATA[$P{calcCostCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="servicesCostCode">
+					<subreportParameterExpression><![CDATA[$F{servicescostcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="kartacode">
+					<subreportParameterExpression><![CDATA[$P{kartacode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="plancode">
+					<subreportParameterExpression><![CDATA[$F{plancode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[/*"C:/iReport-3.0.0/tmp/ActCalc_zp_inway.jasper"*/
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/201109/ActCalcAdditionalWorkG/ActCalc_zp_inway.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="30" splitType="Prevent">
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-6" positionType="Float" x="0" y="0" width="538" height="30"/>
+				<subreportParameter name="reportType">
+					<subreportParameterExpression><![CDATA[$P{reportType}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="servicesObjectCode">
+					<subreportParameterExpression><![CDATA[$F{servicesobjectrefcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="kartacode">
+					<subreportParameterExpression><![CDATA[$P{kartacode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="plancode">
+					<subreportParameterExpression><![CDATA[$F{plancode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[/*"C:/iReport-3.0.0/tmp/ActCalc_zp_inway.jasper"*/
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/201109/ActCalcAdditionalWorkG/ActCalc_Additional_Items.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</summary>
+</jasperReport>

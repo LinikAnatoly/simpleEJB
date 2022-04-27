@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="fs_fact_transp_checkpoint" pageWidth="300" pageHeight="842" whenNoDataType="AllSectionsNoDetail" columnWidth="300" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="dateStart" class="java.util.Date">
+		<defaultValueExpression><![CDATA[new Date("01.07.2012")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateFinal" class="java.util.Date">
+		<defaultValueExpression><![CDATA[new Date("01.07.2012")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="transportRealCode" class="java.lang.Double">
+		<parameterDescription><![CDATA[Код реального транспорта, если равен -1, то выбираются все]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Double(-1)]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select distinct transportrealrefcode,
+       dateevent,
+       checkpoint_code,
+       checkpoint_name,
+       coalesce(move_in, '') as move_in,
+       coalesce(move_out, '') as move_out
+from (
+       select cpli.transportrealrefcode,
+              to_char(cpli.dateevent, 'dd.mm.yyyy') as dateevent,
+              cp.code as checkpoint_code,
+              cp.name as checkpoint_name,
+              to_char(cpli.dateevent, 'hh24:mi') as move_out,
+              (
+                select to_char(cpli1.dateevent, 'hh24:mi')
+                from encheckpointpasslisttm as cpli1
+                     inner join encheckpointpasslist as cpl1 on
+                      cpli1.checkpointpasslistrfcd = cpl1.code
+                where cpli1.transportrealrefcode = cpli.transportrealrefcode and
+                      cpli1.dateevent >= cpli.dateevent and
+                      cpl1.checkpointrefcode = cp.code and
+                      date_trunc('day', cpli1.dateevent) = date_trunc('day', cpli.dateevent) and
+                      cpli1.eventtyperefcode = 2
+                order by cpli1.dateevent desc
+                limit 1
+              ) as move_in
+       from encheckpointpasslisttm as cpli
+            inner join encheckpointpasslist as cpl on
+             cpli.checkpointpasslistrfcd = cpl.code
+            inner join encheckpoint as cp on cpl.checkpointrefcode = cp.code
+       where cpli.eventtyperefcode = 1 and
+             cpli.dateevent between $P{dateStart} and
+             $P{dateFinal}             and
+             cpli.transportrealrefcode = $P{transportRealCode}
+       union
+       select cpli.transportrealrefcode,
+              to_char(cpli.dateevent, 'dd.mm.yyyy') as dateevent,
+              cp.code as checkpoint_code,
+              cp.name as checkpoint_name,
+              (
+                select to_char(cpli1.dateevent, 'hh24:mi')
+                from encheckpointpasslisttm as cpli1
+                     inner join encheckpointpasslist as cpl1 on
+                      cpli1.checkpointpasslistrfcd = cpl1.code
+                where cpli1.transportrealrefcode = cpli.transportrealrefcode and
+                      cpli1.dateevent <= cpli.dateevent and
+                      cpl1.checkpointrefcode = cp.code and
+                      date_trunc('day', cpli1.dateevent) = date_trunc('day', cpli.dateevent) and
+                      cpli1.eventtyperefcode = 1
+                order by cpli1.dateevent desc
+                limit 1
+              ) as move_out,
+              to_char(cpli.dateevent, 'hh24:mi') as move_in
+       from encheckpointpasslisttm as cpli
+            inner join encheckpointpasslist as cpl on
+             cpli.checkpointpasslistrfcd = cpl.code
+            inner join encheckpoint as cp on cpl.checkpointrefcode = cp.code
+       where cpli.eventtyperefcode = 2 and
+             date_trunc('day', cpli.dateevent) between $P{dateStart} and
+             $P{dateFinal}           and
+             cpli.transportrealrefcode = $P{transportRealCode}
+     ) as sub_query]]>
+	</queryString>
+	<field name="transportrealrefcode" class="java.lang.Double"/>
+	<field name="dateevent" class="java.lang.String">
+		<fieldDescription><![CDATA[Дата и время события]]></fieldDescription>
+	</field>
+	<field name="checkpoint_code" class="java.lang.Double"/>
+	<field name="checkpoint_name" class="java.lang.String"/>
+	<field name="move_in" class="java.lang.String"/>
+	<field name="move_out" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-6" positionType="Float" stretchType="RelativeToTallestObject" x="150" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{dateevent}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-13" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="150" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{checkpoint_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-14" positionType="Float" stretchType="RelativeToTallestObject" x="200" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{move_out}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-17" positionType="Float" stretchType="RelativeToTallestObject" x="250" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{move_in}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<lastPageFooter>
+		<band height="20" splitType="Stretch">
+			<printWhenExpression><![CDATA[new Boolean(($V{REPORT_COUNT}.intValue() == 0) )]]></printWhenExpression>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-13" positionType="Float" stretchType="RelativeToTallestObject" x="150" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-17" positionType="Float" stretchType="RelativeToTallestObject" x="250" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-6" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="150" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-14" positionType="Float" stretchType="RelativeToTallestObject" x="200" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+			</textField>
+		</band>
+	</lastPageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

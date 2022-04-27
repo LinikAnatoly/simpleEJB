@@ -1,0 +1,494 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="reportOnDohovoryPidryadu" pageWidth="2350" pageHeight="595" orientation="Landscape" columnWidth="2310" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="1538"/>
+	<property name="ireport.y" value="0"/>
+	<scriptlet name="finScriptlet" class="com.ksoe.energynet.reports.common.FINScriptlet">
+		<scriptletDescription><![CDATA[finScriptlet]]></scriptletDescription>
+	</scriptlet>
+	<parameter name="start_date_services" class="java.lang.String"/>
+	<parameter name="end_date_services" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[select   enplanwork.servicesfsidefinid, enplanwork.servicesfsidecnnum--, q1.*
+,q1.code , q1.elementcode, q1.contractnumber, q1.contractdate, q1.customer, q1.building, q1.address
+,q1.tyservicespower, q1.voltageservices, q1.codetcs, q1.sumwithoutnds
+,(select
+(
+case when 	(select COALESCE(count(sumwithnds),0) from rqbill
+			where findocid = rq1.findocid  )<=3
+			THEN (select sum(sumwithnds) from rqbill
+			where findocid = rq1.findocid  )
+    else 0
+    end  ) from rqbill rq1
+where rq1.findocid = enplanwork.servicesfsidefinid
+limit 1) as sumpayment
+from (
+select so.code, so.elementcode, tcs.contractnumber, tcs.contractdate,
+tco.customer, tco.building, tco.address, tco.tyservicespower, tco.voltageservices
+,tcs.code as codetcs
+,(
+select COALESCE(sum(RQFKORDER.SUMWITHOUTNDS),0)
+       from RQFKORDER
+       where
+       RQFKORDER.code in ( select rf2pl.fkordercode from rqfkorder2planfact rf2pl
+                           where rf2pl.plancode in (
+                           select ct2pl.planrefcode from entechcond2planwork ct2pl
+				    where ct2pl.techconservicesrefcode = tcs.code--500013538
+                    ))
+)as SUMWITHOUTNDS
+from enservicesobject so,
+enservicesobject2techcondtnsservices sotcs, entechconditionsservcs tcs
+, entechconditionsobjcts tco
+where
+sotcs.servicesobjectrefcode=so.code
+and sotcs.techcondservrefcode=tcs.code
+and tco.code=so.techconobjectscode
+and so.contracttyperefcode = 5
+and (
+     	case
+         		/*Поиск по договору*/
+            when ($P{start_date_services} = '') and ($P{end_date_services} = '')then
+            1=1
+        	when ($P{start_date_services} <> '') and ($P{end_date_services} = '')then
+           		(so.CONTRACTDATE >= to_date($P{start_date_services}, 'dd.MM.yyyy'))
+            when ($P{start_date_services} = '') and ($P{end_date_services} <> '') then
+           		(so.CONTRACTDATE <= to_date($P{end_date_services}, 'dd.MM.yyyy'))
+            when ($P{start_date_services} <> '') and ($P{end_date_services} <> '') then
+				so.CONTRACTDATE BETWEEN to_date($P{start_date_services}, 'dd.MM.yyyy') and to_date($P{end_date_services}, 'dd.MM.yyyy')
+        end
+       )
+)as q1,  enplanwork
+where
+--enplanwork.elementrefcode =  q1.elementcode--1017702151
+--or
+ enplanwork.code in (
+select planrefcode from entechcond2planwork
+where
+entechcond2planwork.techconservicesrefcode = q1.codetcs
+)
+and enplanwork.kindcode = 2 AND enplanwork.typerefcode = 19
+and enplanwork.SERVICESFSIDEFINID  is not null
+and enplanwork.servicesfsidecnnum is not null
+--and enplanwork.SERVICESFSIDEFINID > 0
+
+group by 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,13
+order by 1]]>
+	</queryString>
+	<field name="servicesfsidefinid" class="java.lang.Integer"/>
+	<field name="servicesfsidecnnum" class="java.lang.String"/>
+	<field name="code" class="java.lang.Double"/>
+	<field name="elementcode" class="java.lang.Double"/>
+	<field name="contractnumber" class="java.lang.String"/>
+	<field name="contractdate" class="java.sql.Date"/>
+	<field name="customer" class="java.lang.String"/>
+	<field name="building" class="java.lang.String"/>
+	<field name="address" class="java.lang.String"/>
+	<field name="tyservicespower" class="java.lang.Double"/>
+	<field name="voltageservices" class="java.lang.Double"/>
+	<field name="codetcs" class="java.lang.Double"/>
+	<field name="sumwithoutnds" class="java.lang.String"/>
+	<field name="sumpayment" class="java.lang.String"/>
+	<variable name="variable1" class="java.lang.String"/>
+	<variable name="finContractNumber" class="java.lang.String" resetType="Column">
+		<variableExpression><![CDATA[$V{finContractNumber}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getFinContractShort($F{servicesfsidefinid}).getContractNumber()]]></initialValueExpression>
+	</variable>
+	<variable name="finContractDate" class="java.util.Date" resetType="Column">
+		<variableExpression><![CDATA[$V{finContractDate}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getFinContractShort($F{servicesfsidefinid}).getContractDate()]]></initialValueExpression>
+	</variable>
+	<variable name="finOrgName" class="java.lang.String" resetType="Column">
+		<variableExpression><![CDATA[$V{finOrgName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getFinContractShort($F{servicesfsidefinid}).getOrgName()]]></initialValueExpression>
+	</variable>
+	<variable name="finSumma" class="java.math.BigDecimal" resetType="Column">
+		<variableExpression><![CDATA[$V{finSumma}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getFinContractShort($F{servicesfsidefinid}).getSumma()]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="30" splitType="Stretch">
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="0" y="0" width="2269" height="30" isPrintWhenDetailOverflows="true"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="16" isBold="true" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Звіт по договорам підряду"]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="40" splitType="Stretch">
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="0" y="0" width="34" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["№ п/п"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="34" y="0" width="87" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["№ Договору про приєднання"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="220" y="0" width="312" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Замовник по приєднанню"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="532" y="0" width="274" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Об’єкт по приєднанню"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="806" y="0" width="339" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Адреса об’єкту приєднання"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="1145" y="0" width="76" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Потужність"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="1221" y="0" width="76" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Напруга приєднання"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="1297" y="0" width="76" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["№ Договору підряду"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="1373" y="0" width="76" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Дата договору підряду"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="1449" y="0" width="421" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Організація, з якою укладено договір"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="1870" y="0" width="136" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Загальна вартість робіт по договору підряду"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="2006" y="0" width="168" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Сума усіх проведених актів виконаних робіт по договору підряду"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="121" y="0" width="99" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Дата Договору про приєднання"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="2174" y="0" width="95" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="12" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA["Сума платежу"]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="30" splitType="Stretch">
+			<textField isStretchWithOverflow="true">
+				<reportElement x="0" y="0" width="34" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$V{REPORT_COUNT}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="34" y="0" width="87" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{contractnumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="220" y="0" width="312" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{customer}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="532" y="0" width="274" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{building}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="806" y="0" width="339" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{address}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="1145" y="0" width="76" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{tyservicespower}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="1221" y="0" width="76" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{voltageservices}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="1297" y="0" width="76" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[new String((((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getFinContractShort($F{servicesfsidefinid}).getContractNumber()) != null ? ((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getFinContractShort($F{servicesfsidefinid}).getContractNumber() : "")]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="1373" y="0" width="76" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[new SimpleDateFormat("dd MM yyyy").format(((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getFinContractShort($F{servicesfsidefinid}).getContractDate())]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="1449" y="0" width="421" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[new String((((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getFinContractShort($F{servicesfsidefinid}).getOrgName()) != null ? ((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getFinContractShort($F{servicesfsidefinid}).getOrgName() : "")]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="1870" y="0" width="136" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getFinContractShort($F{servicesfsidefinid}).getSumma() != null ? ((com.ksoe.energynet.reports.common.FINScriptlet)$P{finScriptlet_SCRIPTLET}).getFinContractShort($F{servicesfsidefinid}).getSumma() : 0.0]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="2006" y="0" width="168" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[new String(($F{sumwithoutnds} != null) ? $F{sumwithoutnds} : "")]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement x="121" y="0" width="99" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[new SimpleDateFormat("dd MM yyyy").format($F{contractdate})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" x="2174" y="0" width="95" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" lineSpacing="Single">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[new String(($F{sumpayment} != null) ? $F{sumpayment} : "")]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

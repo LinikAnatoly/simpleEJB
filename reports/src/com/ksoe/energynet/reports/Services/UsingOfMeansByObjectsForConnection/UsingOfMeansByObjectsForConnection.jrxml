@@ -1,0 +1,908 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="UsingOfMeansByObjectsForConnection" pageWidth="1330" pageHeight="900" orientation="Landscape" whenNoDataType="NoDataSection" columnWidth="1270" leftMargin="30" rightMargin="30" topMargin="20" bottomMargin="20" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="695"/>
+	<property name="ireport.y" value="229"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="dateStart" class="java.util.Date">
+		<defaultValueExpression><![CDATA[new Date()]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateFinal" class="java.util.Date">
+		<defaultValueExpression><![CDATA[new Date()]]></defaultValueExpression>
+	</parameter>
+	<parameter name="isWithoutCapitalCosts" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Не включать договора без актов капитальных затрат (1 - да, 0 - нет)]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new BigDecimal(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="isWithoutZeroPayment" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Не включать без оплаты (1 - да, 0 - нет)]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new BigDecimal(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="quarterName" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("I квартал 2013 року")]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select
+    services.contractnumber
+    , services.partnername
+    , services.address
+    , services.regiontype
+    , services.trustfulnesscategory
+    , services.voltagedegree
+    , services.phasity
+    , services.power
+    , services.sum_payed
+    , services.sum_calculated
+    , services.int_regionaltype
+    , services.capital
+    , services.costs
+    , services.unmount
+    , services.acttypes
+    , 'Господарський' as realizationmeans
+    , to_char(services.datestart, 'mm.yyyy') as periodstart
+    , to_char(services.datefinal, 'mm.yyyy') as periodfinal
+from
+(
+	select
+    	so.contractnumberservices||' від '||to_char(so.contractdateservices, 'dd.mm.yyyy')  as contractnumber
+        , so.contractdateservices as date
+        , so.contragentname as partnername
+        , co.contragentaddresswork as address
+		, coalesce(st.name, 'не визначено') as regiontype
+		, pow.name as trustfulnesscategory
+		, cop.name as voltagedegree
+		, pha.name as phasity
+		, round(cast(tc.tyservicespower as decimal), 2) as power
+		, case when so.contractstatusrefcode = 5
+		then coalesce(round(cast(tc.tysummagen as decimal), 2), 0)
+		else 0 end as sum_payed
+		, coalesce(round(cast(tc.tysummagen as decimal), 2), 0) as sum_calculated
+		, st.code as int_regionaltype
+		, ( /*Капитальные затраты (проектирование)*/
+        	select round(cast(sum(sums) as decimal), 2) from
+        	(select
+            	sum(net.get_sum_by_act(act_code)) as sums
+            from (
+            	select distinct
+    				ac1.code as act_code
+    			from
+                	entechcond2planwork as tcpw1
+					inner join enact2enplanwork as acpw1 on tcpw1.planrefcode = acpw1.plancode
+					inner join enact as ac1 on acpw1.actrefcode = ac1.code
+				where
+					tcpw1.techconservicesrefcode = tc.code
+					and ac1.acttyperefcode in (29, 1, 2, 4) /*Проектування*/
+                    ) as query1
+
+                    union all
+
+                    select round(cast(sum((select fo2.sumnds + fo2.sumwithoutnds from rqfkorder as fo2 where fo2.code = query2.code)) as decimal),2) as sums from
+                    (
+                    select distinct fo1.code from
+					rqfkorder as fo1 inner join
+					rqfkorder2planfact as fopw1 on fo1.code = fopw1.fkordercode
+					inner join entechcond2planwork as tcpw1 on fopw1.factcode = tcpw1.planrefcode
+                    inner join enplanwork as pw1 on tcpw1.planrefcode = pw1.code
+					where
+					tcpw1.techconservicesrefcode = tc.code
+                    and pw1.typerefcode = 19) as query2) as query
+        ) as capital
+        , /* Затраты на себестоимость (Проектирование) - по бюджетодержателю ВПТУ */
+        (
+        	select
+            	round(cast(sum(net.get_sum_by_act_services(ac1.code)) as decimal), 2)
+            from
+            	enact as ac1
+            where
+            	ac1.elementcode = so.elementcode
+        ) as costs
+		, (
+        select round(cast(sum(cost) as decimal), 2)
+        from
+        (select
+        	sum(ma1.cost) as cost
+        from
+    		enplanwork as pw1
+            inner join entechcond2planwork as tcpw1 on tcpw1.planrefcode = pw1.code
+            inner join enestimateitem as es1 on es1.planrefcode = pw1.code
+            inner join finmaterials as ma1 on es1.code = ma1.estimateitemrefcode
+        where
+			tcpw1.techconservicesrefcode = tc.code
+        	and pw1.kindcode = 4
+            and ma1.statusrefcode = 1
+            and es1.kindrefcode = 3
+            and ma1.cost <> 0
+
+            union all
+
+        select
+        	sum(ma1.cost) as cost
+        from
+    		enplanwork as pw1
+            inner join enestimateitem as es1 on es1.planrefcode = pw1.code
+            inner join finmaterials as ma1 on es1.code = ma1.estimateitemrefcode
+        where
+        	pw1.elementrefcode = so.elementcode
+        	and pw1.kindcode = 4
+            and ma1.statusrefcode = 1
+            and es1.kindrefcode = 3
+            and ma1.cost <> 0) as unmount_subquery
+        	) as unmount
+        ,(select group_concat(distinct ps1.name, ', ')
+        	from enplanworkstate as ps1
+            where ps1.code in
+        	(select distinct ac1.acttyperefcode
+        	from enact as ac1
+            where ac1.elementcode = so.elementcode
+
+            union all
+
+            select distinct
+    				ac1.acttyperefcode
+    			from
+                	entechcond2planwork as tcpw1
+					inner join enact2enplanwork as acpw1 on tcpw1.planrefcode = acpw1.plancode
+					inner join enact as ac1 on acpw1.actrefcode = ac1.code
+				where
+					tcpw1.techconservicesrefcode = tc.code
+					and ac1.acttyperefcode in (29, 1, 2, 4)
+
+            )) as acttypes
+		, (select min(datestart)
+        	from enplanwork as pw1
+            where pw1.code in
+        	(select distinct pw2.code
+        	from enplanwork as pw2
+            where pw2.elementrefcode = so.elementcode
+            and pw2.kindcode in (3,4)
+
+            union all
+
+            select distinct
+    				pw2.code
+    			from
+                	entechcond2planwork as tcpw2
+                    inner join enplanwork as pw2 on tcpw2.planrefcode = pw2.code
+                where
+					tcpw2.techconservicesrefcode = tc.code
+					and pw2.staterefcode in (29, 1, 2, 4)
+                    and pw2.kindcode in (3,4)
+            )) as datestart
+            , (select min(datefinal)
+        	from enplanwork as pw1
+            where pw1.code in
+        	(select distinct pw2.code
+        	from enplanwork as pw2
+            where pw2.elementrefcode = so.elementcode
+            and pw2.kindcode in (3,4)
+
+            union all
+
+            select distinct
+    				pw2.code
+    			from
+                	entechcond2planwork as tcpw2
+                    inner join enplanwork as pw2 on tcpw2.planrefcode = pw2.code
+                where
+					tcpw2.techconservicesrefcode = tc.code
+					and pw2.staterefcode in (29, 1, 2, 4)
+                    and pw2.kindcode in (3,4)
+            )) as datefinal
+	from
+		enservicesobject as so
+		inner join enservicesobject2techcondtnsservices as so2tc on so.code = so2tc.servicesobjectrefcode
+        inner join entechconditionsservcs as tc on so2tc.techcondservrefcode = tc.code
+        inner join encontragent as co on tc.code = co.techcondservicesrefcod
+        left join enconnectiontariffentr as tf on tc.tariffentryrefcode = tf.code
+		left join enconnectiontariff as ct on tf.tariffrefcode = ct.code
+		left join enpowerreliabilityctgr as pow on ct.categoryrefcode = pow.code
+    	left join ensettletype as st on pow.settletyperefcode = st.code
+		left join enconnectionpowerpoint as cop on ct.powerpointrefcode = cop.code
+		left join enconnectionphasity as pha on ct.phasityrefcode = pha.code
+		left join enpriconnectiondata as pda on tc.code = pda.techcondservrefcode
+	where
+		so.contracttyperefcode = 5
+		and so.contractkindrefcode = 1
+		and tc.connectionkindrefcode = 1
+		and so.contractdateservices >= $P{dateStart}
+		and so.contractdateservices <= $P{dateFinal}
+		and so.contractstatusrefcode not in (2,8) /*не скасовані чи відмінені*/
+
+    union all
+
+	select
+		tc.contractnumber||' від '||to_char(tc.contractdate, 'dd.mm.yyyy')
+        , tc.contractdate as date
+        , tc.partnername
+        , co.contragentaddresswork as address
+        , coalesce(st.name, 'не визначено') as regiontype
+		, pow.name as trustfulnesscategory
+		, cop.name as voltagedegree
+		, pha.name as phasity
+		, round(cast(tc.tyservicespower as decimal), 2) as power
+		, tc.tysummagen as sum_payed
+		, coalesce(round(cast(tc.tysummagen as decimal), 2), 0) as sum_calculated
+		, st.code as int_regionaltype
+        		, ( /*Капитальные затраты (проектирование)*/
+        	select round(cast(sum(sums) as decimal), 2) from
+        	(select
+            	sum(net.get_sum_by_act(act_code)) as sums
+            from (
+            	select distinct
+    				ac1.code as act_code
+    			from
+                	entechcond2planwork as tcpw1
+					inner join enact2enplanwork as acpw1 on tcpw1.planrefcode = acpw1.plancode
+					inner join enact as ac1 on acpw1.actrefcode = ac1.code
+				where
+					tcpw1.techconservicesrefcode = tc.code
+					and ac1.acttyperefcode in (29, 1, 2, 4) /*Проектування*/
+                    ) as query1
+
+                    union all
+
+                    select round(cast(sum((select fo2.sumnds + fo2.sumwithoutnds from rqfkorder as fo2 where fo2.code = query2.code)) as decimal), 2) as sums from
+                    (
+                    select distinct fo1.code from
+					rqfkorder as fo1 inner join
+					rqfkorder2planfact as fopw1 on fo1.code = fopw1.fkordercode
+					inner join entechcond2planwork as tcpw1 on fopw1.factcode = tcpw1.planrefcode
+                    inner join enplanwork as pw1 on tcpw1.planrefcode = pw1.code
+					where
+					tcpw1.techconservicesrefcode = tc.code
+                    and pw1.typerefcode = 19) as query2) as query
+        ) as capital
+        , /* Затраты на себестоимость (Проектирование) - по бюджетодержателю ВПТУ */
+        (
+        	select
+            	round(cast(sum(net.get_sum_by_act_services(ac1.code)) as decimal), 2)
+            from
+            	enact as ac1
+            where
+            	ac1.elementcode = tc.elementcode
+        ) as costs
+		, (
+        select round(cast(sum(cost) as decimal), 2)
+        from
+        (select
+        	sum(ma1.cost) as cost
+        from
+    		enplanwork as pw1
+            inner join entechcond2planwork as tcpw1 on tcpw1.planrefcode = pw1.code
+            inner join enestimateitem as es1 on es1.planrefcode = pw1.code
+            inner join finmaterials as ma1 on es1.code = ma1.estimateitemrefcode
+        where
+			tcpw1.techconservicesrefcode = tc.code
+        	and pw1.kindcode = 4
+            and ma1.statusrefcode = 1
+            and es1.kindrefcode = 3
+            and ma1.cost <> 0
+
+            union all
+
+        select
+        	round(cast(sum(ma1.cost) as decimal), 2) as cost
+        from
+    		enplanwork as pw1
+            inner join enestimateitem as es1 on es1.planrefcode = pw1.code
+            inner join finmaterials as ma1 on es1.code = ma1.estimateitemrefcode
+        where
+        	pw1.elementrefcode = tc.elementcode
+        	and pw1.kindcode = 4
+            and ma1.statusrefcode = 1
+            and es1.kindrefcode = 3
+            and ma1.cost <> 0) as unmount_subquery
+        	) as unmount
+        ,(select group_concat(distinct ps1.name, ', ')
+        	from enplanworkstate as ps1
+            where ps1.code in
+        	(select distinct ac1.acttyperefcode
+        	from enact as ac1
+            where ac1.elementcode = tc.elementcode
+
+            union all
+
+            select distinct
+    				ac1.acttyperefcode
+    			from
+                	entechcond2planwork as tcpw1
+					inner join enact2enplanwork as acpw1 on tcpw1.planrefcode = acpw1.plancode
+					inner join enact as ac1 on acpw1.actrefcode = ac1.code
+				where
+					tcpw1.techconservicesrefcode = tc.code
+					and ac1.acttyperefcode in (29, 1, 2, 4) /*Проектування*/
+
+            )) as acttypes
+            , (select min(datestart)
+        	from enplanwork as pw1
+            where pw1.code in
+        	(select distinct pw2.code
+        	from enplanwork as pw2
+            where pw2.elementrefcode = tc.elementcode
+            and pw2.kindcode in (3,4)
+
+            union all
+
+            select distinct
+    				pw2.code
+    			from
+                	entechcond2planwork as tcpw2
+                    inner join enplanwork as pw2 on tcpw2.planrefcode = pw2.code
+                where
+					tcpw2.techconservicesrefcode = tc.code
+					and pw2.staterefcode in (29, 1, 2, 4)
+                    and pw2.kindcode in (3,4)
+            )) as datestart
+            , (select min(datefinal)
+        	from enplanwork as pw1
+            where pw1.code in
+        	(select distinct pw2.code
+        	from enplanwork as pw2
+            where pw2.elementrefcode = tc.elementcode
+            and pw2.kindcode in (3,4)
+
+            union all
+
+            select distinct
+    				pw2.code
+    			from
+                	entechcond2planwork as tcpw2
+                    inner join enplanwork as pw2 on tcpw2.planrefcode = pw2.code
+                where
+					tcpw2.techconservicesrefcode = tc.code
+					and pw2.staterefcode in (29, 1, 2, 4)
+                    and pw2.kindcode in (3,4)
+            )) as datefinal
+	from
+		entechconditionsservcs as tc
+        inner join encontragent as co on tc.code = co.techcondservicesrefcod
+        left join enconnectiontariffentr as tf on tc.tariffentryrefcode = tf.code
+		left join enconnectiontariff as ct on tf.tariffrefcode = ct.code
+		left join enpowerreliabilityctgr as pow on ct.categoryrefcode = pow.code
+    	left join ensettletype as st on pow.settletyperefcode = st.code
+		left join enconnectionpowerpoint as cop on ct.powerpointrefcode = cop.code
+		left join enconnectionphasity as pha on ct.phasityrefcode = pha.code
+		left join enpriconnectiondata as pda on tc.code = pda.techcondservrefcode
+	where
+		tc.connectionkindrefcode in (0, 1, 2)
+		and tc.techcondservicestypecd in (1, 2)
+		and tc.code not in (select s2t.techcondservrefcode from enservicesobject2techcondtnsservices s2t)
+		and tc.contractdate >= $P{dateStart}
+		and tc.contractdate <= $P{dateFinal}
+	order by date
+) as services
+where
+case when $P{isWithoutCapitalCosts} = 1
+	then coalesce(services.capital, 0) > 0
+	else 0 = 0
+end
+and
+case when $P{isWithoutZeroPayment} = 1
+	then coalesce(services.sum_calculated, 0) > 0
+	else 0 = 0
+end]]>
+	</queryString>
+	<field name="contractnumber" class="java.lang.String">
+		<fieldDescription><![CDATA[Номер договору]]></fieldDescription>
+	</field>
+	<field name="partnername" class="java.lang.String">
+		<fieldDescription><![CDATA[Найменування організації]]></fieldDescription>
+	</field>
+	<field name="address" class="java.lang.String">
+		<fieldDescription><![CDATA[Адрес потребителя]]></fieldDescription>
+	</field>
+	<field name="regiontype" class="java.lang.String"/>
+	<field name="trustfulnesscategory" class="java.lang.String"/>
+	<field name="voltagedegree" class="java.lang.String"/>
+	<field name="phasity" class="java.lang.String"/>
+	<field name="power" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Мощность, кВА]]></fieldDescription>
+	</field>
+	<field name="sum_payed" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Сума]]></fieldDescription>
+	</field>
+	<field name="int_regionaltype" class="java.lang.Double"/>
+	<field name="unmount" class="java.math.BigDecimal"/>
+	<field name="capital" class="java.math.BigDecimal"/>
+	<field name="costs" class="java.math.BigDecimal"/>
+	<field name="sum_calculated" class="java.math.BigDecimal"/>
+	<field name="acttypes" class="java.lang.String"/>
+	<field name="realizationmeans" class="java.lang.String"/>
+	<field name="periodstart" class="java.lang.String"/>
+	<field name="periodfinal" class="java.lang.String"/>
+	<variable name="companyShortName" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyShortName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("company.shortname")]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="100" splitType="Stretch">
+			<textField isBlankWhenNull="false">
+				<reportElement key="textField-18" x="0" y="0" width="1270" height="100"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="24"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Пооб'єктний звіт з використання коштів, отриманих як плата за приєднання, за " +
+$P{quarterName} + " компанії " + $V{companyShortName} + ""]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="238" splitType="Stretch">
+			<staticText>
+				<reportElement key="statNumber" x="0" y="0" width="50" height="205"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[№ з/п]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statIndexOne" x="0" y="205" width="50" height="33"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[1]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statIndexTwo" x="50" y="205" width="180" height="33"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[2]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statIndexThree" x="230" y="205" width="120" height="33"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[3]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statPartner" x="50" y="0" width="180" height="205"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Замовник]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statActType" x="230" y="0" width="120" height="205"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Вид робіт (будівництво, реконструкція, модернізація)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statIndexFour" x="350" y="205" width="120" height="33"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[4]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statWayOfWork" x="350" y="0" width="120" height="205"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Спосіб реалізації проекту (господарський / підрядний)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statPeriodStart" x="470" y="0" width="100" height="205"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Початок виконання робіт (рік, місяць)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statIndexFive" x="470" y="205" width="100" height="33"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[5]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statIndexSix" x="570" y="205" width="100" height="33"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[6]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statPeriodFinal" x="570" y="0" width="100" height="205"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Планове закінчення виконання робіт (рік, місяць)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statConfirmedProjectDocumentation" x="670" y="0" width="150" height="205"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Затверджена проектна кошторисна вартість виконання проекту по відповідному об'єкту, тис. грн.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statIndexSeven" x="670" y="205" width="150" height="33"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[7]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statIndexEight" x="820" y="205" width="100" height="33"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[8]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statSumActs" x="820" y="0" width="100" height="205"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Вартість виконаних робіт за звітний період (наростаючим підсумком), тис. грн.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statReminderOfProject" x="920" y="0" width="100" height="205"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Залишок кошторисної вартості, по відповідному проекту, тис. грн.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statIndexNine" x="920" y="205" width="100" height="33"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[9]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statNumberOfObjectInTable6" x="1020" y="0" width="150" height="205"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Номер об'єкту в таблиці 6 поточної інвестиційної програми]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statIndexTen" x="1020" y="205" width="150" height="33"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[10]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statIndexEleven" x="1170" y="205" width="100" height="33"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[11]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="statAmountOfFinancing" x="1170" y="0" width="100" height="205"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Обсяг фінансування, передбачений інвестиційною програмою, (рік / тис. грн.)]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="30" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="txtNumber" stretchType="RelativeToTallestObject" x="0" y="0" width="50" height="30"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{COLUMN_COUNT}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="txtPartner" stretchType="RelativeToTallestObject" x="50" y="0" width="180" height="30"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{partnername}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="txtActType" stretchType="RelativeToTallestObject" x="230" y="0" width="120" height="30"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{acttypes}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="txtWayOfWork" stretchType="RelativeToTallestObject" x="350" y="0" width="120" height="30"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{realizationmeans}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="txtPeriodStart" stretchType="RelativeToTallestObject" x="470" y="0" width="100" height="30"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{periodstart}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="txtPeriodFinal" stretchType="RelativeToTallestObject" x="570" y="0" width="100" height="30"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{periodfinal}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="txtConfirmedProjectDocumentation" stretchType="RelativeToTallestObject" x="670" y="0" width="150" height="30"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="txtSumActs" stretchType="RelativeToTallestObject" x="820" y="0" width="100" height="30"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[( $F{capital} == null ? new BigDecimal(0) : $F{capital} ).add(( $F{costs} == null ? new BigDecimal(0) : $F{costs} ))]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="txtReminderOfProject" stretchType="RelativeToTallestObject" x="920" y="0" width="100" height="30"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="txtNumberOfObjectInTable6" stretchType="RelativeToTallestObject" x="1020" y="0" width="150" height="30"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="txtAmountOfFinancing" stretchType="RelativeToTallestObject" x="1170" y="0" width="100" height="30"/>
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+	<noData>
+		<band height="50">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="txtNoDataFound" stretchType="RelativeToTallestObject" x="0" y="0" width="760" height="50"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="24"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Не має даних для обраних параметрів " +
+"\n" + " за період: " +
+" з " + new SimpleDateFormat("dd.MM.yyyy").format($P{dateStart}) + " по "
++ new SimpleDateFormat("dd.MM.yyyy").format($P{dateFinal})]]></textFieldExpression>
+			</textField>
+		</band>
+	</noData>
+</jasperReport>

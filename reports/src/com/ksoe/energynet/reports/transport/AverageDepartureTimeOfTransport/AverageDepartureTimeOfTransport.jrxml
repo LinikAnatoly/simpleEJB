@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="AverageDepartureTimeOfTransport" pageWidth="820" pageHeight="1000" whenNoDataType="NoDataSection" columnWidth="780" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" isIgnorePagination="true">
+	<property name="ireport.zoom" value="0.9090909090909128"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="java.text.SimpleDateFormat"/>
+	<import value="com.ksoe.energynet.util.Tools"/>
+	<import value="java.text.DateFormat"/>
+	<parameter name="reportDate" class="java.util.Date"/>
+	<queryString>
+		<![CDATA[SELECT dep.name AS department_name
+, tr.gosnumber
+, tr.name AS transport_name
+, tr_sec.*
+FROM
+(SELECT cpl.transportdepartmntrfcd
+, cpli.transportrealrefcode
+, min(cpli.dateevent)::date AS dateevent
+, to_char((min(cpli.dateevent)::time), 'HH24:mi:ss') AS timeevent
+, extract(epoch from min(cpli.dateevent)::time) AS seconds
+FROM encheckpointpasslist cpl
+INNER JOIN encheckpointpasslisttm cpli ON cpli.checkpointpasslistrfcd = cpl.code
+WHERE
+to_date(to_char(cpl.datestart,'dd.MM.yyyy'),'dd.MM.yyyy') = $P{reportDate}
+AND cpli.eventtyperefcode = 1
+GROUP BY cpl.transportdepartmntrfcd, cpli.transportrealrefcode) AS tr_sec
+INNER JOIN entransportdepartment AS dep ON tr_sec.transportdepartmntrfcd = dep.code
+INNER JOIN tktransportreal AS tr ON tr_sec.transportrealrefcode = tr.code
+ORDER BY tr_sec.transportdepartmntrfcd, dep.name]]>
+	</queryString>
+	<field name="department_name" class="java.lang.String"/>
+	<field name="gosnumber" class="java.lang.String"/>
+	<field name="transportdepartmntrfcd" class="java.lang.Double"/>
+	<field name="transportrealrefcode" class="java.lang.Double"/>
+	<field name="timeevent" class="java.lang.String"/>
+	<field name="transport_name" class="java.lang.String"/>
+	<field name="seconds" class="java.lang.Integer"/>
+	<field name="dateevent" class="java.util.Date"/>
+	<variable name="avg_total_seconds" class="java.lang.Integer" resetType="Group" resetGroup="total_values" calculation="Average">
+		<variableExpression><![CDATA[$F{seconds}]]></variableExpression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="dateevent" class="java.util.Date" resetType="Group" resetGroup="total_values" calculation="First">
+		<variableExpression><![CDATA[$F{dateevent}]]></variableExpression>
+		<initialValueExpression><![CDATA[null]]></initialValueExpression>
+	</variable>
+	<variable name="avg_hours" class="java.lang.Integer">
+		<variableExpression><![CDATA[$V{avg_total_seconds} / 3600]]></variableExpression>
+	</variable>
+	<variable name="avg_minutes" class="java.lang.Integer">
+		<variableExpression><![CDATA[($V{avg_total_seconds} - ($V{avg_hours} * 3600)) / 60]]></variableExpression>
+	</variable>
+	<variable name="avg_seconds" class="java.lang.Integer">
+		<variableExpression><![CDATA[$V{avg_total_seconds} - ($V{avg_hours} * 3600) - ($V{avg_minutes} * 60)]]></variableExpression>
+	</variable>
+	<group name="total_values">
+		<groupExpression><![CDATA[$F{transportdepartmntrfcd}]]></groupExpression>
+		<groupHeader>
+			<band height="40">
+				<textField>
+					<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="780" height="40"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Left" verticalAlignment="Middle" markup="none">
+						<font fontName="Times New Roman" isBold="true" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{department_name}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="40">
+				<textField>
+					<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="580" height="40"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Left" verticalAlignment="Middle" markup="none">
+						<font fontName="Times New Roman" isBold="true" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[String.format("Середній час виїзду по %s:", $F{department_name})]]></textFieldExpression>
+				</textField>
+				<textField evaluationTime="Group" evaluationGroup="total_values">
+					<reportElement stretchType="RelativeToTallestObject" x="580" y="0" width="200" height="40"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+						<font fontName="Times New Roman" isBold="true" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+					</textElement>
+					<textFieldExpression><![CDATA[String.format("%02d:%02d:%02d", $V{avg_hours}
+    , $V{avg_minutes}
+    , $V{avg_seconds}
+)]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="50">
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="780" height="50" isPrintWhenDetailOverflows="true"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="18"/>
+				</textElement>
+				<textFieldExpression><![CDATA[String.format("Середній час виїзду автотранспорту по транспортних підрозділах.\n%s"
+    , Tools.dateFormatDefault.format($P{reportDate}))]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="40">
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="380" y="0" width="200" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" isBold="true" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Державний реєстраційний номер]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="580" y="0" width="200" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" isBold="true" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Час виїзду]]></text>
+			</staticText>
+			<staticText>
+				<reportElement stretchType="RelativeToTallestObject" x="50" y="0" width="330" height="40"/>
+				<box>
+					<pen lineWidth="1.0"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" isBold="true" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<text><![CDATA[Найменування транспорту]]></text>
+			</staticText>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman" isBold="true" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA["№ з/п"]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="40">
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="50" y="0" width="330" height="40"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{transport_name}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="380" y="0" width="200" height="40"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{gosnumber}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="580" y="0" width="200" height="40"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{timeevent}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman" pdfFontName="Times-Roman" pdfEncoding="Cp1251" isPdfEmbedded="false"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{total_values_COUNT}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<noData>
+		<band height="50">
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="50" y="0" width="730" height="50" isPrintWhenDetailOverflows="true"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="18"/>
+					<paragraph leftIndent="150"/>
+				</textElement>
+				<textFieldExpression><![CDATA[String.format("Немає даних для формування звіту по заданих параметрах.\nДата: %s."
+, Tools.dateFormatDefault.format($P{reportDate}))]]></textFieldExpression>
+			</textField>
+		</band>
+	</noData>
+</jasperReport>

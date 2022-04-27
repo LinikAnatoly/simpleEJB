@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="CheckbyList" pageWidth="600" pageHeight="595" orientation="Landscape" columnWidth="600" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="molcode" class="java.lang.String">
+		<parameterDescription><![CDATA[код мола]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new String("1008")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="typefuel" class="java.lang.Integer">
+		<parameterDescription><![CDATA[1- бензин
+2- ДТ]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="sumgenin" class="java.math.BigDecimal">
+		<defaultValueExpression><![CDATA[new BigDecimal(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="sumgenstart" class="java.math.BigDecimal">
+		<defaultValueExpression><![CDATA[new BigDecimal(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="countin" class="java.math.BigDecimal">
+		<defaultValueExpression><![CDATA[new BigDecimal(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="countgenstart" class="java.math.BigDecimal">
+		<defaultValueExpression><![CDATA[new BigDecimal(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="molname" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("Іщенко М.А. Диспетчер автотранспорту СТ")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="yearGen" class="java.lang.Integer" isForPrompting="false"/>
+	<parameter name="monthGen" class="java.lang.Integer" isForPrompting="false"/>
+	<parameter name="actstatus" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[Select trr.code as transportrealcode ,  ' '||trr.invnumber as invnumber , trrmark.name , trr.gosnumber , trrmark.transporttypecode
+  , to_char(( select to_date(1||'.'||$P{monthGen}||'.'||$P{yearGen}, 'dd.mm.yyyy') ),'dd.mm.yyyy') as datestart
+   ,to_char(( select last_day(to_date(1||'.'||$P{monthGen}||'.'||$P{yearGen}, 'dd.mm.yyyy')) ),'dd.mm.yyyy') as dateend
+
+ from tktransportreal trr , tktransportmark trrmark , tkfueltype tkf,
+     /*Подзапрос, который возвращает список кодов транспорта которым владел МОЛ с кодом molcode
+    в период между DateStart, DateEnd*/
+    			(select
+					/*Код автотранспорта*/
+     				tktransportrealhistory.transportrealrefcode,
+     				/*Начало срока владения этого автотранспорта этим МОЛом в этом месяце*/
+    				min(case
+    					when DateStart >= to_date(1||'.'||$P{monthGen}||'.'||$P{yearGen}, 'dd.mm.yyyy')
+        					and (select trh1.finmolcode from tktransportrealhistory as trh1 where trh1.code =  tktransportrealhistory.parentrefcode) != tktransportrealhistory.finmolcode
+        				then DateStart
+     					else to_date(1||'.'||$P{monthGen}||'.'||$P{yearGen}, 'dd.mm.yyyy')
+    					end) as DateStart,
+    				/*Конец срока владения этого автотранспорта этим МОЛом в этом месяце*/
+    				max(case
+    					when coalesce(datefinal, last_day(to_date(1||'.'||$P{monthGen}||'.'||$P{yearGen}, 'dd.mm.yyyy'))) <= last_day(to_date(1||'.'||$P{monthGen}||'.'||$P{yearGen}, 'dd.mm.yyyy'))
+    					then coalesce(datefinal, last_day(to_date(1||'.'||$P{monthGen}||'.'||$P{yearGen}, 'dd.mm.yyyy')))
+        				else last_day(to_date(1||'.'||$P{monthGen}||'.'||$P{yearGen}, 'dd.mm.yyyy'))
+    					end) as DateEnd
+     			from
+     				tktransportrealhistory
+     			where
+     				tktransportrealhistory.finmolcode = $P{molcode}
+     			and (
+     					(tktransportrealhistory.DateStart >= to_date(1||'.'||$P{monthGen}||'.'||$P{yearGen}, 'dd.mm.yyyy')
+     					and coalesce(tktransportrealhistory.datefinal,tktransportrealhistory.DateStart) <= last_day(to_date(1||'.'||$P{monthGen}||'.'||$P{yearGen}, 'dd.mm.yyyy'))
+     					)
+     					or (to_date(1||'.'||$P{monthGen}||'.'||$P{yearGen}, 'dd.mm.yyyy') >= tktransportrealhistory.DateStart
+        				and to_date(1||'.'||$P{monthGen}||'.'||$P{yearGen}, 'dd.mm.yyyy') <= coalesce(tktransportrealhistory.datefinal, last_day(to_date(1||'.'||$P{monthGen}||'.'||$P{yearGen}, 'dd.mm.yyyy')))
+            			)
+        			)
+     			group by tktransportrealhistory.transportrealrefcode) as transport_history
+
+Where trr.transportmarkcode = trrmark.code
+     and trr.code = transport_history.transportrealrefcode
+     and trrmark.fueltypecode = tkf.code
+     and
+          (  /*бензин 1 */
+          ( tkf.code not in (75000003)  and $P{typefuel} = 1 )
+           or
+           /*дизтопливо */
+           ( tkf.code =  75000003  and $P{typefuel} = 2 )
+           )
+     Order by trrmark.transporttypecode , trr.code]]>
+	</queryString>
+	<field name="transportrealcode" class="java.lang.Integer"/>
+	<field name="invnumber" class="java.lang.String"/>
+	<field name="name" class="java.lang.String"/>
+	<field name="gosnumber" class="java.lang.String"/>
+	<field name="transporttypecode" class="java.lang.Integer"/>
+	<field name="dateend" class="java.lang.String"/>
+	<field name="datestart" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="97" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-6" stretchType="RelativeToTallestObject" x="115" y="18" width="316" height="35" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="12" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new String($P{typefuel}.doubleValue() == 1  ?
+" Расшифровка сводной ведомости учета ГСМ   (бензин) "
+:
+" Расшифровка сводной ведомости учета ГСМ (дизтопливо) " ) + "\n" +
+ " з  " + $F{datestart} + " по " + $F{dateend}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" x="115" y="62" width="316" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="12" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["МОЛ " + $P{molcode} + " " + $P{molname}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="40" splitType="Stretch">
+			<staticText>
+				<reportElement key="staticText-1" x="0" y="0" width="35" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Инв.№]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-2" x="35" y="0" width="80" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Марка автомобиля]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-3" x="115" y="0" width="45" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Гос.№]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-4" x="160" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Тип топлива]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-5" x="210" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[кол-во.л]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-6" x="260" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Номер путевого листа]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-7" x="310" y="0" width="50" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Дата путевого]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-8" x="360" y="0" width="70" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Тип акта]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-9" x="430" y="0" width="40" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Номер акта]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-10" x="470" y="0" width="70" height="40"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Статус акта]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" x="0" y="0" width="35" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{invnumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-2" stretchType="RelativeToTallestObject" x="35" y="0" width="80" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-3" stretchType="RelativeToTallestObject" x="115" y="0" width="45" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{gosnumber}]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" stretchType="RelativeToTallestObject" mode="Transparent" x="160" y="0" width="379" height="20"/>
+				<subreportParameter name="transportrealcode">
+					<subreportParameterExpression><![CDATA[$F{transportrealcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DateStart">
+					<subreportParameterExpression><![CDATA[$F{datestart}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="DateEnd">
+					<subreportParameterExpression><![CDATA[$F{dateend}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="actstatus">
+					<subreportParameterExpression><![CDATA[$P{actstatus}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="molcode">
+					<subreportParameterExpression><![CDATA[$P{molcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/repSummaryListGSM/CheckbySheet/subCheckbyList_2.jasper")
+/*"C:/iReport-3.0.0/tmp/subCheckbyList.jasper"*/]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="50" splitType="Stretch"/>
+	</summary>
+</jasperReport>

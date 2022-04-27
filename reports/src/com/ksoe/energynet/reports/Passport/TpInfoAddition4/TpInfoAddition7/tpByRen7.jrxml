@@ -1,0 +1,531 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="tpByRen7" pageWidth="882" pageHeight="40" orientation="Landscape" whenNoDataType="BlankPage" columnWidth="882" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" scriptletClass="com.ksoe.energynet.reports.common.CNScriptlet" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="2"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="rencode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[ep renCode]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="renname" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="gauge_date" class="java.util.Date"/>
+	<queryString>
+		<![CDATA[select * from (
+
+select ss.s04code, ss.s04name, ss.s04typecode,
+  ss.s04type, ss.s04nominalpower, ss.maxadmispower,
+  ss.gauge_s04_power, ss.power_admis_reserv,
+  coalesce(ss.gauge_s04_power, 0) + coalesce(ss.power_admis_reserv, 0) as gauge_power,
+  ss.geographiccode, ss.pvtu, ss.countty, ss.tr_cnt
+ from (
+select ss.subs150code as s04code,
+       ss.name as s04name,
+       case
+         when (ss.name like '% 35/%') and (ss.name not like '%15%/%') then 2
+         when (ss.name like '%15%/%') then 1
+         else 3
+       end as s04typecode,
+       '' as s04type,
+       ss.nominalpower as s04nominalpower,
+       ss.maxadmispower as maxadmispower,
+       ss.gauge_s04_power as gauge_s04_power,
+
+       case
+         when (ss.name like '% 35/%') and (ss.name not like '%15%/%')
+           then
+             (select
+              /*если фактическая мощность превышает договорную, берем фактическую*/
+                case
+                  when (sum(coalesce(bl.summ_byt, 0) + coalesce(bl.summ_prom, 0)
+                    - coalesce(bl.powerc_byt, 0) - coalesce(bl.powerc_prom, 0))) < 0
+                  then sum(coalesce(bl.powerc_byt, 0) + coalesce(bl.powerc_prom, 0))
+                  else sum(coalesce(bl.summ_byt, 0) + coalesce(bl.summ_prom, 0)
+                    - coalesce(bl.powerc_byt, 0) - coalesce(bl.powerc_prom, 0))
+                end
+             from blsubstation35 bl
+             where bl.rencode = ss.rencode
+               and bl.ensubcode = ss.subs150code
+             )
+             / (select count(code) from ad4subst150 where subs150code = ss.subs150code)
+             /*
+             / (select
+               case
+                  when count(code) = 0 then
+                    1
+                  else
+                    count(code)
+               end
+             from ensubst150powertrans
+             where ensubst150powertrans.substationrefcode = ss.subs150code
+             ) --для выборки загрузок ПС 150 / 35 / 10 - 6 кВ по трансформаторам
+             */
+         when (ss.name like '%15%/%')
+           then
+             (select
+              /*если фактическая мощность превышает договорную, берем фактическую*/
+                case
+                  when (sum(coalesce(bl.summ_byt, 0) + coalesce(bl.summ_prom, 0)
+                    - coalesce(bl.powerc_byt, 0) - coalesce(bl.powerc_prom, 0))) < 0
+                  then sum(coalesce(bl.powerc_byt, 0) + coalesce(bl.powerc_prom, 0))
+                  else sum(coalesce(bl.summ_byt, 0) + coalesce(bl.summ_prom, 0)
+                    - coalesce(bl.powerc_byt, 0) - coalesce(bl.powerc_prom, 0))
+                end
+             from blsubstation_150 bl
+
+             where bl.rencode = ss.rencode
+               and bl.ensubcode = ss.subs150code
+             ) / (select count(code) from ad4subst150 where subs150code = ss.subs150code)
+             /*
+             / (select
+               case
+                  when count(code) = 0 then
+                    1
+                  else
+                    count(code)
+               end
+             from ensubst150powertrans
+             where ensubst150powertrans.substationrefcode = ss.subs150code
+             ) --для выборки загрузок ПС 150 / 35 / 10 - 6 кВ по трансформаторам
+             */
+
+       end as power_admis_reserv,
+
+
+       (select c.geographiccode from encoordinates c where c.elementcode = ss.elementcode) as geographiccode,
+       0 as pvtu,
+
+       case
+         when (ss.name like '% 35/%') and (ss.name not like '%15%/%')
+           then
+             (select sum(coalesce(bl.cnt_byt, 0) + coalesce(bl.cnt_prom, 0))
+             from  blsubstation35 bl where bl.rencode = ss.rencode
+             and bl.ensubcode = ss.subs150code)
+             / (select count(code) from ad4subst150 where subs150code = ss.subs150code)
+         when (ss.name like '%15%/%')
+           then
+             (select sum(coalesce(bl.cnt_byt, 0) + coalesce(bl.cnt_prom, 0))
+             from  blsubstation_150 bl
+             where bl.rencode = ss.rencode
+             and bl.ensubcode = ss.subs150code)
+             / (select count(code) from ad4subst150 where subs150code = ss.subs150code)
+       end as countty,
+       (select count(code) from ad4subst150 where subs150code = ss.subs150code) as tr_cnt
+from ad4subst150 ss
+where ss.rencode = $P{rencode}
+) ss
+
+
+union all
+
+select s04.s04code, s04.s04name, s04.s04typecode,
+  s04.s04type, s04.s04nominalpower, s04.maxadmispower,
+  s04.gauge_s04_power, s04.power_admis_reserv,
+  coalesce(s04.gauge_s04_power, 0) + coalesce(s04.power_admis_reserv, 0) as gauge_power,
+  s04.geographiccode, s04.pvtu, s04.countty, s04.tr_cnt
+from (
+select
+   ensubstation04.code as s04code,
+   (ensubstation04.name ||
+     case
+       when exists(select entransformer.code from entransformer
+           where entransformer.substation04refcode = ensubstation04.code)
+         then
+           ', ' || (select coalesce(/*t.name || '/' ||*/
+             cast(t.highvoltage/1000 as numeric(10,1)) || '/' ||
+             cast(t.lowvoltage/1000 as numeric(10,1)),'')
+           from entransformer t
+           where t.substation04refcode = ensubstation04.code
+	   order by t.lowvoltage, t.highvoltage limit 1)
+       else ''
+     end
+   ) as s04name,
+   (ensubstation04.substationtypecode+2) /* 1,2-й - 150 и 35 */ as s04typecode,
+   ensubstationtype.name as s04type,
+
+   (select coalesce(min(nominalpower), 0) from entransformer
+    where substation04refcode = ensubstation04.code) as s04nominalpower,
+
+   case
+     when (select count(code) from entransformer
+         where entransformer.substation04refcode = ensubstation04.code) < 2
+       then
+         0.92 * coalesce(ensubstation04.nominalpower, 0)
+     else
+       (select 0.92 * 1.4 * coalesce(sum(entransformer.nominalpower) -
+         max(entransformer.nominalpower), 0)
+       from entransformer
+       where entransformer.substation04refcode = ensubstation04.code)
+   end as maxadmispower,
+   round
+   (cast
+     (0.38 * sqrt(3) * 0.92 *
+       (
+         select coalesce(max(fg.gauge_sum_cur), 0) from
+           (
+             select sum(
+
+               case /*Проверка перекоса фаз 20%*/
+                 when /*Если есть перекос фаз 20%*/
+                     /*Ток жёлтой фазы A больше остальных*/
+                     (
+                       coalesce(enfiderguage.currentphaseyellow, 0) >
+                         coalesce(enfiderguage.currentphasegreen, 0)
+                       and coalesce(enfiderguage.currentphasegreen, 0) >=
+                         coalesce(enfiderguage.currentphasered, 0)
+                       and
+                         (coalesce(enfiderguage.currentphaseyellow, 0) -
+                         coalesce(enfiderguage.currentphasered, 0)) /
+                         coalesce(enfiderguage.currentphaseyellow, -1) >= 0.2
+                     )
+                     or
+                     (
+                       coalesce(enfiderguage.currentphaseyellow, 0) >
+                         coalesce(enfiderguage.currentphasered, 0)
+                       and coalesce(enfiderguage.currentphasered, 0) >
+                         coalesce(enfiderguage.currentphasegreen, 0)
+                       and
+                         (coalesce(enfiderguage.currentphaseyellow, 0) -
+                         coalesce(enfiderguage.currentphasegreen, 0)) /
+                         coalesce(enfiderguage.currentphaseyellow, -1) >= 0.2
+                     )
+                     or
+                     /*Ток зелёной фазы B больше остальных*/
+                     (
+                       coalesce(enfiderguage.currentphasegreen, 0) >
+                         coalesce(enfiderguage.currentphaseyellow, 0)
+                       and coalesce(enfiderguage.currentphaseyellow, 0) >=
+                         coalesce(enfiderguage.currentphasered, 0)
+                       and
+                         (coalesce(enfiderguage.currentphasegreen, 0) -
+                         coalesce(enfiderguage.currentphasered, 0)) /
+                         coalesce(enfiderguage.currentphasegreen, -1) >= 0.2
+                     )
+                     or
+                     (
+                       coalesce(enfiderguage.currentphasegreen, 0) >
+                         coalesce(enfiderguage.currentphasered, 0)
+                       and coalesce(enfiderguage.currentphasered, 0) >
+                         coalesce(enfiderguage.currentphaseyellow, 0)
+                       and
+                         (coalesce(enfiderguage.currentphasegreen, 0) -
+                         coalesce(enfiderguage.currentphaseyellow, 0)) /
+                         coalesce(enfiderguage.currentphasegreen, -1) >= 0.2
+                     )
+                     or
+                     /*Ток красной фазы C больше остальных*/
+                     (
+                       coalesce(enfiderguage.currentphasered, 0) >
+                         coalesce(enfiderguage.currentphaseyellow, 0)
+                       and coalesce(enfiderguage.currentphaseyellow, 0) >=
+                         coalesce(enfiderguage.currentphasegreen, 0)
+                       and
+                         (coalesce(enfiderguage.currentphasered, 0) -
+                         coalesce(enfiderguage.currentphasegreen, 0)) /
+                         coalesce(enfiderguage.currentphasered, -1) >= 0.2
+                     )
+                     or
+                     (
+                       coalesce(enfiderguage.currentphasered, 0) >
+                         coalesce(enfiderguage.currentphasegreen, 0)
+                       and coalesce(enfiderguage.currentphasegreen, 0) >
+                         coalesce(enfiderguage.currentphaseyellow, 0)
+                       and
+                         (coalesce(enfiderguage.currentphasered, 0) -
+                         coalesce(enfiderguage.currentphaseyellow, 0)) /
+                         coalesce(enfiderguage.currentphasered, -1) >= 0.2
+                     )
+                   then
+                     ( /*Среднее арифметическое токов фаз на дату*/
+                       coalesce(enfiderguage.currentphaseyellow, 0) +
+                       coalesce(enfiderguage.currentphasegreen, 0) +
+                       coalesce(enfiderguage.currentphasered, 0)
+                     ) / 3
+                 else /*Если нет перекоса фаз 20%*/
+                   case /*Сравнение токов фаз на дату*/
+                     when (coalesce(enfiderguage.currentphaseyellow, 0) >=
+                         coalesce(enfiderguage.currentphasegreen, 0))
+                     and (coalesce(enfiderguage.currentphaseyellow, 0) >=
+                         coalesce(enfiderguage.currentphasered, 0))
+                       then /*Ток жёлтой фазы*/
+                         coalesce(enfiderguage.currentphaseyellow, 0)
+                     when (coalesce(enfiderguage.currentphasegreen, 0) >=
+                         coalesce(enfiderguage.currentphaseyellow, 0))
+                     and (coalesce(enfiderguage.currentphasegreen, 0) >=
+                         coalesce(enfiderguage.currentphasered, 0))
+                       then /*Ток зелёной фазы*/
+                         coalesce(enfiderguage.currentphasegreen, 0)
+                     else   /*Ток красной фазы*/
+                         coalesce(enfiderguage.currentphasered, 0)
+                   end
+               end
+
+             ) as gauge_sum_cur
+             from enfiderguage
+             where enfiderguage.substation04code = ensubstation04.code
+             and enfiderguage.isgenswitchdev = 1
+             and enfiderguage.dateguage
+               between cast($P{gauge_date} as date) - 365
+               and cast($P{gauge_date} as date)
+             group by enfiderguage.substation04code, enfiderguage.dateguage
+
+           ) fg
+       )
+      as numeric
+     ), 2
+   ) as gauge_s04_power,
+
+   (select
+      /* если фактическая мощность превышает договорную, берем фактическую */
+     case when (sum(coalesce(bl.summ_byt, 0) + coalesce(bl.summ_prom, 0)
+              - coalesce(bl.powerc_byt, 0) - coalesce(bl.powerc_prom, 0))) < 0
+        then sum(coalesce(bl.powerc_byt, 0) + coalesce(bl.powerc_prom, 0))
+          else sum(coalesce(bl.summ_byt, 0) + coalesce(bl.summ_prom, 0)
+                 - coalesce(bl.powerc_byt, 0) - coalesce(bl.powerc_prom, 0)) end
+
+   from ensubstation2blsubsttn s2, blsubstation bl
+   where (s2.blsubstbytcode = bl.code_byt or s2.blsubstpromcode = bl.code_prom)
+   and s2.ensubstcode = ensubstation04.code
+   and bl.rencode = enelement.renrefcode
+   and s2.typecode = 4
+   ) as power_admis_reserv,
+
+   case
+     when exists (select encoordinates.code from encoordinates where
+         encoordinates.elementcode = enelement.code)
+       then
+         (select cast(coalesce(encoordinates.geographiccode, '') as varchar) from encoordinates
+          where encoordinates.elementcode = enelement.code)
+       else ''
+   end as geographiccode,
+   0 as pvtu,
+
+   (select sum(coalesce(bl.cnt_byt, 0) + coalesce(bl.cnt_prom, 0))
+   from ensubstation2blsubsttn s2, blsubstation bl
+   where (s2.blsubstbytcode = bl.code_byt or s2.blsubstpromcode = bl.code_prom)
+   and s2.ensubstcode = ensubstation04.code
+   and bl.rencode = enelement.renrefcode
+   and s2.typecode = 4
+   ) as countty,
+
+   (select count(code) from entransformer where substation04refcode = ensubstation04.code
+   ) as tr_cnt
+
+ from enelement, epren, ensubstationtype, ensubstation04
+
+ where ensubstation04.elementcode = enelement.code
+ and epren.code = enelement.renrefcode
+ and ensubstationtype.code = ensubstation04.substationtypecode
+ and ensubstation04.dontuse = 0 /* 1 - не юзать в отчете */
+
+ and enelement.renrefcode = $P{rencode}
+ ) s04) w
+order by 3, 2]]>
+	</queryString>
+	<field name="s04code" class="java.lang.Integer"/>
+	<field name="s04name" class="java.lang.String"/>
+	<field name="s04typecode" class="java.lang.Double"/>
+	<field name="s04type" class="java.lang.String"/>
+	<field name="s04nominalpower" class="java.math.BigDecimal"/>
+	<field name="gauge_power" class="java.math.BigDecimal"/>
+	<field name="geographiccode" class="java.lang.String"/>
+	<field name="gauge_s04_power" class="java.math.BigDecimal"/>
+	<field name="power_admis_reserv" class="java.math.BigDecimal"/>
+	<field name="maxadmispower" class="java.math.BigDecimal"/>
+	<field name="countty" class="java.math.BigDecimal"/>
+	<field name="pvtu" class="java.math.BigDecimal"/>
+	<field name="tr_cnt" class="java.math.BigDecimal"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-15" stretchType="RelativeToBandHeight" x="0" y="0" width="582" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Назва структурного підрозділу"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-16" stretchType="RelativeToBandHeight" x="582" y="0" width="300" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{renname}]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-11" x="582" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{gauge_power}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-12" x="682" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{power_admis_reserv}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-1" x="25" y="0" width="301" height="20"/>
+				<box leftPadding="2">
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{s04name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-3" x="0" y="0" width="25" height="20"/>
+				<box leftPadding="2" rightPadding="2">
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{REPORT_COUNT}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-4" x="732" y="0" width="75" height="20"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-6" x="326" y="0" width="156" height="20"/>
+				<box rightPadding="2">
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{geographiccode}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0;-###0" isBlankWhenNull="true">
+				<reportElement key="textField-7" x="482" y="0" width="50" height="20"/>
+				<box rightPadding="2">
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{s04nominalpower}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0;-###0" isBlankWhenNull="true">
+				<reportElement key="textField-17" x="532" y="0" width="50" height="20"/>
+				<box rightPadding="2">
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{maxadmispower}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-18" x="807" y="0" width="75" height="20"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" mode="Transparent" x="732" y="0" width="150" height="20"/>
+				<dataSourceExpression><![CDATA[((com.ksoe.energynet.reports.common.CNScriptlet) $P{REPORT_SCRIPTLET}).getConnectedPowerByMaxAdmis($F{s04code}.intValue(), $P{gauge_date}, $F{maxadmispower}, $F{gauge_power}, $F{s04typecode}, $F{tr_cnt})]]></dataSourceExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/Passport/TpInfoAddition4/TpInfoAddition7/powerRezerv7.jasper")]]></subreportExpression>
+			</subreport>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-8" x="632" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{gauge_s04_power}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

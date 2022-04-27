@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="OperativeJournal" pageWidth="595" pageHeight="842" whenNoDataType="NoDataSection" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="molcode" class="java.lang.String">
+		<parameterDescription><![CDATA[Код МВО Центрального складу]]></parameterDescription>
+		<defaultValueExpression><![CDATA["1814"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="issentmaterials" class="java.lang.Integer">
+		<parameterDescription><![CDATA[1 - відправлені виконавцю, 0 - не відправлені, -1 - всі]]></parameterDescription>
+		<defaultValueExpression><![CDATA[-1]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateStart" class="java.util.Date">
+		<parameterDescription><![CDATA[Початкова дата пошуку]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new java.util.Date()]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateFinal" class="java.util.Date">
+		<parameterDescription><![CDATA[Кінцева дата пошуку]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new java.util.Date()]]></defaultValueExpression>
+	</parameter>
+	<parameter name="molname" class="java.lang.String">
+		<parameterDescription><![CDATA[Название МОЛ, кот. будет использоваться в заглавии]]></parameterDescription>
+	</parameter>
+	<queryString>
+		<![CDATA[select de.name as department_name, fo.dategen as date, co.name as counter_name, count(co.code) as counter_count from rqfkorder as fo
+inner join endepartment as de on fo.departmentcode = de.code
+inner join scinvoice as inv on fo.code = inv.fkorderrefcode
+inner join scorder as ord on inv.code = ord.invoicerefcode
+inner join scorder2counter as ord2co on ord.code = ord2co.scorderrefcode
+inner join sccounter as co on ord2co.counterrefcode = co.code
+ where
+exists (
+select distinct 1
+from enestimateitem ei,enplanwork pw,rqfkorderitem2enstmttm fi2ei,rqfkorderitem fi
+where ei.planrefcode = pw.code
+and ei.code = fi2ei.estimateitemcode
+and fi2ei.fkorderitemrefcode = fi.code
+and pw.kindcode = 2
+and ei.accountingtyperefcode = 2
+and ei.kindrefcode = 1
+and ei.materialrefcode in (2000001969, 2000001970)
+and fi.fkorderrefcode = fo.code
+)
+and co.statusrefcode <> 100
+and fo.dategen between $P{dateStart} and $P{dateFinal}
+and fo.molincode = $P{molcode}
+and case when $P{issentmaterials} = -1 then 1=1 else fo.ismaterialssent = $P{issentmaterials} end
+group by de.name, fo.dategen, co.name]]>
+	</queryString>
+	<field name="department_name" class="java.lang.String"/>
+	<field name="date" class="java.sql.Date"/>
+	<field name="counter_name" class="java.lang.String"/>
+	<field name="counter_count" class="java.lang.Long"/>
+	<title>
+		<band height="72">
+			<textField isStretchWithOverflow="true">
+				<reportElement x="0" y="22" width="555" height="50"/>
+				<box>
+					<topPen lineWidth="0.0"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="14" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["передачі лічильників під послуги на сторону з " + new SimpleDateFormat("dd.MM.yyyy").format($P{dateStart}) + " по " + new SimpleDateFormat("dd.MM.yyyy").format($P{dateFinal}) + "\n" +
+"по МВО: " + $P{molcode} + ' ' + $P{molname} + ( $P{issentmaterials} == -1 ? "" : ( $P{issentmaterials} == 0 ? "(не відправлені виконавцю)" : "(відправлені виконавцю)" ) )]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="0" y="0" width="555" height="22"/>
+				<box>
+					<topPen lineWidth="0.0"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="14" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Звіт"]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="37">
+			<textField>
+				<reportElement x="0" y="0" width="110" height="37"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Підрозділ"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="110" y="0" width="104" height="37"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Дата"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="420" y="0" width="135" height="37"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Кількість лічильників"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="214" y="0" width="206" height="37"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Найменування"]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="110" y="0" width="104" height="20"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new SimpleDateFormat("dd.MM.yyyy").format($F{date})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="420" y="0" width="135" height="20"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{counter_count}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="110" height="20"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{department_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="214" y="0" width="206" height="20"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{counter_name}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<noData>
+		<band height="50">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="0" y="0" width="555" height="50"/>
+				<box>
+					<topPen lineWidth="0.0"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["За обраними  параметрами не знайдено даних для звіту: \n" +
+"МВО: " + $P{molcode} + " " + $P{molname} + "\n" +
+"Період: з " + new SimpleDateFormat("dd.MM.yyyy").format($P{dateStart}) + " по " + new SimpleDateFormat("dd.MM.yyyy").format($P{dateFinal}) + "\n" +
+"Відправлено виконавцю: " + ( $P{issentmaterials} == -1 ? "Всі" : ( $P{issentmaterials} == 0 ? "Не відправлено" : "Відправлено" ) )]]></textFieldExpression>
+			</textField>
+		</band>
+	</noData>
+</jasperReport>

@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="friday_debetors" pageWidth="1049" pageHeight="802" orientation="Landscape" columnWidth="1049" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="255"/>
+	<property name="ireport.y" value="0"/>
+	<queryString>
+		<![CDATA[select
+(select name from res.epren) as renname,
+count(vr.rpc) as kvsego,sum(vr.saldo) as svsego,
+       count(do2007o) as kdo2007o,sum(COALESCE(vr.do2007osum,0)) as sdo2007o,
+       count(do2007r) as kdo2007r,sum(COALESCE(vr.do2007rsum,0)) as sdo2007r,
+       count(po2007o) as kpo2007o,sum(COALESCE(vr.po2007osum,0)) as spo2007o,
+       count(po2007r) as kpo2007r,sum(COALESCE(vr.po2007rsum,0)) as spo2007r,
+       count(po2007rizv) as kpo2007izv,sum(COALESCE(vr.po2007rsumizv,0)) as spo2007izv
+from (select rp.code as rpc,rp.name,((rp.debet - rp.credit)- coalesce(v.sumb,0)) as saldo,
+       case
+        when v3.p < '01.01.2007' and rp.isworkingcode = 0
+         then rp.code
+       end as do2007r,
+       case
+        when v3.p < '01.01.2007' and rp.isworkingcode = 0
+         then ((rp.debet - rp.credit)- coalesce(v.sumb,0))
+       end as do2007rsum,
+       case
+        when v3.p < '01.01.2007' and rp.isworkingcode <> 0
+         then rp.code
+       end as do2007o,
+       case
+        when v3.p < '01.01.2007' and rp.isworkingcode <> 0
+         then ((rp.debet - rp.credit)- coalesce(v.sumb,0))
+       end as do2007osum,
+       case
+        when v3.p >= '01.01.2007' and rp.isworkingcode <> 0
+         then rp.code
+       end as po2007o,
+       case
+        when v3.p >= '01.01.2007' and rp.isworkingcode <> 0
+         then ((rp.debet - rp.credit)- coalesce(v.sumb,0))
+       end as po2007osum,
+       case
+        when v3.p >= '01.01.2007' and rp.isworkingcode = 0
+         then rp.code
+       end as po2007r,
+       case
+        when v3.p >= '01.01.2007' and rp.isworkingcode = 0
+         then ((rp.debet - rp.credit)- coalesce(v.sumb,0))
+       end as po2007rsum,
+       case
+        when (v3.p >= '01.01.2007'
+             and rp.isworkingcode = 0
+             and (select /*+ RULE (w)*/ distinct w.recordpontrfcode
+                 from res.warning w
+                 where w.recordpontrfcode = rp.code
+                 and w.deliverydate is not null
+                 and w.dategen between v3.p and (CURRENT_DATE)) is not NULL)
+         then rp.code
+       end as po2007rizv,
+       case
+        when (v3.p >= '01.01.2007'
+             and rp.isworkingcode = 0
+             and (select /*+ RULE (w)*/ distinct w.recordpontrfcode
+                 from res.warning w
+                 where w.recordpontrfcode = rp.code
+                 and w.deliverydate is not null
+                 and w.dategen between v3.p and (CURRENT_DATE)) is not NULL)
+         then ((rp.debet - rp.credit)- coalesce(v.sumb,0))
+       end as po2007rsumizv
+from res.recordpoint rp
+     left join
+     (select /*+RULE (b1)*/ coalesce(sum(b1.topayaftercrrctn),0) as sumb, b1.recordpontrfcode as rpc
+     from res.bill b1
+     where b1.issueddate >= (select cp.startperioddate
+                            from res.currentperiod cp
+                            where cp.code = cast((select max(code) from res.currentperiod where statecode=0) as integer)-2)
+     and b1.invstatuscode = 0
+     and b1.calculationtypcd<>1
+     and b1.actcode is null
+     and (b1.subtypecode=0 or b1.subtypecode is null)
+     and ((b1.consumption <> 0)or(b1.consumption is null))
+     and b1.topayaftercrrctn > 0
+    group by b1.recordpontrfcode) v on v.rpc = rp.code
+    left join
+    (select /*+RULE (b1)*/ distinct b1.recordpontrfcode as rpc,max(b1.issueddate) as p
+    from res.bill b1
+    where b1.issueddate < (select cp.startperioddate
+                          from res.currentperiod cp
+                          where cp.code = cast((select max(code) from res.currentperiod where statecode=0) as integer)-2)
+    and b1.invstatuscode = 0
+    and b1.calculationtypcd<>1
+    and b1.actcode is null
+    and (b1.subtypecode=0 or b1.subtypecode is null)
+    and ((b1.consumption <> 0)or(b1.consumption is null))
+    and b1.topayaftercrrctn > 0
+    group by b1.recordpontrfcode) v3 on v3.rpc = rp.code
+
+where rp.code in (select /*+RULE (b1)*/ distinct b1.recordpontrfcode
+                 from res.bill b1
+                 where b1.issueddate < (select cp.startperioddate
+                                       from res.currentperiod cp
+                                       where cp.code = cast((select max(code) from res.currentperiod where statecode=0) as integer)-2)
+                 and b1.invstatuscode = 0
+                 and b1.calculationtypcd<>1
+                 and b1.actcode is null
+                 and (b1.subtypecode=0 or b1.subtypecode is null)
+                 and ((b1.consumption <> 0)or(b1.consumption is null))
+                 and b1.topayaftercrrctn > 0)) vr
+where vr.saldo > 15]]>
+	</queryString>
+	<field name="renname" class="java.lang.String"/>
+	<field name="kvsego" class="java.lang.Long"/>
+	<field name="svsego" class="java.math.BigDecimal"/>
+	<field name="kdo2007o" class="java.lang.Long"/>
+	<field name="sdo2007o" class="java.math.BigDecimal"/>
+	<field name="kdo2007r" class="java.lang.Long"/>
+	<field name="sdo2007r" class="java.math.BigDecimal"/>
+	<field name="kpo2007o" class="java.lang.Long"/>
+	<field name="spo2007o" class="java.math.BigDecimal"/>
+	<field name="kpo2007r" class="java.lang.Long"/>
+	<field name="spo2007r" class="java.math.BigDecimal"/>
+	<field name="kpo2007izv" class="java.lang.Long"/>
+	<field name="spo2007izv" class="java.math.BigDecimal"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="185" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{renname}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="185" y="0" width="72" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kvsego}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="401" y="0" width="72" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{sdo2007o}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="329" y="0" width="72" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kdo2007o}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="257" y="0" width="72" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{svsego}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="473" y="0" width="72" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kdo2007r}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="545" y="0" width="72" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{sdo2007r}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="617" y="0" width="72" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kpo2007o}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="689" y="0" width="72" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{spo2007o}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="832" y="0" width="72" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{spo2007r}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="904" y="0" width="72" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kpo2007izv}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="976" y="0" width="71" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{spo2007izv}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="761" y="0" width="71" height="20"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kpo2007r}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

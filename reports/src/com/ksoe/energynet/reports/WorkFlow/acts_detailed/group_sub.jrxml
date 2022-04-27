@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="group_sub" pageWidth="1600" pageHeight="802" orientation="Landscape" columnWidth="1600" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.210000000000003"/>
+	<property name="ireport.x" value="791"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="depCode" class="java.lang.Integer"/>
+	<parameter name="dateStart" class="java.lang.String"/>
+	<parameter name="dateEnd" class="java.lang.String"/>
+	<parameter name="isProm" class="java.lang.Integer"/>
+	<queryString>
+		<![CDATA[select
+base_q.*,
+(select sta.name from wfprocessstate sta where sta.code = base_q.last_mov_state_code) as last_mov_state_name,
+(select gr.code
+from  wfgroup2state gr2st, wfgroup gr
+where  base_q.last_mov_state_code = gr2st.statecode
+ and gr2st.wfgroupcode = gr.code and gr.wfgrouptypecode = 3)  as report_group_code ,
+(select gr.name
+from  wfgroup2state gr2st, wfgroup gr
+where  base_q.last_mov_state_code = gr2st.statecode
+ and gr2st.wfgroupcode = gr.code and gr.wfgrouptypecode = 3)  as report_group_name,
+ ac.code as actcode, ac.name as actname, ac.dategen as actdate, ac.valuekwt,
+ ac.topayvalue, ac.blanknumber,
+case ac.isprom when 1 then 'Пром' else 'Побут' end as isProm,
+ ac.idpack, ac.dategen,
+ ac.accountnumber,
+ ac.fio,  ac.addr, ac.statusto, ac.sumpay, ac.delta, ac.theftname
+ from
+(select pack_q.packcode, pack_q.packname, pack_q.customername,
+pack_q.customeraddress, pack_q.dateregistration, pack_q.packstatusname,
+pack_q.depname, pack_q.dfpackcode,
+ coalesce(pack_q.last_mov_state_code,pack_q.last_compl_mov_state_code) as last_mov_state_code
+   from
+(
+select pack.code as packcode, pack.name as packname, pack.customername, pack.customeraddress,
+pack.dateregistration, packst.name as packstatusname,
+dep.name as depname,  w2d.dfpackcode,
+(select mov.statecode
+from wfprocessmovement mov
+where mov.processcode = proc.code
+and mov.iscompleted = 0
+) as last_mov_state_code,
+(select m.statecode from wfprocessmovement m
+where m.finaldate in (
+select max(mov.finaldate) from wfprocessmovement mov
+where  mov.processcode = proc.code
+and mov.iscompleted = 1)
+and m.processcode = proc.code
+order by m.startdate desc
+limit 1) as last_compl_mov_state_code
+ from wfpack pack left join wfpack2dfpack w2d on (pack.code = w2d.packcode),
+  wfpackstatus packst,  wfdepartment dep,
+ wfprocess proc, wfprocessstatus procst
+where pack.departmentcode = dep.code
+and pack.subsystemcode = 4
+and pack.packstatuscode <> 1000
+and (pack.departmentcode =  $P{depCode} or $P{depCode} = -1)
+and pack.packstatuscode = packst.code
+and proc.processstatuscode = procst.code
+and proc.packcode = pack.code) as pack_q) as base_q
+left join act_all_detail ac on (base_q.dfpackcode = ac.idpack)
+where to_date(ac.dategen,'dd.MM.yyyy') between
+to_date($P{dateStart},'dd.MM.yyyy') and to_date($P{dateEnd},'dd.MM.yyyy')
+and (ac.isprom = $P{isProm} or $P{isProm} = -1)
+order by depname, blanknumber]]>
+	</queryString>
+	<field name="packcode" class="java.lang.Double"/>
+	<field name="packname" class="java.lang.String"/>
+	<field name="customername" class="java.lang.String"/>
+	<field name="customeraddress" class="java.lang.String"/>
+	<field name="dateregistration" class="java.sql.Date"/>
+	<field name="packstatusname" class="java.lang.String"/>
+	<field name="depname" class="java.lang.String"/>
+	<field name="dfpackcode" class="java.lang.Double"/>
+	<field name="last_mov_state_code" class="java.lang.Double"/>
+	<field name="last_mov_state_name" class="java.lang.String"/>
+	<field name="report_group_code" class="java.lang.Double"/>
+	<field name="report_group_name" class="java.lang.String"/>
+	<field name="actcode" class="java.lang.Double"/>
+	<field name="actname" class="java.lang.String"/>
+	<field name="actdate" class="java.lang.String"/>
+	<field name="valuekwt" class="java.lang.Double"/>
+	<field name="topayvalue" class="java.math.BigDecimal"/>
+	<field name="blanknumber" class="java.lang.String"/>
+	<field name="isprom" class="java.lang.String"/>
+	<field name="idpack" class="java.lang.Double"/>
+	<field name="dategen" class="java.lang.String"/>
+	<field name="accountnumber" class="java.lang.String"/>
+	<field name="fio" class="java.lang.String"/>
+	<field name="addr" class="java.lang.String"/>
+	<field name="statusto" class="java.lang.String"/>
+	<field name="sumpay" class="java.math.BigDecimal"/>
+	<field name="delta" class="java.math.BigDecimal"/>
+	<field name="theftname" class="java.lang.String"/>
+	<group name="depname">
+		<groupExpression><![CDATA[$F{depname}]]></groupExpression>
+		<groupHeader>
+			<band height="20">
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement stretchType="RelativeToBandHeight" x="0" y="0" width="940" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="0.0"/>
+						<leftPen lineWidth="0.0"/>
+						<bottomPen lineWidth="0.0"/>
+						<rightPen lineWidth="0.0"/>
+					</box>
+					<textElement verticalAlignment="Middle">
+						<font fontName="Times New Roman" size="11" isBold="true" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{depname}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="580" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{report_group_code}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="640" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{report_group_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1240" y="0" width="100" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{topayvalue}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1540" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{isprom}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1140" y="0" width="100" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{valuekwt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="60" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{actdate}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="120" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{accountnumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="180" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fio}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="380" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{addr}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="840" y="0" width="100" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{statusto}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="940" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{theftname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1440" y="0" width="100" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{delta}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1340" y="0" width="100" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{sumpay}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" pdfFontName="times.ttf" pdfEncoding="Cp1251"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{blanknumber}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

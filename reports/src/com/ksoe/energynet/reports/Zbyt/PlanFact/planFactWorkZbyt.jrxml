@@ -1,0 +1,641 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="planFactWorkZbyt" pageWidth="3000" pageHeight="595" orientation="Landscape" columnWidth="3000" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.2396694214876034"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="net.sf.jasperreports.export.xls.cell.locked" value="false"/>
+	<parameter name="datestart" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("01.03.2012")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="datefinal" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("31.03.2012")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="podr" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="finexecutorname" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="finexecutorcode" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="podrname" class="java.lang.String"/>
+	<parameter name="obj" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="worktypecode" class="java.lang.Integer"/>
+	<parameter name="formplan" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="statusplanfact" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="pwkindcode" class="java.lang.Integer"/>
+	<parameter name="axexecutorcode" class="java.lang.String"/>
+	<parameter name="empidlstr" class="java.lang.String"/>
+	<parameter name="cehname" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[/*запланированные работы и факт выполнения  енергосбыт */
+select 0 as isservices ,
+        q_month.plancodes as monthplancodes,
+        case when q_month.kartarefcode is null then  q_fact.kartarefcode  else q_month.kartarefcode end as monthkartarefcode ,
+        (select tty.name from tktechcard tt , tkclassificationtype tty
+                                    where case when q_month.kartarefcode is null then tt.code = q_fact.kartarefcode  else tt.code = q_month.kartarefcode end
+                                      and tt.classificationtypecode = tty.code
+                                      limit 1  ) as tkclassificationtype_name ,
+        case when q_month.tktechcardname is null then q_fact.tktechcardname else q_month.tktechcardname end as monthtktechcardname,
+        case when q_month.tktechcardtkmeasurement is null then q_fact.tktechcardtkmeasurement else q_month.tktechcardtkmeasurement end as monthtktechcardtkmeasurement,
+        q_month.countgen as monthcountgen,
+        q_month.timegen::numeric(15,2) as monthtimegen,
+        to_char(q_month.mindate,'dd.mm.yyyy') as monthmindate,
+        to_char(q_month.maxdate,'dd.mm.yyyy') as monthmaxdate,
+        q_fact.plancodes as factplancodes,
+        q_fact.kartarefcode as factkartarefcode,
+        q_fact.tktechcardname as facttktechcardname,
+        q_fact.tktechcardtkmeasurement as facttktechcardtkmeasurement ,
+        q_fact.countgen as factcountgen ,
+        coalesce(q_fact.timegen,0)::numeric(15,2) as facttimegen ,
+        to_char(q_fact.mindate,'dd.mm.yyyy') as factmindate,
+        to_char(q_fact.maxdate,'dd.mm.yyyy') as factmaxdate,
+        q_fact.materials as factmaterials ,
+        -- колонка додатки работы енергосбыт
+        (select a.name  from enreportadditnzbtmtrlg a where
+        ( case when q_month.kartarefcode is null then q_fact.kartarefcode else q_month.kartarefcode end ) in (select array2items(string_to_array(a.workcode,','))::double precision)
+                                                       and a.isservices = 0
+                                                       and a.zbytormetrology = 'zbyt'
+        limit 1) as info_adition
+ from
+ (   --не услуги
+    select  string_agg(pw.code::text,',') as plancodes , pwi.kartarefcode ,
+     tc.techkartnumber ||' ' || tc.name as tktechcardname
+      , tmeas.name as tktechcardtkmeasurement, sum(pwi.countgen) as countgen , sum(pwi.timegen) as timegen , min(pw.datestart) as mindate ,
+      max(pw.datestart) maxdate
+    from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas , finexecutor fw
+    where pw.finexecutorcode = fw.code
+    and pw.departmentrefcode = dep.code
+    and pw.code = pwi.planrefcode
+    and pwi.kartarefcode = tc.code
+    and tc.measurementcode = tmeas.code
+    and pwi.countgen <> 0
+    -- ограничение по бригадам сбытовым and pw.budgetrefcode = 240000001 --только енергосбыт
+    and pw.kindcode = $P{pwkindcode}
+    and pw.datestart between to_date($P{datestart},'dd.mm.yyyy') and to_date($P{datefinal},'dd.mm.yyyy')
+    -- and pw.typerefcode <> 101 --ЕЗ - Плановий обхід  --- не берем в репорт
+    and pw.typerefcode <> 8 --услуги отдельно
+	and tc.techcardsourcecode not  in (500000039,1000000004,1000000003) -- не берем работы взятые из калькуляций
+    and fw.axorgid = $P{axexecutorcode}
+    and ( pw.elementrefcode = $P{obj}  or $P{obj} = 0 )
+    and ( pw.typerefcode = $P{worktypecode} or $P{worktypecode} = 0   ) /*подвид работ*/
+    and ( pw.formrefcode = $P{formplan} or $P{formplan} = 0   ) /*работы плановые позаплановые*/
+	/*не берем месячные планы которые со статусом работы завершены и с них не делались задания планы(типа не выполнялись)*/
+    and case when (select ch.plannewrefcode from enplancorrecthistory ch
+                    where ch.planoldrefcode = pw.code
+                      and ch.reasoncode = 4 limit 1 ) is null          and pw.statuscode = 8 then 1=2 else 1=1 end
+
+    group by  pwi.kartarefcode, tc.name, tc.techkartnumber, tmeas.name
+) q_month
+full join
+(   /*НЕ УСЛУГИ*/
+	select  string_agg(plancode::text,',') as plancodes ,
+	        kartarefcode ,
+	        tktechcardname ,
+	        tktechcardtkmeasurement,
+	        case when kartarefcode = 2017041445 then
+               coalesce(sum((select sum(coalesce(pi2el.countgen,0)) from  enpwi2element pi2el where pi2el.planworkitemrefcode = pwicode )),0)
+            else
+               sum(countgen) end as countgen ,
+		    /*по факту часы считаем по работникам -так как берется в факте додатка3 */
+	        --sum(coalesce(timegen,0)) as timegen
+
+            case when kartarefcode = 2017041445 then
+	        coalesce(sum((select sum(coalesce(pi2el.countgen,0)) from  enpwi2element pi2el where pi2el.planworkitemrefcode = pwicode )),0) * coalesce(normoftime,0)
+	        else
+	        sum(coalesce(timegen,0)) end as timegen
+
+			, min(datestart) as mindate
+			, max(datestart) as maxdate
+	        , materials
+	        , normoftime
+	        FROM  (
+    select  pwi.code as pwicode,
+            pw.code as plancode , pwi.kartarefcode ,
+            tc.techkartnumber ||' ' || tc.name as tktechcardname , tmeas.name as tktechcardtkmeasurement,
+            pwi.countgen as countgen ,
+		    /*по факту часы считаем по работникам -так как берется в факте додатка3 */
+            sum(coalesce(hi.countfact,0)) as timegen
+			, pw.datestart
+            , ''::text as materials
+            , tc.normoftime
+    from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas
+    , net.enhumenitem hi , net.finworker fr
+    where hi.planitemrefcode = pwi.code
+    and  coalesce(hi.countfact  , 0 ) <> 0
+    and fr.kindrefcode = 2 /*Енергозбутовий  персонал*/
+    and fr.code = hi.finworkercode
+    and fr.tabnumber in (select array2items(string_to_array($P{empidlstr} ,',')))
+    and fr.departmentcode IN(
+					    SELECT q.fkorgid  FROM axorgid2fkorgid q  WHERE q.axorgid = $P{axexecutorcode}
+					    UNION ALL
+					    SELECT  $P{axexecutorcode} )
+    and pw.departmentrefcode = dep.code
+    and pw.code = pwi.planrefcode
+    and pwi.kartarefcode = tc.code
+    and tc.measurementcode = tmeas.code
+    and pwi.countgen <> 0
+    and ( pw.statuscode = $P{statusplanfact}  or $P{statusplanfact}= 0   )
+	and tc.techcardsourcecode not  in (500000039,1000000004,1000000003) -- не берем работы взятые из калькуляций
+	and pw.typerefcode <> 8 /*УСЛУГИ ОТДЕЛЬНО*/
+	-- ограничение по бригадам сбытовым and pw.budgetrefcode = 240000001 --только енергосбыт
+	and pw.kindcode = 4 /*ФАКТ*/
+	and pw.datestart between to_date($P{datestart},'dd.mm.yyyy') and to_date($P{datefinal},'dd.mm.yyyy')
+	and ( pw.elementrefcode = $P{obj}   or $P{obj} = 0 )
+    and ( pw.typerefcode = $P{worktypecode} or $P{worktypecode} = 0   ) /*подвид работ*/
+    and ( pw.formrefcode = $P{formplan}  or $P{formplan} = 0   ) /*работы плановые позаплановые*/
+    group by pw.code , pwi.code  , pwi.kartarefcode, tc.name, tc.techkartnumber , tmeas.name  , pw.datestart ,tc.normoftime
+    ) as sf
+    GROUP BY kartarefcode , tktechcardname , tktechcardtkmeasurement, materials , normoftime
+) Q_FACT
+ on  (q_month.kartarefcode = q_fact.kartarefcode)
+
+ UNION ALL /*-------------------------------------------------------------*/
+        select 1 as isservices ,
+        q_month.plancodes as monthplancodes,
+        case when q_month.kartarefcode is null then q_fact.kartarefcode else q_month.kartarefcode end as monthkartarefcode ,
+        case when q_month.tktechcardname is null then q_fact.tktechcardname else q_month.tktechcardname end as tkclassificationtype_name ,
+        case when q_month.tktechcardname is null then q_fact.tktechcardname else q_month.tktechcardname end as monthtktechcardname,
+        case when q_month.tktechcardtkmeasurement is null then q_fact.tktechcardtkmeasurement else q_month.tktechcardtkmeasurement end as monthtktechcardtkmeasurement,
+        coalesce(q_month.countgen,0) as monthcountgen,
+        coalesce(q_month.timegen,0) as monthtimegen,
+        to_char(q_month.mindate,'dd.mm.yyyy') as monthmindate,
+        to_char(q_month.maxdate,'dd.mm.yyyy') as monthmaxdate,
+        q_fact.plancodes as factplancodes,
+        q_fact.kartarefcode as factkartarefcode,
+        q_fact.tktechcardname as facttktechcardname,
+        q_fact.tktechcardtkmeasurement as facttktechcardtkmeasurement ,
+        q_fact.countgen as factcountgen ,
+        coalesce(q_fact.timegen,0)::numeric(15,2) as facttimegen ,
+         to_char(q_fact.mindate,'dd.mm.yyyy') as factmindate,
+        to_char(q_fact.maxdate,'dd.mm.yyyy') as factmaxdate,
+        q_fact.materials as factmaterials ,
+        -- колонка додатки услуги енергосбыт
+        (select a.name  from enreportadditnzbtmtrlg a where
+        ( case when q_month.kartarefcode is null then q_fact.kartarefcode else q_month.kartarefcode end ) in (select array2items(string_to_array(a.workcode,','))::double precision)
+                                                        and a.isservices = 1
+                                                        and a.zbytormetrology = 'zbyt'
+        limit 1 ) as info_adition
+ from
+ (   -- услуги - картарефкоде - это код классификации
+    select string_agg(plancode::text,',') as plancodes, kartarefcode , tktechcardname , tktechcardtkmeasurement,
+           sum(countgen) as countgen , sum(timegen) as timegen , min(mindate) as mindate , max(maxdate) as maxdate , ''::text as materials
+            from (
+              select  pw.code as plancode, tkcl.code as kartarefcode ,
+                     tkcl.kod ||' '|| tkcl.name as tktechcardname , 'ШТ'::text as tktechcardtkmeasurement,
+                    -- если услуга то кол-во берем со связки калькуляция-план
+                    case when pw.typerefcode = 8 then
+                     ( select p2c.countgen from enplanwork2classfctntp p2c
+                        where p2c.classificationtyperfcd = tkcl.code
+                          and p2c.planrefcode in ( select ph.planoldrefcode from enplancorrecthistory ph where ph.plannewrefcode = pw.code and ph.reasoncode = 13 )
+                          limit 1
+                        )
+                    else
+                    ( select max(pi.countgen) from enplanwork p , enplanworkitem pi , tktechcard tkd
+                       where p.code = pi.planrefcode
+                       and   pi.kartarefcode = tkd.code
+                       and   tkd.classificationtypecode = tkcl.code
+                       and   p.code = pw.code  ) end as countgen ,
+                     sum(pwi.timegen) as timegen ,
+                     pw.datestart as mindate , pw.datestart maxdate , ''::text as materials
+              from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas , tkclassificationtype tkcl
+             , finexecutor  fw
+              where pw.finexecutorcode = fw.code
+              and pw.departmentrefcode = dep.code
+              and pw.code = pwi.planrefcode
+              and pwi.kartarefcode = tc.code
+              and tc.measurementcode = tmeas.code
+              and pwi.countgen <> 0
+              and tc.classificationtypecode = tkcl.code
+              and fw.axorgid = $P{axexecutorcode}
+              -- ограничение по бригадам сбытовым and pw.budgetrefcode = 240000001 --только енергосбыт
+              and pw.kindcode = $P{pwkindcode}
+              and pw.datestart between to_date($P{datestart},'dd.mm.yyyy') and to_date($P{datefinal},'dd.mm.yyyy')
+              and ( pw.typerefcode = 8 or  tc.techcardsourcecode in (500000039,1000000004,1000000003) ) -- услуги или работы из источника калькуляции
+             and ( pw.elementrefcode = $P{obj}   or $P{obj} = 0 )
+              and ( pw.typerefcode = $P{worktypecode} or $P{worktypecode} = 0   ) /*подвид работ*/
+              and ( pw.formrefcode = $P{formplan} or $P{formplan}  = 0   ) /*работы плановые позаплановые*/
+			  /*не берем месячные планы которые со статусом работы завершены и с них не делались задания планы(типа не выполнялись)*/
+              and case when (select ch.plannewrefcode from enplancorrecthistory ch
+                    where ch.planoldrefcode = pw.code
+                      and ch.reasoncode = 4 limit 1  ) is null          and pw.statuscode = 8 then 1=2 else 1=1 end
+              group by pw.code, tkcl.code,tkcl.name,tkcl.kod , pw.datestart ,pw.datestart  ,fw.name
+              order by tkcl.name
+            ) q_month_in
+     group by  kartarefcode , tktechcardname , tktechcardtkmeasurement
+) q_month
+FULL JOIN
+(   select  string_agg(plancode::text,',') as plancodes, kartarefcode , tktechcardname , tktechcardtkmeasurement,
+           sum(countgen) as countgen , sum(timegen) as timegen , min(mindate) as mindate , max(maxdate) as maxdate, ''::text as materials
+            from (
+              select  pw.code as plancode, tkcl.code as kartarefcode ,
+                      tkcl.kod ||' '|| tkcl.name as tktechcardname , 'ШТ'::text as tktechcardtkmeasurement,
+                    -- если услуга, то по факту кол-во = кол-во работ по калькуляции делить на кол-фактов (типа когда сделают два факта по услуге
+                    -- то выполнена будет равна всеравно кому количеству работ скоко заказывали)
+                    case when pw.typerefcode = 8 then
+						(select * from get_countservices_by_planfact_and_cltype(pw.code::integer/*factcode*/
+                                                                          , tkcl.code::integer/*tkclassificationtypecode*/ ))
+                   else
+                   ( select max(pi.countgen) from enplanwork p , enplanworkitem pi , tktechcard tkd
+                       where p.code = pi.planrefcode
+                       and   pi.kartarefcode = tkd.code
+                       and   tkd.classificationtypecode = tkcl.code
+                       and   p.code = pw.code  ) end as countgen ,
+                     /*по факту часы считаем по работникам -так как берется в факте додатка3 */
+                     sum(coalesce(hi.countfact,0)) as timegen
+                     , pw.datestart as mindate
+                     , pw.datestart maxdate
+                     , ''::text as materials
+              from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas , tkclassificationtype tkcl
+              , net.enhumenitem hi , net.finworker fr
+              where hi.planitemrefcode = pwi.code
+              and  coalesce(hi.countfact  , 0 ) <> 0
+              and fr.kindrefcode = 2 /*Енергозбутовий  персонал*/
+              and fr.code = hi.finworkercode
+              and fr.tabnumber in (select array2items(string_to_array($P{empidlstr},',')))
+              and fr.departmentcode IN(
+					    SELECT q.fkorgid  FROM axorgid2fkorgid q  WHERE q.axorgid = $P{axexecutorcode}
+					    UNION ALL
+					    SELECT  $P{axexecutorcode} )
+              and pw.departmentrefcode = dep.code
+              and pw.code = pwi.planrefcode
+              and pwi.kartarefcode = tc.code
+              and tc.measurementcode = tmeas.code
+              and pwi.countgen <> 0
+              and tc.classificationtypecode = tkcl.code
+              and ( pw.statuscode = $P{statusplanfact} or $P{statusplanfact} = 0   )
+			  and ( pw.typerefcode = 8 or  tc.techcardsourcecode in (500000039,1000000004,1000000003) )  -- услуги или работы из источника калькуляции
+              and pw.kindcode = 4
+			  and pw.datestart between to_date($P{datestart},'dd.mm.yyyy') and to_date($P{datefinal} ,'dd.mm.yyyy')
+			  and ( pw.elementrefcode = $P{obj}  or $P{obj} = 0 )
+              and ( pw.typerefcode = $P{worktypecode} or $P{worktypecode} = 0   ) /*подвид работ*/
+              and ( pw.formrefcode = $P{formplan} or $P{formplan} = 0   ) /*работы плановые позаплановые*/
+
+              group by pw.code, tkcl.code,tkcl.name, tkcl.kod, pw.datestart ,pw.datestart
+              order by tkcl.name
+            ) q_fact_in
+     group by   kartarefcode , tktechcardname , tktechcardtkmeasurement
+) q_fact  on  (q_month.kartarefcode = q_fact.kartarefcode      )
+order by isservices ,  monthkartarefcode
+
+]]>
+	</queryString>
+	<field name="monthplancodes" class="java.lang.String"/>
+	<field name="monthkartarefcode" class="java.lang.Double"/>
+	<field name="monthtktechcardname" class="java.lang.String"/>
+	<field name="monthtktechcardtkmeasurement" class="java.lang.String"/>
+	<field name="monthcountgen" class="java.math.BigDecimal"/>
+	<field name="monthtimegen" class="java.math.BigDecimal"/>
+	<field name="monthmindate" class="java.lang.String"/>
+	<field name="monthmaxdate" class="java.lang.String"/>
+	<field name="factplancodes" class="java.lang.String"/>
+	<field name="factkartarefcode" class="java.lang.Double"/>
+	<field name="facttktechcardname" class="java.lang.String"/>
+	<field name="facttktechcardtkmeasurement" class="java.lang.String"/>
+	<field name="factcountgen" class="java.math.BigDecimal"/>
+	<field name="facttimegen" class="java.math.BigDecimal"/>
+	<field name="factmindate" class="java.lang.String"/>
+	<field name="factmaxdate" class="java.lang.String"/>
+	<field name="factmaterials" class="java.lang.String"/>
+	<field name="info_adition" class="java.lang.String"/>
+	<field name="tkclassificationtype_name" class="java.lang.String"/>
+	<field name="isservices" class="java.lang.Integer"/>
+	<variable name="monthtimegen" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{monthtimegen}]]></variableExpression>
+	</variable>
+	<variable name="facttimegen" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{facttimegen}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="520" y="0" width="162" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{monthtktechcardname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="682" y="0" width="49" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{monthtktechcardtkmeasurement}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="731" y="0" width="45" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{monthmindate}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="776" y="0" width="45" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{monthmaxdate}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="821" y="0" width="40" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{monthcountgen}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="861" y="0" width="40" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{monthtimegen}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="901" y="0" width="150" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{facttktechcardname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="1051" y="0" width="49" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{facttktechcardtkmeasurement}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="1100" y="0" width="49" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{factmindate}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="1149" y="0" width="49" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{factmaxdate}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="1198" y="0" width="49" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{factcountgen}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="1247" y="0" width="49" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{facttimegen}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="260" y="0" width="150" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new String(
+($F{info_adition} == null && $F{isservices}==1) ?
+"Послуги на сторону " : $F{info_adition}
+    )]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="410" y="0" width="110" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tkclassificationtype_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="110" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{cehname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="110" y="0" width="150" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{podrname}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="15" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="861" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Всього по :" + $P{cehname} + " " + $P{podrname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="861" y="0" width="40" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{monthtimegen}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="901" y="0" width="346" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-9" stretchType="RelativeToTallestObject" mode="Opaque" x="1247" y="0" width="49" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{facttimegen}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

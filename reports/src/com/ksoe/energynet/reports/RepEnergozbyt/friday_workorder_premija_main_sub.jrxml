@@ -1,0 +1,598 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="friday_workorder_premija_main_sub" pageWidth="527" pageHeight="774" columnWidth="527" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" scriptletClass="com.ksoe.report.scriptlets.DefaulterReportScriptlet" isIgnorePagination="true">
+	<property name="net.sf.jasperreports.export.xls.detect.cell.type" value="true"/>
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="2.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="P0" class="java.lang.String">
+		<parameterDescription><![CDATA[Periodcode]]></parameterDescription>
+		<defaultValueExpression><![CDATA["230000073"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["C:\\ProjectWithNet\\EnergyServer\\Energy\\report\\classes\\com\\ksoe\\report\\jasperReports\\"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select fio,	nwork,	data,	ss1,	ss2,	ss2c,	ss2nc,	ss3,	ss4,	ss5,
+(select name from res.epren)  as renname, (select code-1 from res.currentperiod where statecode=0) as periodcode,
+(select name from res.currentperiod where code =(select code-1 from res.currentperiod where statecode=0)) as periodname
+from
+(
+select
+ vr1.fio as fio ,vr1.n_name as nwork,vr1.data as data,
+       vr1.s1 as ss1,vr1.s2 as ss2,vr1.s2c as ss2c,vr1.s2nc as ss2nc ,vr1.s3 as ss3,vr1.s4 as ss4,
+vr1.s5 as ss5
+from (select v.fio,v.n_name,v.data,count(v.sgen) as s1,count(v.vip) as s2,
+count(v.vipc) as s2c,count(v.vipnc) as s2nc,
+round(count(v.vip)*100/(count(v.sgen)+0.0001),0) as s3,
+round(count(v.vipc)*100/(count(v.sgen)+0.0001),0) as s4,
+0 as s5
+from (
+select /*+ INDEX_DESC(WE, IND_WRDRNTR3)*/ wo.code as woc,
+             (select COALESCE(p.surname,'')||' '||COALESCE(p.name,'')||' '||COALESCE(p.patronimic,'')
+              from res.executor ex, res.employee em, res.person p
+              where wo.executorcode = ex.code
+               and ex.employeerefcode=em.code
+               and em.personcode=p.code
+) as fio,
+             wo.code||' '||wo.name as N_name,wo.deliverydate as data,
+             we.recordpontrfcode as sgen,
+                case
+                 when  we.statuscode = 1
+                  then we.recordpontrfcode
+                end as vip,
+                case
+                 when  (we.statuscode = 1 and we.ischeck=1)
+                  then we.recordpontrfcode
+                end as vipc,
+                case
+                 when  (we.statuscode = 1 and we.ischeck=0)
+                  then we.recordpontrfcode
+                end as vipnc
+
+from res.workorder wo
+     ,res.workorderentry we
+where we.workordercode = wo.code
+  and wo.worktypecode = 0
+
+and wo.code in (select /*+ INDEX_DESC(WE2, IND_WRDRNTR3)*/ distinct we2.workordercode
+               from res.workorderentry we2
+               where  we2.measurementdate between (select cp.startperioddate
+                               from res.currentperiod cp
+                               where cp.code = (select code-1 from res.currentperiod where statecode=0))
+                          and (select cp.endperioddate
+                              from res.currentperiod cp
+                              where cp.code = (select code-1 from res.currentperiod where statecode=0)))
+
+  and we.recordpontrfcode in (
+     select rp.code
+       from res.recordpoint rp
+      where rp.isworkingcode = 0
+        and rp.reservationcode = 0)
+
+and we.recordpontrfcode not in
+(select distinct rpi.code
+from res.recordpoint rpi,res.countergen cgi
+where rpi.counterrefcode=cgi.code
+and cgi.countertypecode in (select code from res.countertype cti where name like 'NP%')
+)
+
+
+) v
+group by v.fio,v.n_name,v.data ) vr1
+where vr1.s2 <> 0
+
+union all
+
+select cast('загружено SMART' as varchar(20)) as fio ,cast('' as varchar(5)) as nwork,cast('01.01.1900' as date) as data,
+smart.ss1 as ss1,
+smart.ss2 as ss2,
+0 as ss2c,
+smart.ss2 as ss2nc ,
+round(smart.ss2*100/(smart.ss1+0.0001),0) as ss3,
+0 as ss4,1 as ss5
+from
+(
+select (select count(distinct rpi.code)
+from res.recordpoint rpi,res.countergen cgi
+where rpi.counterrefcode=cgi.code
+and cgi.countertypecode in (select code from res.countertype cti where name like 'NP%')
+) as ss1,
+(
+select /*+ INDEX(cm,IND_CTRLMSDATE,IND_CNTRMSTPCD,IND_CNTRLMSRMNTSTTSCD)*/
+count(distinct cm.recordpontrfcode)  as ss2
+from res.controlmeasurement cm
+where cm.dategen between
+(select cast('01.01.1970' as date)+ cast(((7200000+modify_time)/(24*60*60*1000)) as integer)+1
+from res.currentperiod where code=cast((select code-1 from res.currentperiod where statecode=0) as integer)-1)
+and
+coalesce(
+(select cast('01.01.1970' as date)+ cast(((7200000+modify_time)/(24*60*60*1000)) as integer)
+from res.currentperiod where code=cast((select code-1 from res.currentperiod where statecode=0) as integer)+1),
+(select cast('01.01.1970' as date)+ cast(((7200000+modify_time)/(24*60*60*1000)) as integer)+37
+from res.currentperiod where code=cast((select code-1 from res.currentperiod where statecode=0) as integer)-1))
+
+and cm.statuscode<>3
+and cm.typecode=0
+--and ((cm.subtypecode is null)or(cm.subtypecode=0))
+and cm.recordpontrfcode in (select distinct rp.code from res.recordpoint rp,res.countergen cg
+where rp.counterrefcode = cg.code
+and cg.countertypecode in (select code from res.countertype cti where name like 'NP%')
+)
+) as ss2
+from res.dual
+) smart
+
+order by 10,1,3
+) foo]]>
+	</queryString>
+	<field name="fio" class="java.lang.String"/>
+	<field name="nwork" class="java.lang.String"/>
+	<field name="data" class="java.sql.Date"/>
+	<field name="ss1" class="java.lang.Long"/>
+	<field name="ss2" class="java.lang.Long"/>
+	<field name="ss2c" class="java.lang.Long"/>
+	<field name="ss2nc" class="java.lang.Long"/>
+	<field name="ss3" class="java.math.BigDecimal"/>
+	<field name="ss4" class="java.math.BigDecimal"/>
+	<field name="ss5" class="java.lang.Long"/>
+	<field name="renname" class="java.lang.String"/>
+	<field name="periodcode" class="java.lang.Integer"/>
+	<field name="periodname" class="java.lang.String"/>
+	<variable name="cnt" class="java.lang.Long" resetType="Group" resetGroup="cat" calculation="Sum">
+		<variableExpression><![CDATA[$F{ss1}]]></variableExpression>
+	</variable>
+	<variable name="cntss2" class="java.lang.Long" resetType="Group" resetGroup="cat" calculation="Sum">
+		<variableExpression><![CDATA[$F{ss2}]]></variableExpression>
+	</variable>
+	<variable name="cntss3" class="java.math.BigDecimal" incrementType="Group" incrementGroup="cat">
+		<variableExpression><![CDATA[(new BigDecimal(($V{cntss2}.intValue())*100/($V{cnt}.intValue()+0.0001)))
+.setScale(0,java.math.BigDecimal.ROUND_HALF_UP)]]></variableExpression>
+	</variable>
+	<variable name="cnt_all" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[($F{ss5}.intValue()==0)?$F{ss1}:new Long(0)]]></variableExpression>
+	</variable>
+	<variable name="cntss2_all" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[($F{ss5}.intValue()==0)?$F{ss2}:new Long(0)]]></variableExpression>
+	</variable>
+	<variable name="cntss3_all" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[(new BigDecimal(($V{cntss2_all}.intValue())*100/($V{cnt_all}.intValue()+0.0001)))
+.setScale(0,java.math.BigDecimal.ROUND_HALF_UP)]]></variableExpression>
+	</variable>
+	<variable name="cntss2c" class="java.lang.Long" resetType="Group" resetGroup="cat" calculation="Sum">
+		<variableExpression><![CDATA[$F{ss2c}]]></variableExpression>
+	</variable>
+	<variable name="cntss2nc" class="java.lang.Long" resetType="Group" resetGroup="cat" calculation="Sum">
+		<variableExpression><![CDATA[$F{ss2nc}]]></variableExpression>
+	</variable>
+	<variable name="cntss2_allc" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[($F{ss5}.intValue()==0)?$F{ss2c}:new Long(0)]]></variableExpression>
+	</variable>
+	<variable name="cntss2_allnc" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[($F{ss5}.intValue()==0)?$F{ss2nc}:new Long(0)]]></variableExpression>
+	</variable>
+	<variable name="cntss4" class="java.math.BigDecimal" incrementType="Group" incrementGroup="cat">
+		<variableExpression><![CDATA[(new BigDecimal(($V{cntss2c}.intValue())*100/($V{cnt}.intValue()+0.0001)))
+.setScale(0,java.math.BigDecimal.ROUND_HALF_UP)]]></variableExpression>
+	</variable>
+	<variable name="cntss4_all" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[(new BigDecimal(($V{cntss2_allc}.intValue())*100/($V{cnt_all}.intValue()+0.0001)))
+.setScale(0,java.math.BigDecimal.ROUND_HALF_UP)]]></variableExpression>
+	</variable>
+	<variable name="cntss2_all_sm" class="java.lang.Long" calculation="Sum">
+		<variableExpression><![CDATA[($F{ss5}.intValue()==1)?$F{ss2}:new Long(0)]]></variableExpression>
+	</variable>
+	<group name="cat">
+		<groupExpression><![CDATA[$F{fio}]]></groupExpression>
+		<groupHeader>
+			<band splitType="Stretch"/>
+		</groupHeader>
+		<groupFooter>
+			<band height="12" splitType="Stretch">
+				<staticText>
+					<reportElement key="element-24" stretchType="RelativeToTallestObject" mode="Opaque" x="1" y="0" width="49" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<text><![CDATA[ИТОГО по : ]]></text>
+				</staticText>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement key="textField-16" stretchType="RelativeToTallestObject" mode="Opaque" x="50" y="0" width="295" height="12" backcolor="#FFFFFF"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{fio}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement key="textField-19" stretchType="RelativeToTallestObject" mode="Opaque" x="345" y="0" width="24" height="12" backcolor="#FFFFFF"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{cnt}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement key="textField-20" stretchType="RelativeToTallestObject" mode="Opaque" x="369" y="0" width="40" height="12" backcolor="#FFFFFF"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{cntss2}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement key="textField-21" stretchType="RelativeToTallestObject" mode="Opaque" x="479" y="0" width="20" height="12" backcolor="#FFFFFF"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{cntss3}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement key="textField-29" stretchType="RelativeToTallestObject" mode="Opaque" x="409" y="0" width="35" height="12" backcolor="#FFFFFF"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{cntss2c}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement key="textField-31" stretchType="RelativeToTallestObject" mode="Opaque" x="444" y="0" width="35" height="12" backcolor="#FFFFFF"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{cntss2nc}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement key="textField-33" stretchType="RelativeToTallestObject" mode="Opaque" x="499" y="0" width="26" height="12" backcolor="#FFFFFF"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement textAlignment="Center" verticalAlignment="Middle">
+						<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{cntss4}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<columnHeader>
+		<band height="12" splitType="Stretch">
+			<textField isBlankWhenNull="true">
+				<reportElement x="1" y="0" width="524" height="12"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="8" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{renname}]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="12" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-2" stretchType="RelativeToTallestObject" x="1" y="0" width="19" height="12" isRemoveLineWhenBlank="true">
+					<printWhenExpression><![CDATA[new Boolean((new Integer(1)).intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{REPORT_COUNT}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-3" stretchType="RelativeToTallestObject" x="20" y="0" width="144" height="12" isRemoveLineWhenBlank="true">
+					<printWhenExpression><![CDATA[new Boolean((new Integer(1)).intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fio}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-4" stretchType="RelativeToTallestObject" x="164" y="0" width="147" height="12" isRemoveLineWhenBlank="true">
+					<printWhenExpression><![CDATA[new Boolean((new Integer(1)).intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nwork}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="dd.MM.yyyy" isBlankWhenNull="true">
+				<reportElement key="textField-5" stretchType="RelativeToTallestObject" x="311" y="0" width="34" height="12" isRemoveLineWhenBlank="true">
+					<printWhenExpression><![CDATA[new Boolean((new Integer(1)).intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{data}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-6" stretchType="RelativeToTallestObject" x="345" y="0" width="24" height="12" isRemoveLineWhenBlank="true">
+					<printWhenExpression><![CDATA[new Boolean((new Integer(1)).intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ss1}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-7" stretchType="RelativeToTallestObject" x="369" y="0" width="40" height="12" isRemoveLineWhenBlank="true">
+					<printWhenExpression><![CDATA[new Boolean((new Integer(1)).intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ss2}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-8" stretchType="RelativeToTallestObject" x="479" y="0" width="20" height="12" isRemoveLineWhenBlank="true">
+					<printWhenExpression><![CDATA[new Boolean((new Integer(1)).intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ss3}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-27" stretchType="RelativeToTallestObject" x="409" y="0" width="35" height="12" isRemoveLineWhenBlank="true">
+					<printWhenExpression><![CDATA[new Boolean((new Integer(1)).intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ss2c}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-28" stretchType="RelativeToTallestObject" x="444" y="0" width="35" height="12" isRemoveLineWhenBlank="true">
+					<printWhenExpression><![CDATA[new Boolean((new Integer(1)).intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ss2nc}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" stretchType="RelativeToTallestObject" x="499" y="0" width="26" height="12" isRemoveLineWhenBlank="true">
+					<printWhenExpression><![CDATA[new Boolean((new Integer(1)).intValue() == 0)]]></printWhenExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ss4}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="33" splitType="Stretch">
+			<staticText>
+				<reportElement key="element-25" mode="Opaque" x="1" y="0" width="344" height="12" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[ИТОГО по контролёрам: ]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-23" mode="Opaque" x="345" y="0" width="24" height="12" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{cnt_all}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-24" mode="Opaque" x="369" y="0" width="40" height="12" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{cntss2_all}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-25" mode="Opaque" x="479" y="0" width="20" height="12" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{cntss3_all}]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" x="1" y="12" width="524" height="13" isRemoveLineWhenBlank="true"/>
+				<subreportParameter name="cntss2_allnc">
+					<subreportParameterExpression><![CDATA[$V{cntss2_allnc}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="cntss2_allc">
+					<subreportParameterExpression><![CDATA[$V{cntss2_allc}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="cntss2_all_sm">
+					<subreportParameterExpression><![CDATA[$V{cntss2_all_sm}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="periodCodesub">
+					<subreportParameterExpression><![CDATA[$F{periodcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="cntss2_all">
+					<subreportParameterExpression><![CDATA[$V{cntss2_all}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/RepEnergozbyt/friday_workorder_premija_sub.jasper")]]></subreportExpression>
+			</subreport>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-30" mode="Opaque" x="409" y="0" width="35" height="12" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{cntss2_allc}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-32" mode="Opaque" x="444" y="0" width="35" height="12" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{cntss2_allnc}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-35" mode="Opaque" x="499" y="0" width="26" height="12" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="5" isBold="true" pdfFontName="arial.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{cntss4_all}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

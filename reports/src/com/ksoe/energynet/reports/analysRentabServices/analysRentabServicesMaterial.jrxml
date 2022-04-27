@@ -1,0 +1,509 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="analysRentabServicesMaterial" pageWidth="531" pageHeight="595" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="531" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.5"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="net.sf.jasperreports.export.xls.detect.cell.type" value="true"/>
+	<parameter name="plancode" class="java.lang.Integer"/>
+	<parameter name="classification_code" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<parameter name="plan_calculation_code" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[null]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select
+matname,
+measname,
+costnkre::numeric(15,2) as costnkre,
+kolvo::numeric(15,6) as kolvo,
+sum::numeric(15,2) as sum,
+ord
+from (
+select
+'			матеріали з кошторису' as matname,
+'' as measname,
+null as costnkre,
+null as kolvo,
+null as sum,
+1 as ord
+union ALL
+select
+cmu.materialname as matname,
+cmu.measureunitname as measname,
+cmu.pricegen as costnkre,
+sum(cmu.countgen) as kolvo,
+sum(cmu.sumgen) as sum,
+2 as ord
+from encalcmaterialsusage cmu
+where cmu.planrefcode = $P{plancode}
+and case when $P{plan_calculation_code} is not null
+	then cmu.plan2ctyperefcode = $P{plan_calculation_code}
+	else true end
+group by cmu.materialname ,cmu.measureunitname , cmu.pricegen
+union all
+
+select
+'			Ітого з кошторису' as matname,
+null as measname,
+null as costnkre,
+null as kolvo,
+sum(cmu.sumgen) as sum,
+3 as ord
+from encalcmaterialsusage cmu
+where cmu.planrefcode = $P{plancode}
+and case when $P{plan_calculation_code} is not null
+	then cmu.plan2ctyperefcode = $P{plan_calculation_code}
+	else true end
+
+union all
+select
+'			використані матеріали на факті' as matname,
+null as measname,
+null as costnkre,
+null as kolvo,
+null as sum,
+4 as ord
+
+union all
+
+/*Запрос материалы  факт */
+Select
+   mat_name ,
+   mu_name as measname ,
+   cast(cost as decimal) as costnkre ,
+   cast(sum(countgen) as decimal) as kolvo  ,
+   cast(sum(stoimost) as decimal) as sum ,
+   5 as ord
+From (
+Select distinct
+      finmat.mat_name
+	, finmat.code
+        , finmat.mu_name
+        , finmat.quantity  as countgen
+        , finmat.calc_price  as cost
+        , coalesce(finmat.cost,0) as stoimost
+        , finmat.bal_sch
+        , finmat.nn
+        , estimate.kindrefcode
+  From
+         enestimateitem estimate
+       , finmaterials finmat
+       , enact2enplanwork ena2
+       , enplanworkitem pwi
+       , tktechcard tkd
+       , tkclassificationtype tkcls
+where ena2.plancode in ( select pfact.code from enplanwork pcalc , enplanwork pfact
+                                                where pcalc.elementrefcode = pfact.elementrefcode
+                                                  and pcalc.kindcode = 5
+                                                  and pfact.kindcode = 4
+                                                  and pcalc.code = $P{plancode} /*план кошторис*/
+                                                   )
+  and ena2.plancode = estimate.planrefcode
+  and finmat.estimateitemrefcode = estimate.code
+  and finmat.statusrefcode = 1
+  and estimate.kindrefcode = 1
+  and finmat.cost <> 0
+  and pwi.planrefcode = ena2.plancode
+  and pwi.kartarefcode = tkd.code
+  and pwi.code = estimate.planitemrefcode
+  /*Если costworkcontractor не пустая, значит работа сторонняя - не включаем в расходный акт*/
+  and tkcls.code = tkd.classificationtypecode
+  and (tkcls.costworkscontractor is null
+  or tkcls.costworkscontractor = 0)
+and case when $P{classification_code} is not null
+	then tkcls.code = $P{classification_code}
+	else true end
+
+union all
+
+Select distinct
+               ss.name as mat_name
+        , ss.code
+        , 'ШТ' as mu_name
+        , 1  as countgen
+        , ss.cost  as cost
+        , ss.cost as stoimost
+        , ss.account as bal_sch
+        , '' as nn
+        , estimate.kindrefcode
+  From
+         enestimateitem estimate
+       , scseal ss
+       , enact2enplanwork ena2
+       , enplanworkitem pwi
+       , tktechcard tkd
+       , tkclassificationtype tkcls
+where
+ena2.plancode in ( select pfact.code from enplanwork pcalc , enplanwork pfact
+                                                where pcalc.elementrefcode = pfact.elementrefcode
+                                                  and pcalc.kindcode = 5
+                                                  and pfact.kindcode = 4
+                                                  and pcalc.code = $P{plancode} /*план кошторис*/
+                                                   )
+  and ena2.plancode = estimate.planrefcode
+  and ss.estimateitemrefcode = estimate.code
+  and ss.statusrefcode in (1,3)
+  and estimate.kindrefcode = 1
+  and pwi.planrefcode = ena2.plancode
+  and pwi.kartarefcode = tkd.code
+  and pwi.code = estimate.planitemrefcode
+  /*Если costworkcontractor не пустая, значит работа сторонняя - не включаем в расходный акт*/
+  and tkcls.code = tkd.classificationtypecode
+  and (tkcls.costworkscontractor is null
+  or tkcls.costworkscontractor = 0)
+and case when $P{classification_code} is not null
+	then tkcls.code = $P{classification_code}
+	else true end
+
+union all
+
+/* Стоимость счетчика для усуг на сторону */
+select s.name||' - з урахуванням вартості параметризації' as mat_name
+    , s.code
+    , 'лічильник' as mu_name
+    , 1 as countgen
+    , coalesce(s.costold, 0) as cost
+    , coalesce(s.costold, 0) as stoimost
+    , s.account as bal_sch
+    , s.invnumber as nn
+    , es.kindrefcode
+
+  from sccounter s, enestimateitem es, enact2enplanwork ena2, enact a, enplanworkitem pwi, tkclassificationtype tkcls, tktechcard tkd
+ where a.code = ena2.actrefcode
+   and s.estimateitemrefcode = es.code
+   and es.countfact <> 0
+   and es.kindrefcode = 1
+  and pwi.kartarefcode = tkd.code
+  and pwi.code = es.planitemrefcode
+  and tkcls.code = tkd.classificationtypecode
+   and ena2.plancode = es.planrefcode
+and case when $P{classification_code} is not null
+	then tkcls.code = $P{classification_code}
+	else true end
+   and ena2.plancode in ( select pfact.code from enplanwork pcalc , enplanwork pfact
+                                                where pcalc.elementrefcode = pfact.elementrefcode
+                                                  and pcalc.kindcode = 5
+                                                  and pfact.kindcode = 4
+                                                  and pcalc.code = $P{plancode} /*план кошторис*/
+                                                   )
+   and s.account <> '1534' /*SUPP-57503 Исключаются счетчики купленные абонентами*/
+
+
+
+) sel1
+ group by sel1.mat_name ,   sel1.mu_name , sel1.bal_sch , sel1.nn,  sel1.cost  ,kindrefcode
+
+union all
+
+/*итого  факт */
+Select
+   '			ітого матеріали на факті' as mat_name ,
+   null as measname ,
+   null as costnkre ,
+   null as kolvo  ,
+   cast(sum(stoimost) as decimal) as sum ,
+   6 as ord
+From (
+Select distinct
+          finmat.mat_name
+	    , finmat.code
+        , finmat.mu_name
+        , finmat.quantity  as countgen
+        , finmat.calc_price  as cost
+        , coalesce(finmat.cost,0) as stoimost
+        , finmat.bal_sch
+        , finmat.nn
+        , estimate.kindrefcode
+  From
+         enestimateitem estimate
+       , finmaterials finmat
+       , enact2enplanwork ena2
+       , enplanworkitem pwi
+       , tktechcard tkd
+       , tkclassificationtype tkcls
+where ena2.plancode in ( select pfact.code from enplanwork pcalc , enplanwork pfact
+                                                where pcalc.elementrefcode = pfact.elementrefcode
+                                                  and pcalc.kindcode = 5
+                                                  and pfact.kindcode = 4
+                                                  and pcalc.code = $P{plancode} /*план кошторис*/
+                                                   )
+  and ena2.plancode = estimate.planrefcode
+  and finmat.estimateitemrefcode = estimate.code
+  and finmat.statusrefcode = 1
+  and estimate.kindrefcode = 1
+  and finmat.cost <> 0
+  and pwi.planrefcode = ena2.plancode
+  and pwi.kartarefcode = tkd.code
+  and pwi.code = estimate.planitemrefcode
+  /*Если costworkcontractor не пустая, значит работа сторонняя - не включаем в расходный акт*/
+  and tkcls.code = tkd.classificationtypecode
+  and (tkcls.costworkscontractor is null
+  or tkcls.costworkscontractor = 0)
+and case when $P{classification_code} is not null
+	then tkcls.code = $P{classification_code}
+	else true end
+
+union all
+
+Select distinct
+   '			ітого матеріали на факті' as mat_name
+        , ss.code
+        , 'ШТ' as mu_name
+        , 1  as countgen
+        , ss.cost  as cost
+        , ss.cost as stoimost
+        , ss.account as bal_sch
+        , ss.buildnumber as nn
+        , estimate.kindrefcode
+  From
+         enestimateitem estimate
+       , scseal ss
+       , enact2enplanwork ena2
+       , enplanworkitem pwi
+       , tktechcard tkd
+       , tkclassificationtype tkcls
+where
+ena2.plancode in ( select pfact.code from enplanwork pcalc , enplanwork pfact
+                                                where pcalc.elementrefcode = pfact.elementrefcode
+                                                  and pcalc.kindcode = 5
+                                                  and pfact.kindcode = 4
+                                                  and pcalc.code = $P{plancode} /*план кошторис*/
+                                                   )
+  and ena2.plancode = estimate.planrefcode
+  and ss.estimateitemrefcode = estimate.code
+  and ss.statusrefcode in (1,3)
+  and estimate.kindrefcode = 1
+  and pwi.planrefcode = ena2.plancode
+  and pwi.kartarefcode = tkd.code
+  and pwi.code = estimate.planitemrefcode
+  /*Если costworkcontractor не пустая, значит работа сторонняя - не включаем в расходный акт*/
+  and tkcls.code = tkd.classificationtypecode
+  and (tkcls.costworkscontractor is null
+  or tkcls.costworkscontractor = 0)
+and case when $P{classification_code} is not null
+	then tkcls.code = $P{classification_code}
+	else true end
+
+union all
+
+/* Стоимость счетчика для усуг на сторону */
+select s.name||s.invnumber|| case when exists (select distinct a.acttyperefcode
+   from enmetrologycounter mc, enplanwork pw,
+   enact2enplanwork a2pw, enact a
+   where mc.invnumber = s.invnumber
+   and pw.elementrefcode = mc.elementcode
+   and pw.kindcode = 4
+   and a2pw.plancode = pw.code
+   and a2pw.actrefcode = a.code
+   and a.acttyperefcode = 38
+   and a.statusrefcode = 3) then ' - з урахуванням вартості параметризації'
+   else s.name end as mat_name
+    , s.code
+    , 'лічильник' as mu_name
+    , 1 as countgen
+    , case when coalesce((select count(engivecounter.code)  from engivecounter where engivecounter.serialnumber = s.buildnumber),0) > 0
+      then  0 else coalesce(s.costold, 0) end as cost
+    , case when coalesce((select count(engivecounter.code) from engivecounter where engivecounter.serialnumber = s.buildnumber),0) > 0
+      then  0 else coalesce(s.costold, 0) end as stoimost
+    , s.account as bal_sch
+    , s.invnumber as nn
+    , es.kindrefcode
+
+  from sccounter s, enestimateitem es, enact2enplanwork ena2, enact a, enplanworkitem pwi, tktechcard tkd, tkclassificationtype tkcls
+ where a.code = ena2.actrefcode
+   and s.estimateitemrefcode = es.code
+   and es.countfact <> 0
+   and es.kindrefcode = 1
+  and pwi.kartarefcode = tkd.code
+  and pwi.code = es.planitemrefcode
+  and tkcls.code = tkd.classificationtypecode
+   and ena2.plancode = es.planrefcode
+and case when $P{classification_code} is not null
+	then tkcls.code = $P{classification_code}
+	else true end
+   and ena2.plancode in ( select pfact.code from enplanwork pcalc , enplanwork pfact
+                                                where pcalc.elementrefcode = pfact.elementrefcode
+                                                  and pcalc.kindcode = 5
+                                                  and pfact.kindcode = 4
+                                                  and pcalc.code = $P{plancode} /*план кошторис*/
+                                                   )
+   and s.account <> '1534' /*SUPP-57503 Исключаются счетчики купленные абонентами*/
+) sel2
+
+ ) sel3
+ order by ord , matname]]>
+	</queryString>
+	<field name="matname" class="java.lang.String"/>
+	<field name="measname" class="java.lang.String"/>
+	<field name="costnkre" class="java.math.BigDecimal"/>
+	<field name="kolvo" class="java.math.BigDecimal"/>
+	<field name="sum" class="java.math.BigDecimal"/>
+	<field name="ord" class="java.lang.Integer"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="30" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" positionType="Float" mode="Opaque" x="411" y="0" width="60" height="30" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="1"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Кількість"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" positionType="Float" mode="Opaque" x="351" y="0" width="60" height="30" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="1"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Ціна грн."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" positionType="Float" mode="Opaque" x="291" y="0" width="60" height="30" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="1"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Од.вим."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" positionType="Float" mode="Opaque" x="0" y="0" width="291" height="30" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="1"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Матеріали"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" positionType="Float" mode="Opaque" x="471" y="0" width="60" height="30" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="1"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Вартість грн."]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="291" height="20" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="1"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{matname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="291" y="0" width="60" height="20" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="1"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{measname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="351" y="0" width="60" height="20" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="1"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{costnkre}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="411" y="0" width="60" height="20" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="1"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kolvo}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="471" y="0" width="60" height="20" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single" leftIndent="1"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{sum}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

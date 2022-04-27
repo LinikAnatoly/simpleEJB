@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="getProcessComplete" pageWidth="1600" pageHeight="595" orientation="Landscape" columnWidth="1580" leftMargin="0" rightMargin="20" topMargin="20" bottomMargin="20">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="processStatus" class="java.lang.Integer"/>
+	<parameter name="userCode" class="java.lang.Integer"/>
+	<parameter name="userSubSystem" class="java.lang.Integer"/>
+	<parameter name="packFromSite" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="start_date_from" class="java.lang.String"/>
+	<parameter name="start_date_to" class="java.lang.String"/>
+	<parameter name="end_date_from" class="java.lang.String"/>
+	<parameter name="end_date_to" class="java.lang.String"/>
+	<parameter name="date_registration_from" class="java.lang.String"/>
+	<parameter name="date_registration_to" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[SELECT  proc.code as processCode,
+                pack.code as packCode,
+                pack.name as packName,
+                pack.customername as packCustName,
+                proc.startdate as processStartdate,
+                proc.finaldate as processFinaldate,
+                subsys.name as subsystemName,
+                dep.name as departmentName,
+                pack.fromsite as packFromSite
+	      ,pack.dateregistration
+                ,dep.code
+      , (
+                    	case when proc.processstatuscode = 1 then
+                        		'В работе'
+                             when proc.processstatuscode = 2 then
+                        		'Завершен'
+                             when proc.processstatuscode = 3 then
+                        		'В ожидании'
+                             when proc.processstatuscode = 4 then
+                        		'Архив'
+                        end
+                    ) as processstatusname
+                FROM workflow.wfbaseprocess baseproc
+                ,workflow.wfprocess proc
+                ,workflow.wfpack pack
+                ,workflow.wfsubsystem subsys
+                ,workflow.wfdepartment dep
+                where proc.baseprocesscode = baseproc.code
+                and proc.packcode = pack.code
+                and pack.subsystemcode = subsys.code
+                and pack.departmentcode = dep.code
+                and pack.packstatuscode <> 1000
+                and proc.processstatuscode = $P{processStatus}
+                and pack.departmentcode in (select array2items(string_to_array((select group_concat(dep2user.departmentcode::text,',') from wfdepartment2user dep2user
+                where dep2user.usercode = $P!{userCode}),','))::double precision)
+                and pack.subsystemcode = $P{userSubSystem}
+                and pack.packtypecode in (select array2items(string_to_array((select group_concat(ptype2user.packtypecode::text,',') from wfpacktype2user ptype2user
+                where ptype2user.usercode = $P!{userCode}),','))::double precision )
+         and (
+                      case
+                              /*Поиск по дате регистрации*/
+                          when (($P{date_registration_from} = '') and ($P{date_registration_to} = '')) then
+                          		1=1
+                          when (($P{date_registration_from} <> '') and ($P{date_registration_to} = '')) then
+                          		(pack.dateregistration >= to_date($P{date_registration_from}, 'dd.MM.yyyy'))
+                          when (($P{date_registration_from} = '') and ($P{date_registration_to} <> '')) then
+                          		(pack.dateregistration <= to_date($P{date_registration_to}, 'dd.MM.yyyy'))
+                          when (($P{date_registration_from} <> '') and ($P{date_registration_to} <> '')) then
+                          		(pack.dateregistration BETWEEN to_date($P{date_registration_from}, 'dd.MM.yyyy') and to_date($P{date_registration_to}, 'dd.MM.yyyy'))
+                      end
+                     )
+ 		and (
+                      case
+                              /*Поиск по (Дате початку)*/
+                          when ($P{start_date_from} = '') and ($P{start_date_to} = '')then
+                         		1=1
+                          when ($P{start_date_from} <> '') and ($P{start_date_to} = '')then
+                              (proc.startdate >= to_date($P{start_date_from}, 'dd.MM.yyyy'))
+                          when ($P{start_date_from} = '') and ($P{start_date_to} <> '') then
+                              (proc.startdate <= to_date($P{start_date_to}, 'dd.MM.yyyy'))
+                          when ($P{start_date_from} <> '') and ($P{start_date_to} <> '') then
+                              (proc.startdate BETWEEN to_date($P{start_date_from}, 'dd.MM.yyyy') and to_date($P{start_date_to}, 'dd.MM.yyyy'))
+                      end
+                     )
+		and (
+                      case
+                              /*Поиск по ( Дате закінчення)*/
+                          when ($P{end_date_from} = '') and ($P{end_date_to} = '')then
+                         		1=1
+                          when ($P{end_date_from} <> '') and ($P{end_date_to} = '')then
+                              (proc.finaldate >= to_date($P{end_date_to}, 'dd.MM.yyyy'))
+                          when ($P{end_date_from} = '') and ($P{end_date_to} <> '') then
+                              (proc.finaldate <= to_date($P{end_date_to}, 'dd.MM.yyyy'))
+                          when ($P{end_date_from} <> '') and ($P{end_date_to} <> '') then
+                              proc.finaldate BETWEEN to_date($P{end_date_from}, 'dd.MM.yyyy') and to_date($P{end_date_to}, 'dd.MM.yyyy')
+                      end
+                     )
+              and (
+                     case
+                              /*Online YES or NO*/
+                          when ($P{packFromSite} = -1) then
+                          		-1=-1
+                          when ($P{packFromSite} > 0) THEN
+                          		(pack.fromsite = $P{packFromSite})
+                      end
+               )
+
+                order by 2 desc;]]>
+	</queryString>
+	<field name="processcode" class="java.lang.Double"/>
+	<field name="packcode" class="java.lang.Double"/>
+	<field name="packname" class="java.lang.String"/>
+	<field name="packcustname" class="java.lang.String"/>
+	<field name="processstartdate" class="java.sql.Timestamp"/>
+	<field name="processfinaldate" class="java.sql.Timestamp"/>
+	<field name="subsystemname" class="java.lang.String"/>
+	<field name="departmentname" class="java.lang.String"/>
+	<field name="packfromsite" class="java.lang.Double"/>
+	<field name="dateregistration" class="java.sql.Date"/>
+	<field name="code" class="java.lang.Double"/>
+	<field name="processstatusname" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="30" splitType="Stretch">
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="34" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{REPORT_COUNT}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="34" y="0" width="87" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{processcode}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="220" y="0" width="192" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{packname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="412" y="0" width="394" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new String(($F{packcustname} != null) ? $F{packcustname} : "")]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="806" y="0" width="132" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new SimpleDateFormat("dd MM yyyy").format($F{processstartdate})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="1070" y="0" width="145" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{subsystemname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="1215" y="0" width="159" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{departmentname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="1374" y="0" width="64" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new String(($F{packfromsite} == 1) ? "Так" : "Ні")]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="121" y="0" width="99" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{packcode}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="938" y="0" width="132" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new SimpleDateFormat("dd MM yyyy").format($F{processfinaldate})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="1438" y="0" width="122" height="30" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{processstatusname}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.9.0.final using JasperReports Library version 4.5.0  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="remonto_2020" pageWidth="900" pageHeight="595" orientation="Landscape" columnWidth="900" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.652892561983471"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<property name="net.sf.jasperreports.print.keep.full.text" value="true"/>
+	<property name="net.sf.jasperreports.export.xls.detect.cell.type" value="true"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w1" value="0"/>
+	<property name="com.jaspersoft.studio.data.sql.SQLQueryDesigner.sash.w2" value="1000"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<style name="style1">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$F{identname}.equals("")]]></conditionExpression>
+			<style mode="Opaque" backcolor="#CCCCCC"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="datefrom" class="java.lang.String">
+		<defaultValueExpression><![CDATA["01.04.2010"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateto" class="java.lang.String">
+		<defaultValueExpression><![CDATA["30.04.2010"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="departmentcode" class="java.lang.String">
+		<defaultValueExpression><![CDATA["481"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select num , numforreport, name, measurename, identname,
+ sum(count2020*koef)::numeric(15,6) as count2020 ,
+ sum(sumwithoutnds2020)::numeric(15,2) as sumwithoutnds2020 ,
+ (case when sum(count2020*koef) > 0 then sum(sumwithoutnds2020) / sum(count2020*koef) else 0 end)::numeric(15,2) as price2020 ,
+       string_agg(energynetnamterial,';') as str_energynetmaterials
+from (
+select mpr.num , mpr.numforreport, mpr.name, mpr.measurename, mpr.identname,mpr2m.tkmaterialsinrefcode,m.name as energynetnamterial,
+coalesce((
+					select sum(coalesce(fm.quantity,0)) as countgen20
+						from enplanwork p  , enestimateitem ei ,  finmaterials fm , enact2enplanwork a2p 
+						where p.yeargen = 2021
+						and p.code = ei.planrefcode
+						and p.kindcode = 4
+						and ei.kindrefcode = 1
+						and ei.countfact > 0
+						and ei.code = fm.estimateitemrefcode
+						and p.typerefcode <> 8 /*Роботи на сторону не берем */
+						and p.code = a2p.plancode
+						and fm.statusrefcode=1
+						and ei.materialrefcode = mpr2m.tkmaterialsinrefcode
+	),0) as count2020 ,
+	coalesce((
+					select sum(coalesce(fm.cost,0)) as sumwithoutnds20
+								from enplanwork p  , enestimateitem ei ,  finmaterials fm , enact2enplanwork a2p 
+								where p.yeargen = 2021
+								and p.code = ei.planrefcode
+								and p.kindcode = 4
+								and ei.kindrefcode = 1
+								and ei.countfact > 0
+								and ei.code = fm.estimateitemrefcode
+								and p.typerefcode <> 8 /*Роботи на сторону не берем */
+								and p.code = a2p.plancode
+								and fm.statusrefcode=1
+								and ei.materialrefcode = mpr2m.tkmaterialsinrefcode
+
+	),0) as sumwithoutnds2020
+	, case when mpr.measurename = '	км	' and mes."name" =	'М' then 0.001
+	 when mpr.measurename = '	т	' and mes."name" =	'Л' then 0.001
+	 when mpr.measurename = '	т	' and mes."name" =	'КГ' then 0.001
+	 when mpr.measurename = '	1000 шт.	' and mes."name" =	'1000ШТ' then 1
+	 when mpr.measurename = '	км	' and mes."name" =	'ПОГ.М' then 0.001
+	 when mpr.measurename = '	м	' and mes."name" =	'ПОГ.М' then 1
+	 when mpr.measurename = '	т	' and mes."name" =	'ШТ' and m.name ='РОЗЧИННИК 646 (1Л)' then 0.001
+	 when mpr.measurename = '	ШТ	' and mes."name" =	'КОМПЛЕКТ' then 1
+	 when mpr.measurename = '	м.	' and mes."name" =	'М' then 1
+	 when mpr.measurename = '	м³	' and mes."name" =	'М3' then 1
+	 when mpr.measurename = '	т	' and mes."name" =	'БАНКА' and m.name ='ЕМАЛЬ ЗЕЛЕНА (БАНКА 0,9КГ) ПФ-115 ГОСТ 6465-76' then 0.0009
+	 when mpr.measurename = '	т	' and mes."name" =	'БАНКА' and m.name ='ЕМАЛЬ ЗЕЛЕНА ( БАНКА 2.8КГ) ПФ-115 ГОСТ 6465-76' then 0.0028
+	 when mpr.measurename = '	т	' and mes."name" =	'ШТ' and m.name ='МАСТИЛО ГРАФІТНЕ (0,8 КГ)' then 0.0008
+	 when mpr.measurename = '	т	' and mes."name" =	'ШТ' and m.name ='ЕМАЛЬ ПФ-115 СВІТЛО-СІРА 0,9КГ' then 0.0009
+	 when mpr.measurename = '	флакон	' and mes."name" =	'ШТ' then 1
+	 when mpr.measurename = '	л	' and mes."name" =	'ШТ' and m.name ='РОЗЧИННИК 647 (1Л) ГОСТ18188-72' then 1
+	 when mpr.measurename = '	кг	' and mes."name" =	'БАНКА' and m.name ='ФАРБА АКРИЛОВА ДЛЯ БЕТОННИХ ПІДЛОГ ВИРОБНИЦТВО "ЗЕБРА" 2,8 КГ' then 2.8
+	/*?*/ when mpr.measurename = '	кг	' and mes."name" =	'ШТ' and m.name ='АКРИЛОВА ФАСАДНА ФАРБА CEREZIT СТ-42 (10 Л)' then 10
+when mpr.measurename = '	кг	' and mes."name" =	'ШТ' and m.name ='АКРИЛОВА ФАСАДНА ФАРБА CEREZIT СТ-42 (10 Л)' then 10
+when mpr.measurename = '	т	' and mes."name" =	'М'	and m.name ='ПРОВІД А16' then	0.001
+when mpr.measurename = '	ШТ	' and mes."name" =	'Т'	and trim(m.name) ='БЛИСКАВКОВІДВІД ТС-5' then 	1
+when mpr.measurename = '	км	' and mes."name" =	'ШТ'	and trim(m.name) ='КАБЕЛЬ ВВГНГ 3 1.5' then	1
+when mpr.measurename = '	т	' and mes."name" =	'М3'	and trim(m.name) ='ГЛИНА' then	1
+when mpr.measurename = '	м³	' and mes."name" =	'Т'	and trim(m.name) ='ГРАВІЙ' then	1
+when mpr.measurename = '	м³	' and mes."name" =	'Т'	and trim(m.name) ='ГРАВІЙ' then	1
+when mpr.measurename = '	м2	' and mes."name" =	'М3'	and trim(m.name) ='ДОШКА ОБРІЗНА ТОВЩИНОЮ 40ММ' then 1
+when mpr.measurename = '	ШТ	' and mes."name" =	'Т'	and trim(m.name) ='ЕЛЕМЕНТ КРІПЛЕННЯ ТС-7' then	1
+when mpr.measurename = '	т	' and mes."name" =	'ШТ'	and trim(m.name) ='МЕТАЛОКОНСТРУКЦІЯ' then	1
+when mpr.measurename = '	т	' and mes."name" =	'ШТ'	and trim(m.name) ='МЕТАЛОКОНСТРУКЦІЯ ОПН ОЦ' then	1
+when mpr.measurename = '	ШТ	' and mes."name" =	'Т'	and trim(m.name) ='ОГОЛОВОК ТС-48' then	1
+when mpr.measurename = '	м³	' and mes."name" =	'Т'	and trim(m.name) ='ПІСОК ПРИРОДНИЙ БУДІВЕЛЬНИЙ ДРІБНИЙ РЯДОВИЙ . ДСТУ Б В.2.7-32-95' then	1.63
+when mpr.measurename = '	ШТ	' and mes."name" =	'М3'	and trim(m.name) ='ОПОРА  СВ 10,5-5' then	1
+when mpr.measurename = '	ШТ	' and mes."name" =	'М3'	and trim(m.name) ='ОПОРА СВ  9,5-2' then	1
+when mpr.measurename = '	км	' and mes."name" =	'ШТ'	and trim(m.name) ='ПРОВІД ІЗОЛЬОВАНИЙ САМОНЕСУЧИЙ АЛЮМІНІЄВИЙ СИП 3 1*70 ТУ У 31.3-31188527-002.2005' then	1
+when mpr.measurename = '	м³	' and mes."name" =	'Т'	and trim(m.name) ='СУМІШІ АСФАЛЬТОБЕТОННІ ДОРОЖНІ' then 	2.1
+when mpr.measurename = '	ШТ	' and mes."name" =	'Т'	and trim(m.name) ='ТРАВЕРСА  ТМ-2' then	1
+when mpr.measurename = '	ШТ	' and mes."name" =	'Т'	and trim(m.name) ='ТРОСОСТІЙКА ТС-4' then	1
+when mpr.measurename = '	м	' and mes."name" =	'Т'	and trim(m.name) ='ТРУБА СТАЛЕВА ГАЗОВОДОПРОВІДНА  ДУ=127ММ S=4ММ' then	0.01342
+when mpr.measurename = '	м	' and mes."name" =	'Т'	and trim(m.name) ='ТРУБА ВОДОГАЗОПРОВІДНА ЗВАРНА ДУ25Х2,8ММ ГОСТ 3262-75' then	0.00212
+when mpr.measurename = '	м	' and mes."name" =	'Т'	and trim(m.name) ='ТРУБА ВОДОГАЗОПРОВІДНА ЗВАРНА ДУ 25Х3,2ММ ГОСТ 3262-75' then	0.00239
+when mpr.measurename = '	м	' and mes."name" =	'Т'	and trim(m.name) ='ТРУБА ВОДОГАЗОПРОВІДНА ЗВАРНА ДУ32Х2,8ММ ГОСТ 3262-75' then	0.00273
+when mpr.measurename = '	м	' and mes."name" =	'Т'	and trim(m.name) ='ТРУБА ВОДОГАЗОПРОВІДНА ЗВАРНА ДУ40Х3ММ ГОСТ 3262-75' then	0.00333
+when mpr.measurename = '	м	' and mes."name" =	'Т'	and trim(m.name) ='ТРУБА ВОДОГАЗОПРОВІДНА ЗВАРНА ДУ40Х3,5ММ ГОСТ 3262-75' then	0.00384
+when mpr.measurename = '	м	' and mes."name" =	'Т'	and trim(m.name) ='ТРУБА ВОДОГАЗОПРОВІДНА ЗВАРНА ДУ 50Х3 ММ' then	0.00422
+when mpr.measurename = '	м	' and mes."name" =	'Т'	and trim(m.name) ='ТРУБА ВОДОГАЗОПРОВІДНА ЗВАРНА ДУ 50Х3ММ' then	0.00422
+when mpr.measurename = '	м	' and mes."name" =	'Т'	and trim(m.name) ='ТРУБА ДУ 50 3.5' then	0.00488
+when mpr.measurename = '	м	' and mes."name" =	'Т'	and trim(m.name) ='ТРУБА ВОДОГАЗОПРОВІДНА ЗВАРНА ДУ 50Х3 ММ' then	0.00422
+when mpr.measurename = '	м	' and mes."name" =	'Т'	and trim(m.name) ='ТРУБА СТАЛЕВА DY=65 ММ' then	0.00571
+when mpr.measurename = '	м	' and mes."name" =	'Т'	and trim(m.name) ='ТРУБА СТАЛЕВА ГАЗОВОДОПРОВІДНА ПОСИЛЕНА ДУ=90ММ' then	0.01074
+when mpr.measurename = '	м³	' and mes."name" =	'Т'	and trim(m.name) ='ЩЕБІНЬ ВАПНЯНИЙ ФРАКЦІЯ 10-20 ММ' then	1.305
+when mpr.measurename = '	м³	' and mes."name" =	'Т'	and trim(m.name) ='ЩЕБІНЬ ФРАКЦІЯ 10-20ММ ДСТУ Б В.2.7-75-98' then	1.32
+when mpr.measurename = '	м³	' and mes."name" =	'Т'	and trim(m.name) ='ЩЕБІНЬ ВАПНЯНИЙ ФРАКЦІЯ 20-40 ММ' then	1.325
+when mpr.measurename = '	м³	' and mes."name" =	'Т'	and trim(m.name) ='ЩЕБІНЬ ГРАНІТНИЙ, ФРАКЦІЯ 20*40' then	1.37
+when mpr.measurename = '	м³	' and mes."name" =	'Т'	and trim(m.name) ='ЩЕБІНЬ ШЛАКОВИЙ ФЕРОСПЛАВНИЙ. ФРАКЦІЯ 20-40 ММ' then	1.36
+when mpr.measurename = '	м³	' and mes."name" =	'Т'	and trim(m.name) ='ЩЕБІНЬ ФРАКЦІЯ 40-70ММ (ГОСТ 8267-93)' then	1.4
+when mpr.measurename = '	м³	' and mes."name" =	'Т'	and trim(m.name) ='ЩЕБІНЬ 5-20' then	1.36
+else 1 end as koef
+from tkmaterialsforprice mpr left join tkmaterlsfrprc2tkmtrls mpr2m  on ( mpr.code = mpr2m.tkmaterialsforpricrfcd )
+							 left join tkmaterials m on (mpr2m.tkmaterialsinrefcode = m.code) 
+							 left join tkmeasurement mes on (mes.code=m.measurementcode)
+--where trim(mpr."name") = trim('	ПВ-1 0,75 	')
+order by mpr.code
+) as q1
+group by num , numforreport, name, measurename, identname
+order by q1.num
+
+]]>
+	</queryString>
+	<field name="num" class="java.lang.Double"/>
+	<field name="numforreport" class="java.lang.Double"/>
+	<field name="name" class="java.lang.String"/>
+	<field name="measurename" class="java.lang.String"/>
+	<field name="identname" class="java.lang.String"/>
+	<field name="count2020" class="java.math.BigDecimal"/>
+	<field name="sumwithoutnds2020" class="java.math.BigDecimal"/>
+	<field name="price2020" class="java.math.BigDecimal"/>
+	<field name="str_energynetmaterials" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="82" splitType="Stretch">
+			<textField pattern="##0" isBlankWhenNull="false">
+				<reportElement key="textField-1" x="0" y="12" width="713" height="18"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="14"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Інформація щодо цін на основне обладнання та матеріали ліцензіата __________________________"]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="145" splitType="Stretch">
+			<staticText>
+				<reportElement key="element-90" x="0" y="0" width="25" height="125"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<text><![CDATA[№ з/п]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="element-90" x="25" y="0" width="399" height="125"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<text><![CDATA[Найменування ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="element-90" x="424" y="0" width="50" height="125"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<text><![CDATA[Одиниця виміру]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="element-90" x="563" y="0" width="150" height="67"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<text><![CDATA[ Всі виробничи програми на 2021 рік (інвестиційна, ремонтна, приєднання тощо)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="element-90" x="563" y="67" width="75" height="58"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<text><![CDATA[Кількість]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="element-90" x="638" y="67" width="75" height="58"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<text><![CDATA[Фактична середньозважена ціна за одиницю, грн (без ПДВ)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="element-90" x="0" y="125" width="25" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<text><![CDATA[1]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="element-90" x="25" y="125" width="399" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<text><![CDATA[2]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="element-90" x="424" y="125" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<text><![CDATA[3]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="element-90" x="563" y="125" width="75" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<text><![CDATA[4]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="element-90" x="638" y="125" width="75" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<text><![CDATA[5]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="element-90" x="474" y="0" width="89" height="125"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<text><![CDATA[Ідентифікатор]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="element-90" x="474" y="125" width="89" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="8"/>
+				</textElement>
+				<text><![CDATA[4]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="10" splitType="Prevent">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField" style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="25" height="10" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement markup="styled">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{numforreport}.intValue()+""]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField" style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="25" y="0" width="399" height="10" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement markup="styled">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField" style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="424" y="0" width="50" height="10" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement markup="styled">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{measurename}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField" style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="563" y="0" width="75" height="10" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement markup="styled">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{identname}.equals("") ? "" : $F{count2020}+""]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField" style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="638" y="0" width="75" height="10" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement markup="styled">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{identname}.equals("") ? "" : $F{price2020}+""]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField" style="style1" stretchType="RelativeToTallestObject" mode="Opaque" x="474" y="0" width="89" height="10" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement markup="styled">
+					<font fontName="Times New Roman" size="8" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{identname}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

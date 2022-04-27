@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="friday_debetors_2month_sub" pageWidth="802" pageHeight="555" orientation="Landscape" columnWidth="802" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<queryString>
+		<![CDATA[select
+(select name from res.epren) as renname ,
+ count(name) as kvo_dolg ,sum(dold) as dold, count(name)-sum(dold) as dnew,
+sum(debtall) as  debtall,sum(debtold) as debtold ,sum(debtall)-sum(debtold) as debtnew,
+sum(otkl) as otkl
+from
+(
+select name,
+(nachabonold-payabonold)+(nachabonnew-payabonnew) as debtall,
+case when (nachabonold-payabonold)>0.39 then nachabonold-payabonold else 0 end as debtold,
+otkl,notkl ,wrn,
+case when (nachabonold-payabonold)>0.39 then 1 else 0 end as dold
+
+
+from (
+select rp.name,coalesce(nachabonold.nachabonold,0) as nachabonold,coalesce(nachabonnew,0) as nachabonnew,
+coalesce(payabonold.grn1_1_10,0) as payabonold,coalesce(payabonnew.grn1_1_10,0) as payabonnew,
+
+case when (rp.isworkingcode<>0) then 1 end as otkl,
+case when rp.isworkingcode=0 then 1 end as notkl,
+case when coalesce (wrn.wrpcode,0)>0 then 1 else 0 end as wrn
+
+from
+res.recordpoint rp
+left join
+(
+select recordpontrfcode,sum(nachabonold.grn1_1_7)  as nachabonold
+from (
+         SELECT b.recordpontrfcode, COALESCE(ROUND(cast(SUM(b.topayaftercrrctn) as numeric(10,2)),2),0) as grn1_1_7
+					        FROM res.bill b
+					      WHERE b.periodrefcode between (select code from res.currentperiod where startperioddate= '01.12.2015') and (select code-3 from res.currentperiod where statecode=0)
+					        and  ((b.billtypecode IN (0,1))
+                                                                    or ((b.billtypecode IN (6,7)) OR (b.billtypecode IN (0,1) AND b.subtypecode IN (1,2))))
+                                                                    and b.actcode is null
+                                                                     AND b.invstatuscode <> 2
+					        AND b.consumption IS NOT NULL
+
+                            and b.invstatuscode=0
+                            group by b.recordpontrfcode
+
+) nachabonold group by recordpontrfcode) nachabonold on rp.code=nachabonold.recordpontrfcode
+
+
+left join
+(
+select recordpontrfcode,sum(nachabonnew.grn1_1_7)  as nachabonnew
+from (
+         SELECT b.recordpontrfcode, COALESCE(ROUND(cast(SUM(b.topayaftercrrctn) as numeric(10,2)),2),0) as grn1_1_7
+					        FROM res.bill b
+					      WHERE b.periodrefcode  between
+                           (select code-2 from res.currentperiod where statecode=0)
+                           and (select code-1 from res.currentperiod where statecode=0)
+					      --  AND b.billtypecode IN (0,1)
+					       -- AND (b.subtypecode = 0 OR b.subtypecode IS NULL)
+                                                                    and  ((b.billtypecode IN (0,1))
+                                                                    or ((b.billtypecode IN (6,7)) OR (b.billtypecode IN (0,1) AND b.subtypecode IN (1,2))))
+                                                                    and b.actcode is null
+
+					        AND b.invstatuscode <> 2
+					        AND b.consumption IS NOT NULL
+                            and b.invstatuscode=0
+                            group by b.recordpontrfcode
+
+) nachabonnew group by recordpontrfcode) nachabonnew on rp.code=nachabonnew.recordpontrfcode
+left join
+(
+ SELECT pm.recordpontrfcode, round(cast(sum(p.value) as numeric(10,2)),2) as grn1_1_10
+					   from res.paymentdocument pm, res.payment p
+					   where pm.periodrefcode between (select code from res.currentperiod where startperioddate='01.12.2015')
+                       and (select code-1 from res.currentperiod where statecode=0)
+					   and pm.statuscode = 0
+                       and pm.code=p.pymntdcmntrfcode
+                       and p.billrefcode in
+                       (
+                   SELECT b.code
+					        FROM res.bill b
+					      WHERE b.periodrefcode between (select code from res.currentperiod where startperioddate='01.12.2015') and (select code-3 from res.currentperiod where statecode=0)
+					       -- AND b.billtypecode IN (0,1)
+					       -- AND (b.subtypecode = 0 OR b.subtypecode IS NULL)
+                                                                    and  ((b.billtypecode IN (0,1))
+                                                                    or ((b.billtypecode IN (6,7)) OR (b.billtypecode IN (0,1) AND b.subtypecode IN (1,2))))
+                                                                    and b.actcode is null
+					        AND b.invstatuscode <> 2
+					        AND b.consumption IS NOT NULL
+                                                                    and b.invstatuscode=0
+                     )
+group by pm.recordpontrfcode
+)  payabonold on rp.code=payabonold.recordpontrfcode
+
+left join
+(
+ SELECT pm.recordpontrfcode, round(cast(sum(p.value) as numeric(10,2)),2) as grn1_1_10
+					   from res.paymentdocument pm, res.payment p
+                       where pm.periodrefcode between (select code from res.currentperiod where startperioddate='01.12.2015')
+                       and (select code-1 from res.currentperiod where statecode=0)
+					   and pm.statuscode = 0
+                       and pm.code=p.pymntdcmntrfcode
+                       and p.billrefcode in
+                       (
+
+                   SELECT b.code
+					      FROM res.bill b
+					      WHERE b.periodrefcode between
+                          (select code-2 from res.currentperiod where statecode=0)
+                           and (select code-1 from res.currentperiod where statecode=0)
+					       -- AND b.billtypecode IN (0,1)
+					       -- AND (b.subtypecode = 0 OR b.subtypecode IS NULL)
+                                                                    and  ((b.billtypecode IN (0,1))
+                                                                    or ((b.billtypecode IN (6,7)) OR (b.billtypecode IN (0,1) AND b.subtypecode IN (1,2))))
+                                                                    and b.actcode is null
+					        AND b.invstatuscode <> 2
+					        AND b.consumption IS NOT NULL
+                                                                    and b.invstatuscode=0
+                     )
+group by pm.recordpontrfcode
+)  payabonnew on rp.code=payabonnew.recordpontrfcode
+
+left join
+(
+select distinct recordpontrfcode as wrpcode
+from res.warning w
+where w.deliverydate is not null
+and w.deliverydate>= (select '01.01.'||extract (year from current_date)::varchar)::date
+and w.warningtypecode=1
+) wrn on wrn.wrpcode=rp.code
+
+
+-- where (nachabonold<>0 or nachabonnew<>0)
+) indat
+-- where not ((nachabonold-payabonold<0.39) and (nachabonnew-payabonnew=0))
+ ) mdat]]>
+	</queryString>
+	<field name="renname" class="java.lang.String"/>
+	<field name="kvo_dolg" class="java.lang.Long"/>
+	<field name="dold" class="java.lang.Long"/>
+	<field name="dnew" class="java.lang.Long"/>
+	<field name="debtall" class="java.math.BigDecimal"/>
+	<field name="debtold" class="java.math.BigDecimal"/>
+	<field name="debtnew" class="java.math.BigDecimal"/>
+	<field name="otkl" class="java.lang.Long"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="22" splitType="Stretch">
+			<textField isBlankWhenNull="true">
+				<reportElement x="352" y="0" width="77" height="22"/>
+				<box>
+					<topPen lineWidth="0.75"/>
+					<leftPen lineWidth="0.75"/>
+					<bottomPen lineWidth="0.75"/>
+					<rightPen lineWidth="0.75"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{dnew}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="175" y="0" width="89" height="22"/>
+				<box>
+					<topPen lineWidth="0.75"/>
+					<leftPen lineWidth="0.75"/>
+					<bottomPen lineWidth="0.75"/>
+					<rightPen lineWidth="0.75"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{kvo_dolg}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="0" y="0" width="175" height="22"/>
+				<box>
+					<topPen lineWidth="0.75"/>
+					<leftPen lineWidth="0.75"/>
+					<bottomPen lineWidth="0.75"/>
+					<rightPen lineWidth="0.75"/>
+				</box>
+				<textElement verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{renname}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="264" y="0" width="88" height="22"/>
+				<box>
+					<topPen lineWidth="0.75"/>
+					<leftPen lineWidth="0.75"/>
+					<bottomPen lineWidth="0.75"/>
+					<rightPen lineWidth="0.75"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{dold}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="609" y="0" width="96" height="22"/>
+				<box>
+					<topPen lineWidth="0.75"/>
+					<leftPen lineWidth="0.75"/>
+					<bottomPen lineWidth="0.75"/>
+					<rightPen lineWidth="0.75"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{debtnew}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="429" y="0" width="84" height="22"/>
+				<box>
+					<topPen lineWidth="0.75"/>
+					<leftPen lineWidth="0.75"/>
+					<bottomPen lineWidth="0.75"/>
+					<rightPen lineWidth="0.75"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{debtall}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="705" y="0" width="97" height="22"/>
+				<box>
+					<topPen lineWidth="0.75"/>
+					<leftPen lineWidth="0.75"/>
+					<bottomPen lineWidth="0.75"/>
+					<rightPen lineWidth="0.75"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{otkl}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="513" y="0" width="96" height="22"/>
+				<box>
+					<topPen lineWidth="0.75"/>
+					<leftPen lineWidth="0.75"/>
+					<bottomPen lineWidth="0.75"/>
+					<rightPen lineWidth="0.75"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" markup="none">
+					<font fontName="Times New Roman"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{debtold}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="servicesRegistryPrint2_ordered" pageWidth="575" pageHeight="555" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="575" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<queryString>
+		<![CDATA[Select
+  --countername , sum(countfact) - sum(count_prih) as ordered_count
+
+  countername
+  , sum(count_prih_is_not_pay) as aaaa
+, sum(order_count_is_not_pay) - sum(count_prih_is_not_pay) as ordered_is_not_pay
+, sum(order_count_is_pay) - sum(count_prih_is_pay) as ordered_is_pay
+
+--, sum(order_count_is_pay) as order_count_is_pay
+--, sum(order_count_is_not_pay) as order_count_is_not_pay
+
+--, sum(count_prih_is_pay) as count_prih_is_pay
+--, sum(count_prih_is_not_pay) as count_prih_is_not_pay
+from (
+
+      Select m.name as countername , oi.countfact , o.numberdoc , oi.code as oicode , oi.materialcode
+      , /*кол-во оприходовано всего*/
+      coalesce((select sum(q.countfact)
+          from rqfkorderitem2billitem q , rqbillitem2orderitem bi2oi, rqfkorderitem fi , rqfkorder f
+          where q.billitemrefcode = bi2oi.billitemrefcode
+          and q.fkorderitemrefcode = fi.code
+          and fi.fkorderrefcode = f.code
+          and f.statuscode = 5
+          and fi.materialcode = oi.materialcode
+          and bi2oi.orderitemrefcode = oi.code
+      ),0) as count_prih
+
+      , /*кол-во оприходовано с тех строк счета по которым была оплата */
+      coalesce((select sum(q.countfact)
+          from rqfkorderitem2billitem q , rqbillitem2orderitem bi2oi, rqfkorderitem fi , rqfkorder f , rqbillitem bi
+          where q.billitemrefcode = bi2oi.billitemrefcode
+          and q.fkorderitemrefcode = fi.code
+          and fi.fkorderrefcode = f.code
+          and f.statuscode = 5
+          and fi.materialcode = oi.materialcode
+          and q.billitemrefcode = bi.code
+          and bi2oi.orderitemrefcode = oi.code
+          and bi.code in (select pi2bi.billitemcode from  rqpaydocitem2billitem pi2bi
+                            						where pi2bi.billitemcode = bi.code)
+      ),0) as count_prih_is_pay
+
+       , /*кол-во оприходовано с тех строк счета по которым НЕБЫЛО оплаты */
+      coalesce((select sum(q.countfact)
+          from rqfkorderitem2billitem q , rqbillitem2orderitem bi2oi, rqfkorderitem fi , rqfkorder f , rqbillitem bi
+          where q.billitemrefcode = bi2oi.billitemrefcode
+          and q.fkorderitemrefcode = fi.code
+          and fi.fkorderrefcode = f.code
+          and f.statuscode = 5
+          and fi.materialcode = oi.materialcode
+          and q.billitemrefcode = bi.code
+          and not EXISTS (select pi2bi.code from rqpaydocitem2billitem pi2bi where pi2bi.billitemcode = bi.code )
+          and bi2oi.orderitemrefcode = oi.code
+      ),0) as count_prih_is_not_pay
+      /*кол-во заявлено с оплатами  */
+      ,COALESCE( (
+               select sum(bi2oi.countfact) from rqbillitem2orderitem bi2oi , rqbillitem bi
+                 where bi2oi.orderitemrefcode = oi.code
+                   and bi2oi.billitemrefcode = bi.code
+                   and bi.code in (select pi2bi.billitemcode from  rqpaydocitem2billitem pi2bi
+                            						where pi2bi.billitemcode = bi.code)
+      ),0) as order_count_is_pay
+
+       /*кол-во заявлено без оплат або без рахунків */
+      , oi.countfact -
+        COALESCE( (
+    select sum(bi2oi.countfact)
+      from rqbillitem2orderitem bi2oi , rqbillitem bi
+                 where bi2oi.orderitemrefcode = oi.code
+                   and bi2oi.billitemrefcode = bi.code
+                   and bi2oi.billitemrefcode in (select pi2bi.billitemcode from  rqpaydocitem2billitem pi2bi
+                            						where pi2bi.billitemcode = bi2oi.billitemrefcode)
+
+      ),0) as order_count_is_not_pay
+
+      from rqapprovedcost acost , rqorderitem oi , tkmaterials m , rqorder o
+      where acost.rqorderitemrefcode = oi.code
+      and oi.materialcode = m.code
+      and oi.orderrefcode = o.code
+      and o.statusrefcode = 2
+      and oi.statusrefcode = 1
+      and acost.approvedcoststatusrfcd = 2
+      and o.creationmethodrefcode=3
+      and o.kindrefcode=5
+) as oiapp
+group by countername
+order by countername]]>
+	</queryString>
+	<field name="countername" class="java.lang.String"/>
+	<field name="ordered_is_not_pay" class="java.math.BigDecimal"/>
+	<field name="ordered_is_pay" class="java.math.BigDecimal"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="30" splitType="Stretch">
+			<textField>
+				<reportElement positionType="Float" x="0" y="0" width="575" height="30"/>
+				<textElement markup="none">
+					<font size="14" isBold="true" isUnderline="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" Замовлені прилади обліку станом на " + new SimpleDateFormat("dd.MM.yyyy").format(new Date()).toString()]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="40" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" mode="Opaque" x="0" y="0" width="450" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Найменування"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" mode="Opaque" x="450" y="0" width="65" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Замовлено та не оплачені"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" mode="Opaque" x="515" y="0" width="60" height="40" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Замовлено та оплачені"]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isBlankWhenNull="true">
+				<reportElement positionType="Float" mode="Opaque" x="0" y="0" width="450" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countername}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement positionType="Float" mode="Opaque" x="450" y="0" width="65" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ordered_is_not_pay}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement positionType="Float" mode="Opaque" x="515" y="0" width="60" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{ordered_is_pay}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 4.5.0-->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="gsm_report_by_period" pageWidth="595" pageHeight="842" whenNoDataType="NoDataSection" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" whenResourceMissingType="Empty">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="New Data Adapter 1"/>
+	<parameter name="dateStart" class="java.lang.String">
+		<defaultValueExpression><![CDATA["01.08.2014"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateFinal" class="java.lang.String">
+		<defaultValueExpression><![CDATA["31.08.2014"]]></defaultValueExpression>
+	</parameter>
+	<queryString language="SQL">
+		<![CDATA[select main_query.dep_name, main_query.vehicle_name, 
+case main_query.isOVB 
+     when 0 then ''
+     when 1 then 'ОВБ'
+     end as isOVB 
+, 
+     main_query.A95_cnt, main_query.A92_cnt, main_query.DP_cnt from 
+(
+select tdep.name as dep_name, 
+trim(coalesce(treal.name,treal.buhname) || ' (гос.№ ' || 
+         treal.gosnumber || ', инв.№ ' || 
+         treal.invnumber || ')') as vehicle_name, coalesce(treal.isovb,0) as isOVB,
+round(sum(coalesce((select sum(eni.countfact)  
+from tktransportrealhistory h  , tktransportreal tr , entravelsheet trav , entravelsheetitem travi ,
+entravlshttm2trnsprttm  , entransport2enestimate t2e , enestimateitem eni , tkfueltype , enplanwork p
+      where h.transportrealrefcode = tr.code
+      and tr.code = trav.transportrealcode
+      and trav.datestart between h.datestart and coalesce(h.datefinal,'01.01.2999')
+      and trav.code = travi.travelsheetrefcode
+      and travi.code = entravlshttm2trnsprttm.travelsheetitemrefcode
+      and t2e.transportrefcode = entravlshttm2trnsprttm.transportitemrefcode
+      and t2e.estimaterefcode = eni.code
+      and eni.kindrefcode = 2
+      and travi.kindrefcode = 2
+      and h.reg_id is not null
+      and tkfueltype.materialrefcode = eni.materialrefcode
+      and eni.planrefcode = p.code
+      and tr.code = treal.code 
+      and trav.code = tsheet.code
+      and tkfueltype.code in (75000000)
+),0))::numeric,2) as A95_cnt,
+  round(sum(coalesce((select sum(eni.countfact)  
+from tktransportrealhistory h  , tktransportreal tr , entravelsheet trav , entravelsheetitem travi ,
+entravlshttm2trnsprttm  , entransport2enestimate t2e , enestimateitem eni , tkfueltype , enplanwork p
+      where h.transportrealrefcode = tr.code
+      and tr.code = trav.transportrealcode
+      and trav.datestart between h.datestart and coalesce(h.datefinal,'01.01.2999')
+      and trav.code = travi.travelsheetrefcode
+      and travi.code = entravlshttm2trnsprttm.travelsheetitemrefcode
+      and t2e.transportrefcode = entravlshttm2trnsprttm.transportitemrefcode
+      and t2e.estimaterefcode = eni.code
+      and eni.kindrefcode = 2
+      and travi.kindrefcode = 2
+      and h.reg_id is not null
+      and tkfueltype.materialrefcode = eni.materialrefcode
+      and eni.planrefcode = p.code
+      and tr.code = treal.code 
+      and trav.code = tsheet.code
+      and tkfueltype.code in (75000001, 75000002)
+),0))::numeric,2) as A92_cnt,
+round(sum(coalesce((select sum(eni.countfact)  
+from tktransportrealhistory h  , tktransportreal tr , entravelsheet trav , entravelsheetitem travi ,
+entravlshttm2trnsprttm  , entransport2enestimate t2e , enestimateitem eni , tkfueltype , enplanwork p
+      where h.transportrealrefcode = tr.code
+      and tr.code = trav.transportrealcode
+      and trav.datestart between h.datestart and coalesce(h.datefinal,'01.01.2999')
+      and trav.code = travi.travelsheetrefcode
+      and travi.code = entravlshttm2trnsprttm.travelsheetitemrefcode
+      and t2e.transportrefcode = entravlshttm2trnsprttm.transportitemrefcode
+      and t2e.estimaterefcode = eni.code
+      and eni.kindrefcode = 2
+      and travi.kindrefcode = 2
+      and h.reg_id is not null
+      and tkfueltype.materialrefcode = eni.materialrefcode
+      and eni.planrefcode = p.code
+      and tr.code = treal.code 
+      and trav.code = tsheet.code
+      and tkfueltype.code in (75000003)
+),0))::numeric,2) as DP_cnt
+from tktransportreal treal, entransportdepartment tdep, entravelsheet tsheet 
+where treal.transportdepartmntrfcd = tdep.code
+and tsheet.datestart between to_date($P{dateStart},'dd.MM.yyyy')  and to_date($P{dateFinal},'dd.MM.yyyy')  
+and treal.code = tsheet.transportrealcode 
+group by tdep.name, 
+trim(coalesce(treal.name,treal.buhname) || ' (гос.№ ' || 
+         treal.gosnumber || ', инв.№ ' || 
+         treal.invnumber || ')'), treal.isonduty, treal.isovb) as main_query
+where 
+main_query.dp_cnt > 0 or main_query.A92_cnt > 0 or main_query.A95_cnt > 0
+order by 1, 2]]>
+	</queryString>
+	<field name="dep_name" class="java.lang.String">
+		<fieldDescription><![CDATA[Наименование подразделения]]></fieldDescription>
+	</field>
+	<field name="vehicle_name" class="java.lang.String">
+		<fieldDescription><![CDATA[Наименование транспортного средства]]></fieldDescription>
+	</field>
+	<field name="isovb" class="java.lang.String">
+		<fieldDescription><![CDATA[Транспорт ОВБ]]></fieldDescription>
+	</field>
+	<field name="a95_cnt" class="java.lang.Double">
+		<fieldDescription><![CDATA[Кол-во А95, л]]></fieldDescription>
+	</field>
+	<field name="a92_cnt" class="java.lang.Double">
+		<fieldDescription><![CDATA[Кол-во А92, л]]></fieldDescription>
+	</field>
+	<field name="dp_cnt" class="java.lang.Double">
+		<fieldDescription><![CDATA[Кол-во ДТ, л]]></fieldDescription>
+	</field>
+	<group name="Group1">
+		<groupExpression><![CDATA[$F{dep_name}]]></groupExpression>
+		<groupHeader>
+			<band height="20">
+				<textField>
+					<reportElement mode="Opaque" x="0" y="0" width="554" height="20" backcolor="#F0F0F0"/>
+					<textElement textAlignment="Left" verticalAlignment="Middle">
+						<font size="11" isItalic="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{dep_name}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="46" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="554" height="46">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center">
+					<font size="12"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Фактическое потребление топлива транспортными стредствами за период с " + $P{dateStart} + " по " + $P{dateFinal}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<columnHeader>
+		<band height="30" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="355" height="30"/>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[Наименование транспортного средства]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="355" y="0" width="50" height="30">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[Признак ОВБ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="405" y="0" width="50" height="30">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[Кол-во А95, л]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="455" y="0" width="50" height="30">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[Кол-во А92, л]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="505" y="0" width="50" height="30">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[Кол-во ДТ, л]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="355" height="20" isPrintWhenDetailOverflows="true">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<font size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{vehicle_name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="405" y="0" width="50" height="20" isPrintWhenDetailOverflows="true">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{a95_cnt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="455" y="0" width="50" height="20" isPrintWhenDetailOverflows="true">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{a92_cnt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="505" y="0" width="50" height="20" isPrintWhenDetailOverflows="true">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{dp_cnt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="355" y="0" width="50" height="20" isPrintWhenDetailOverflows="true">
+					<property name="local_mesure_unitwidth" value="pixel"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="1.0"/>
+					<leftPen lineWidth="1.0"/>
+					<bottomPen lineWidth="1.0"/>
+					<rightPen lineWidth="1.0"/>
+				</box>
+				<textElement verticalAlignment="Middle"/>
+				<textFieldExpression><![CDATA[$F{isovb}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

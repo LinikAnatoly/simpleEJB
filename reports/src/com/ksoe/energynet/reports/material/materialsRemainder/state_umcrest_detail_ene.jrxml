@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="state_umcrest_detail_ene" pageWidth="150" pageHeight="150" whenNoDataType="AllSectionsNoDetail" columnWidth="150" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="nn" class="java.lang.String"/>
+	<parameter name="partyid" class="java.lang.String"/>
+	<parameter name="cutDate" class="java.lang.String"/>
+	<parameter name="molcode" class="java.lang.String"/>
+	<parameter name="rest_purpose_type_id" class="java.lang.Integer"/>
+	<parameter name="str_code_mol" class="java.lang.String" isForPrompting="false"/>
+	<queryString>
+		<![CDATA[select sum(countgen) , name as depname from
+
+(
+
+Select i.countgen , i.estimateitemcode , d.name   from RQFKOrderData2FKParty od2p , rqfkorderitem fi ,rqfkorder f , rqfkorderitem2enstmttm i  ,
+ enplanwork pw  , endepartment d  , enestimateitem ei , enelement el
+Where od2p.partycode in ( $P!{partyid} )
+  and od2p.fkorderitemrefcode = fi.code
+  and od2p.fkorderrefcode = f.code
+  and fi.fkorderrefcode = f.code
+  and f.kindcode in ( 1 , 15) /*приходы*/
+  and i.estimateitemcode = od2p.estimateitemrefcode
+  and f.moloutcode in ($P!{str_code_mol}) /*мол*/
+  and f.dategen <= to_date($P{cutDate},'dd.mm.yyyy') /*дата среза*/
+  and fi.nomenclaturenum =  trim(replace($P{nn},' ',''))  /*номенклатурный*/
+  and i.fkorderitemrefcode = fi.code
+  and f.statuscode in (3) /*Проведений*/
+  and ei.planrefcode = pw.code
+  and pw.departmentrefcode = d.code
+  and i.estimateitemcode = ei.code
+  and pw.elementrefcode = el.code
+  and (el.typerefcode <> 19 and  el.typerefcode <> 20 and el.typerefcode <> 35 ) /*gриходы с ЗАКУПОК и на ПВЗ - сразу в опертивный запас НЕТ*/
+  and $P{rest_purpose_type_id} = 5 -- если тип назначения остатка = ТРАНЗИТ
+/*сюда поидее прикрутить запрос по перемещениям на нужный мол - типа могут перемещать наверное между центральными складами */
+/*union запрос*/
+
+/*отнимаем перемещения где мол отправитель является указанный мол что бы определить кол-во остатков под конкретные планы */
+union all
+
+select -i.countgen, i.estimateitemcode , d.name  from  rqfkorderitem fi ,rqfkorder f , rqfkorderitem2enstmttm i , finmaterials finm ,
+ enplanwork pw  , endepartment d  , enestimateitem ei
+where fi.fkorderrefcode = f.code
+and f.kindcode in (2,3,4,13,16,18,19,20 , 7 /*автоматич транз в оперативн*/ )
+and f.molincode in ($P!{str_code_mol}) /*мол*/
+and f.dategen <= to_date($P{cutDate},'dd.mm.yyyy') /*дата среза*/
+and f.statuscode in (3) /*Проведений*/
+and fi.code = i.fkorderitemrefcode
+and finm.code = i.finmaterialsrefcode
+and finm.estimateitemrefcode = i.estimateitemcode
+and finm.nn = trim(replace($P{nn},' ','')) /*номенклатурный*/
+and finm.party_id in ( $P!{partyid} )
+and finm.rest_purpose_type_id not in(25 ,0)  /* не берем если перемещение с оперативного запаса*/
+and ei.planrefcode = pw.code
+and pw.departmentrefcode = d.code
+and i.estimateitemcode = ei.code
+and $P{rest_purpose_type_id} = 5 -- если тип назначения остатка = ТРАНЗИТ
+
+Union all
+/*клеим сумму из ордеров которые черновые или складені - если тип назначения остатка = Резерв*/
+
+ select i.countgen, i.estimateitemcode ,  d.name  from  rqfkorderitem fi ,rqfkorder f , rqfkorderitem2enstmttm i , finmaterials finm ,
+ enplanwork pw  , endepartment d  , enestimateitem ei
+where fi.fkorderrefcode = f.code
+and f.molincode in ($P!{str_code_mol}) /*мол*/
+and f.dategen <= to_date($P{cutDate},'dd.mm.yyyy') /*дата среза*/
+and f.statuscode in (1,2) /*черновой или складений т.е резерв */
+and fi.code = i.fkorderitemrefcode
+and finm.code = i.finmaterialsrefcode
+and finm.estimateitemrefcode = i.estimateitemcode
+and finm.nn = trim(replace($P{nn},' ','')) /*номенклатурный*/
+and finm.party_id in ( $P!{partyid} )
+and ei.planrefcode = pw.code
+and pw.departmentrefcode = d.code
+and i.estimateitemcode = ei.code
+and $P{rest_purpose_type_id} = 3 -- если тип назначения остатка = РЕЗЕРВ
+
+
+) as sel1
+
+group by name
+ having sum(countgen) <> 0]]>
+	</queryString>
+	<field name="sum" class="java.math.BigDecimal"/>
+	<field name="depname" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="###0.000000" isBlankWhenNull="true">
+				<reportElement key="textField-1" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{sum}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-2" positionType="Float" stretchType="RelativeToTallestObject" x="50" y="0" width="100" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{depname}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<lastPageFooter>
+		<band height="15" splitType="Stretch">
+			<printWhenExpression><![CDATA[new Boolean(($V{REPORT_COUNT}.intValue() == 0) )]]></printWhenExpression>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-3" positionType="Float" stretchType="RelativeToTallestObject" x="50" y="0" width="100" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.000000" isBlankWhenNull="true">
+				<reportElement key="textField-4" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="50" height="15"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="8" pdfFontName="times.ttf" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[]]></textFieldExpression>
+			</textField>
+		</band>
+	</lastPageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

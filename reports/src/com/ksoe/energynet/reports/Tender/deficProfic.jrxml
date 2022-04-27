@@ -1,0 +1,1515 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="deficProfic" pageWidth="1200" pageHeight="595" orientation="Landscape" columnWidth="1160" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" isIgnorePagination="true">
+	<property name="ireport.zoom" value="0.9090909090909091"/>
+	<property name="ireport.x" value="8"/>
+	<property name="ireport.y" value="0"/>
+	<property name="net.sf.jasperreports.export.xls.cell.locked" value="false"/>
+	<property name="net.sf.jasperreports.export.xls.detect.cell.type" value="true"/>
+	<parameter name="yearGen" class="java.lang.Integer"/>
+	<parameter name="strBudget" class="java.lang.String"/>
+	<parameter name="DatePlanFrom" class="java.lang.String"/>
+	<parameter name="DatePlanTo" class="java.lang.String"/>
+	<parameter name="DateContractFrom" class="java.lang.String"/>
+	<parameter name="DateContractTo" class="java.lang.String"/>
+	<parameter name="maxorderperiod" class="java.lang.String"/>
+	<parameter name="monthGenStart" class="java.lang.Integer"/>
+	<parameter name="monthGenFinal" class="java.lang.Integer"/>
+	<queryString>
+		<![CDATA[select
+mat_planidentid2010,
+mat_planmatcode,
+mat_planmatname,
+mat_planmeasname,
+
+sum(mat_plancountfact1) as mat_plancountfact1,
+sum(mat_plancountfact2) as mat_plancountfact2,
+sum(mat_plancountfact3) as mat_plancountfact3,
+sum(mat_plancountfact4) as mat_plancountfact4,
+sum(mat_plancountfact5) as mat_plancountfact5,
+sum(mat_plancountfact6) as mat_plancountfact6,
+sum(mat_plancountfact7) as mat_plancountfact7,
+sum(mat_plancountfact8) as mat_plancountfact8,
+sum(mat_plancountfact9) as mat_plancountfact9,
+sum(mat_plancountfact10) as mat_plancountfact10,
+sum(mat_plancountfact11) as mat_plancountfact11,
+sum(mat_plancountfact12) as mat_plancountfact12,
+sum(mat_plancountfact) as mat_plancountfact , -- сумарное кол-во
+
+mat_tendcountfact ,
+pricewithnds::numeric(15,2) as pricewithnds ,
+mat_tendcontractnumber ,
+
+( sum(mat_plancountfact) - mat_tendcountfact)::numeric(15,6) as delta_count ,
+((sum(mat_plancountfact) - mat_tendcountfact)::numeric(15,6) * pricewithnds)::numeric(15,2) as delta_sumwithnds
+from
+(
+
+
+                      select
+                      mat_plan.identid2010 as mat_planidentid2010,
+                      mat_plan.matcode as mat_planmatcode,
+                      mat_plan.matname as mat_planmatname,
+                      mat_plan.measname as mat_planmeasname,
+
+                      mat_plan.countfact1 as mat_plancountfact1,
+                      mat_plan.countfact2 as mat_plancountfact2,
+                      mat_plan.countfact3 as mat_plancountfact3,
+                      mat_plan.countfact4 as mat_plancountfact4,
+                      mat_plan.countfact5 as mat_plancountfact5,
+                      mat_plan.countfact6 as mat_plancountfact6 ,
+                      mat_plan.countfact7 as mat_plancountfact7,
+                      mat_plan.countfact8 as mat_plancountfact8,
+                      mat_plan.countfact9 as mat_plancountfact9,
+                      mat_plan.countfact10 as mat_plancountfact10,
+                      mat_plan.countfact11 as mat_plancountfact11,
+                      mat_plan.countfact12 as mat_plancountfact12,
+
+                      mat_plan.sumcountfact as mat_plancountfact ,
+
+                      sum(mat_tend.countfact) as mat_tendcountfact ,
+                      max(pricewithnds) as pricewithnds ,
+                      string_agg(mat_tend.contractnumber,' , ') as mat_tendcontractnumber
+                      from
+                      (
+                            select         mname as matname ,
+                             materialcode as matcode ,
+                             meas as measname ,
+                             deliveryday,
+                             objname ,
+                             objcode,
+                             dname ,
+                             dcode ,
+                             budgetrefname ,
+                             budgetrefcode ,
+                             sum(countfact1) as countfact1 ,
+                            --
+                             sum(countfact2) as countfact2 ,
+                             --
+                             sum(countfact3) as countfact3 ,
+                             --
+                             sum(countfact4) as countfact4 ,
+                             --
+                             sum(countfact5) as countfact5 ,
+                             --
+                             sum(countfact6) as countfact6 ,
+                             --
+                             sum(countfact7) as countfact7 ,
+                             --
+                             sum(countfact8) as countfact8 ,
+                             --
+                             sum(countfact9) as countfact9 ,
+                             --
+                             sum(countfact10) as countfact10 ,
+                             --
+                             sum(countfact11) as countfact11 ,
+                             --
+                             sum(countfact12) as countfact12 ,
+
+                             (
+                             sum(COALESCE(countfact1,0)) + sum(COALESCE(countfact2,0)) + sum(COALESCE(countfact3,0)) +
+                             sum(COALESCE(countfact4,0)) + sum(COALESCE(countfact5,0)) + sum(COALESCE(countfact6,0)) +
+                             sum(COALESCE(countfact7,0)) + sum(COALESCE(countfact8,0)) + sum(COALESCE(countfact9,0)) +
+                             sum(COALESCE(countfact10,0)) + sum(COALESCE(countfact11,0)) + sum(COALESCE(countfact12,0))
+                             )::numeric(15,6) AS sumcountfact ,
+
+                              --- start col group
+                               'name_group'::text  as name_group
+                             , case when identid is null then 'Без класіфікатора' else identid end  as identid2010
+                             , enresponsiblesname
+
+                            , sum( coalesce( paintcell1 , 0 ) ) as paintcell1 ,
+                            sum( coalesce( paintcell2 , 0 ) ) as paintcell2 ,
+                            sum( coalesce( paintcell3 , 0 ) ) as paintcell3 ,
+                            sum( coalesce( paintcell4 , 0 ) ) as paintcell4 ,
+                            sum( coalesce( paintcell5 , 0 ) ) as paintcell5 ,
+                            sum( coalesce( paintcell6 , 0 ) ) as paintcell6 ,
+                            sum( coalesce( paintcell7 , 0 ) ) as paintcell7 ,
+                            sum( coalesce( paintcell8 , 0 ) ) as paintcell8 ,
+                            sum( coalesce( paintcell9 , 0 ) ) as paintcell9 ,
+                            sum( coalesce( paintcell10 , 0 ) ) as paintcell10 ,
+                            sum( coalesce( paintcell11 , 0 ) ) as paintcell11 ,
+                            sum( coalesce( paintcell12 , 0 ) ) as paintcell12
+                            , paintcellall
+                              from (
+
+                            Select  price ,  mname, materialcode , meas, deliveryday, objname , objcode ,  dname , dcode, budgetrefname , budgetrefcode ,
+                             yeargen1 ,  sum(countfact1) as countfact1 ,  monthgen1 , sum(cost1) as cost1 ,
+                            --
+                             yeargen2 , sum(countfact2) as countfact2 , monthgen2 , sum(cost2) as cost2 ,
+                             --
+                             yeargen3 , sum(countfact3) as countfact3 , monthgen3 , sum(cost3) as cost3 ,
+                             --
+                             yeargen4 , sum(countfact4) as countfact4 , monthgen4 , sum(cost4) as cost4 ,
+                             --
+                             yeargen5 , sum(countfact5) as countfact5 , monthgen5 , sum(cost5) as cost5 ,
+                             --
+                             yeargen6 , sum(countfact6) as countfact6 , monthgen6 , sum(cost6) as cost6 ,
+                             --
+                             yeargen7 , sum(countfact7) as countfact7 , monthgen7 , sum(cost7) as cost7 ,
+                             --
+                             yeargen8 , sum(countfact8) as countfact8 , monthgen8 , sum(cost8) as cost8 ,
+                             --
+                             yeargen9 , sum(countfact9) as countfact9 , monthgen9 , sum(cost9) as cost9 ,
+                             --
+                             yeargen10 , sum(countfact10) as countfact10 , monthgen10 , sum(cost10) as cost10 ,
+                             --
+                             yeargen11 , sum(countfact11) as countfact11 , monthgen11 , sum(cost11) as cost11 ,
+                             --
+                             yeargen12 , sum(countfact12) as countfact12 , monthgen12 , sum(cost12) as cost12
+                             , identid
+
+                              , enresponsiblesname
+                              , paintcell1 ,
+                              paintcell2,
+                              paintcell3,
+                              paintcell4,
+                              paintcell5,
+                              paintcell6,
+                              paintcell7,
+                              paintcell8,
+                              paintcell9,
+                              paintcell10,
+                              paintcell11,
+                              paintcell12
+
+                              , paintcellall
+                              From (
+                            select Cast(price as numeric(15,4)) as price ,  mname, materialcode ,  meas, deliveryday,  monthgenp,
+                                                                                                         objname ,objcode ,
+                               dname ,dcode, budgetrefname , budgetrefcode ,
+
+                              case when monthgenp = 1 then  yeargen end as yeargen1,
+                              case when monthgenp = 1 then  Cast(countfact as numeric(15,6)) end as countfact1 ,
+                              case when monthgenp = 1 then  monthgen end as monthgen1 ,
+                              case when monthgenp = 1 then  Cast(cost as numeric(15,4)) end as cost1 ,
+                            ----
+                              case when monthgenp = 2 then  yeargen end as yeargen2,
+                              case when monthgenp = 2 then  Cast(countfact as numeric(15,6)) end as countfact2 ,
+                              case when monthgenp = 2 then  monthgen end as monthgen2 ,
+                              case when monthgenp = 2 then  Cast(cost as numeric(15,4)) end as cost2 ,
+                            ----
+                              case when monthgenp = 3 then  yeargen end as yeargen3,
+                              case when monthgenp = 3 then  Cast(countfact as numeric(15,6)) end as countfact3 ,
+                              case when monthgenp = 3 then  monthgen end as monthgen3 ,
+                              case when monthgenp = 3 then  Cast(cost as numeric(15,4)) end as cost3 ,
+                            ----
+                              case when monthgenp = 4 then  yeargen end as yeargen4,
+                              case when monthgenp = 4 then  Cast(countfact as numeric(15,6)) end as countfact4 ,
+                              case when monthgenp = 4 then  monthgen end as monthgen4 ,
+                              case when monthgenp = 4 then  Cast(cost as numeric(15,4)) end as cost4 ,
+                            ----
+                              case when monthgenp = 5 then  yeargen end as yeargen5,
+                              case when monthgenp = 5 then  Cast(countfact as numeric(15,6)) end as countfact5 ,
+                              case when monthgenp = 5 then  monthgen end as monthgen5 ,
+                              case when monthgenp = 5 then  Cast(cost as numeric(15,4)) end as cost5 ,
+                            ----
+                              case when monthgenp = 6 then  yeargen end as yeargen6,
+                              case when monthgenp = 6 then  Cast(countfact as numeric(15,6)) end as countfact6 ,
+                              case when monthgenp = 6 then  monthgen end as monthgen6 ,
+                              case when monthgenp = 6 then  Cast(cost as numeric(15,4)) end as cost6 ,
+                            ----
+                              case when monthgenp = 7 then  yeargen end as yeargen7,
+                              case when monthgenp = 7 then  Cast(countfact as numeric(15,6)) end as countfact7 ,
+                              case when monthgenp = 7 then  monthgen end as monthgen7 ,
+                              case when monthgenp = 7 then  Cast(cost as numeric(15,4)) end as cost7 ,
+                            ----
+                              case when monthgenp = 8 then  yeargen end as yeargen8,
+                              case when monthgenp = 8 then  Cast(countfact as numeric(15,6)) end as countfact8 ,
+                              case when monthgenp = 8 then  monthgen end as monthgen8 ,
+                              case when monthgenp = 8 then  Cast(cost as numeric(15,4)) end as cost8 ,
+                            ----
+                              case when monthgenp = 9 then  yeargen end as yeargen9,
+                              case when monthgenp = 9 then  Cast(countfact as numeric(15,6)) end as countfact9 ,
+                              case when monthgenp = 9 then  monthgen end as monthgen9 ,
+                              case when monthgenp = 9 then  Cast(cost as numeric(15,4)) end as cost9 ,
+                            ----
+                              case when monthgenp = 10 then  yeargen end as yeargen10,
+                              case when monthgenp = 10 then  Cast(countfact as numeric(15,6)) end as countfact10 ,
+                              case when monthgenp = 10 then  monthgen end as monthgen10 ,
+                              case when monthgenp = 10 then  Cast(cost as numeric(15,4)) end as cost10 ,
+                            ----
+                              case when monthgenp = 11 then  yeargen end as yeargen11,
+                              case when monthgenp = 11 then  Cast(countfact as numeric(15,6)) end as countfact11 ,
+                              case when monthgenp = 11 then  monthgen end as monthgen11 ,
+                              case when monthgenp = 11 then  Cast(cost as numeric(15,4)) end as cost11 ,
+                            ----
+                              case when monthgenp = 12 then  yeargen end as yeargen12,
+                              case when monthgenp = 12 then  Cast(countfact as numeric(15,6)) end as countfact12 ,
+                              case when monthgenp = 12 then  monthgen end as monthgen12 ,
+                              case when monthgenp = 12 then  Cast(cost as numeric(15,4)) end as cost12
+                              , identid
+                              , enresponsiblesname
+                              --, paintcell
+                            , paintcellall
+
+                             , case when monthgenp = 1 then  paintcell end as paintcell1 ,
+                              case when monthgenp = 2 then  paintcell end as paintcell2,
+                              case when monthgenp = 3 then  paintcell end as paintcell3 ,
+                              case when monthgenp = 4 then  paintcell end as paintcell4 ,
+                              case when monthgenp = 5 then  paintcell end as paintcell5 ,
+                              case when monthgenp = 6 then  paintcell end as paintcell6 ,
+                              case when monthgenp = 7 then  paintcell end as paintcell7 ,
+                              case when monthgenp = 8 then  paintcell end as paintcell8 ,
+                              case when monthgenp = 9 then  paintcell end as paintcell9 ,
+                              case when monthgenp = 10 then  paintcell end as paintcell10 ,
+                              case when monthgenp = 11 then  paintcell end as paintcell11 ,
+                              case when monthgenp = 12 then  paintcell end as paintcell12
+
+                             FROM (
+
+                            select deliveryday, monthgen , monthgen1 as monthgenp, yeargen, mname, materialcode ,  meas,
+                              Cast(sum(countfact) as numeric(15,6)) as countfact ,
+                              Cast(price as numeric(15,4)) as price ,
+                              Cast(sum(cost) as numeric(15,4)) as cost ,
+
+                              objname ,
+                              objcode ,
+                              dname ,
+                              dcode ,
+                              budgetrefname  , budgetrefcode ,
+                              identid
+                              ,enresponsiblesname
+                              ,paintcell
+                              ,paintcellall
+                            from
+                            (
+                            select
+                            deliveryday ,
+                            monthgen,
+                            monthgen1,
+                            yeargen,
+                            mname,
+                            materialcode ,
+                            countfact, meas,
+                            cost,
+                            price,  dname , dcode ,
+                            budgetrefname , budgetrefcode ,
+                            objname ,
+                            objcode
+                            ,identid
+                             , enresponsiblesname
+                             , orderperiod
+                             , in_order
+                             /*признак для  отрисовки отдельных ячеек - если материал в заявке и период заявки больше чем период текущей заявки  */
+                             , case when  in_order = 1 and to_date('01.'||dat.monthgen1||'.'||dat.yeargen,'dd.mm.yyyy') > orderperiod then 1 else 0 end as paintcell
+                              /*отрисовка по срезу план заявки план  */
+                             , to_char(orderperiod,'mm')::numeric as paintcellall
+                             , realorderperiod
+                             , ddscode
+                             from (
+
+                             select
+                                  deliveryday ,
+                                  monthgen,
+                                      case when coalesce( in_order,0) > 0 then
+                                      (select to_char(realorderperiod,'mm')::numeric )
+                                      else
+                                      monthgen1
+                                      end as monthgen1,
+                                  yeargen,
+                                  mname,
+                                  materialcode ,
+                                   case when coalesce( in_order,0) > 0 then
+                                   coalesce(oicountgen,0)
+                                   else
+                                   coalesce(countfact,0) end
+                                   as countfact,
+                                   meas,
+                                  case when coalesce( in_order,0) > 0 then
+                                  coalesce( coalesce(pricewithoutnds ,0) * coalesce(oicountgen,0) ,0)
+                                  else
+                                  cost end
+                                  as cost,
+                                   case when coalesce( in_order,0) > 0 then
+                                   coalesce(pricewithoutnds ,0)
+                                   else
+                                   price end
+                                   as price,
+                                    dname , dcode ,
+                                    budgetrefname , budgetrefcode ,
+                                    objname,
+                                    objcode
+                                   , identid
+                                   , enresponsiblesname
+                                   , orderperiod
+                                   , in_order
+                                   , realorderperiod
+                                   , ddscode
+
+                                  ---------------------
+                                   from (
+                                      --s1
+                                          select
+                                          coalesce(es.deliverytime,coalesce(sm.deliverydate,60)) as deliveryday ,
+                                          p.monthgen,
+                                          (p.monthgen- floor(coalesce(es.deliverytime, coalesce(sm.deliverydate,60))/30))::numeric as monthgen1,
+                                          p.yeargen,
+                                          case when es.kindrefcode = 2 then  sm.name||('(ПММ)') else sm.name end  as mname,
+                                          sm.code as materialcode ,
+                                          coalesce(es.countfact,0) as countfact,
+                                           ei.name as meas,
+                                          -- 02.03.2015  если естимейт уже в тендер то цену с тендер берем
+                                          case when coalesce((select coalesce((cit.price*1.2),0) from enestimateitem2contrct e2c , enestimateitem ei , encontractitem cit , encontract ct
+                                                      where e2c.estimateitemcode = ei.code
+                                                      and ei.materialrefcode = cit.materialcode
+                                                      and cit.contractcode = ct.code
+                                                      and ct.findocid = e2c.findocid
+                                                      and e2c.estimateitemcode = es.code
+                                                      ),0) > 0
+                                               then  (coalesce((select coalesce((cit.price*1.2),0) from enestimateitem2contrct e2c , enestimateitem ei , encontractitem cit , encontract ct
+                                                      where e2c.estimateitemcode = ei.code
+                                                      and ei.materialrefcode = cit.materialcode
+                                                      and cit.contractcode = ct.code
+                                                      and ct.findocid = e2c.findocid
+                                                      and e2c.estimateitemcode = es.code
+                                                      ),0) * coalesce(es.countfact,0) )
+
+                                               else
+                                             coalesce((coalesce(sm.cost, 0) * 1.2 ) * coalesce(es.countfact,0), 0)
+                                              end  as cost,
+
+                                           case when coalesce((select coalesce((cit.price*1.2),0) from enestimateitem2contrct e2c , enestimateitem ei , encontractitem cit , encontract ct
+                                                      where e2c.estimateitemcode = ei.code
+                                                      and ei.materialrefcode = cit.materialcode
+                                                      and cit.contractcode = ct.code
+                                                      and ct.findocid = e2c.findocid
+                                                      and e2c.estimateitemcode = es.code
+                                                      ),0) > 0
+                                               then  coalesce((select coalesce((cit.price*1.2),0) from enestimateitem2contrct e2c , enestimateitem ei , encontractitem cit , encontract ct
+                                                      where e2c.estimateitemcode = ei.code
+                                                      and ei.materialrefcode = cit.materialcode
+                                                      and cit.contractcode = ct.code
+                                                      and ct.findocid = e2c.findocid
+                                                      and e2c.estimateitemcode = es.code
+                                                      ),0)::numeric(15,2)
+
+                                               else
+                                          (coalesce(sm.cost, 0) * 1.2 )::numeric(15,2)
+                                          end as price, /*NET-4380 нада что бы было с ндс */
+
+                                          'dname'::text  as dname ,
+                                          1  as dcode ,
+                                          'budgetrefname'::text  as budgetrefname ,
+                                          1 as budgetrefcode ,
+                                          'objname'::text as objname
+                                          , 1 as objcode
+
+                                          ,    cast(sm.identid2010 as varchar ) as identid
+                                           , rs.fio ||' ' || 'таб.№' ||' '|| rs.tabnumber as enresponsiblesname
+                                           , period_plan_order.orderperiod
+                                          , case when coalesce((select o2e.code from rqorderitem2enestimttm o2e where o2e.estimateitemcode = es.code limit 1  ),0) > 0 then 1 else 0 end as in_order
+                                          , coalesce((select oiii.ddscodescode from rqorderitem2enestimttm o2e , rqorderitem oiii
+                                                                 where o2e.estimateitemcode = es.code
+                                                                 and o2e.orderitemcode = oiii.code
+                                                                 limit 1
+                                                               ),0) as ddscode
+
+                                           , (select first_day(rqorder.orderperiod) orderperiod from rqorder , rqorderitem , rqorderitem2enestimttm o2e
+                                                                   where rqorder.code = rqorderitem.orderrefcode
+                                                                   and rqorderitem.code = o2e.orderitemcode
+                                                                   and o2e.estimateitemcode = es.code
+                                                                   limit 1
+                                                                    ) as realorderperiod
+                                           , (select rqorderitem.pricewithnds from rqorder , rqorderitem , rqorderitem2enestimttm o2e
+                                                                   where rqorder.code = rqorderitem.orderrefcode
+                                                                   and rqorderitem.code = o2e.orderitemcode
+                                                                   and o2e.estimateitemcode = es.code
+                                                                   limit 1
+                                                                    ) as pricewithoutnds   /*NET-4380 нада что бы была цена с ндс */
+                                           , (select sum(o2e.countgen) from rqorder , rqorderitem , rqorderitem2enestimttm o2e
+                                                                   where rqorder.code = rqorderitem.orderrefcode
+                                                                   and rqorderitem.code = o2e.orderitemcode
+                                                                   and o2e.estimateitemcode = es.code
+
+                                                                    ) as oicountgen
+                                           from enplanwork p,
+                                                enelement e ,
+                                                tkmeasurement ei,
+                                                enestimateitem es ,
+                                                tkmaterials sm left join enresponsibles rs on sm.responsiblesrefcode = rs.code ,
+                                                endepartment d ,
+                                                endepartment db
+
+                                                           , ( select to_date($P{maxorderperiod},'dd.mm.yyyy') as orderperiod  ) as period_plan_order
+                                          where p.code = es.planrefcode
+                                          and p.elementrefcode = e.code
+                                          and p.departmentrefcode = d.code
+                                          And p.budgetrefcode = db.code
+                                          and es.materialrefcode = sm.code
+                                          and ei.code = sm.measurementcode
+                                          and p.kindcode = 2 /*годовой(1) или текущий(2)*/
+                                           /* материалы с планов по работникам в статусе запланированы не берем  */
+                                           and not exists ( select 1 where e.typerefcode = 30 and es.statusrefcode = 1 )
+
+                                            and (
+                                               (
+                                                (
+                                                 (select getdeliveryperiod(p.yeargen,p.monthgen, coalesce(es.deliverytime, coalesce(sm.deliverydate,60)) ,1))
+                                                               = $P{yearGen}
+                                          and (
+                                               (
+                                               (select getdeliveryperiod(p.yeargen,p.monthgen, coalesce(es.deliverytime, coalesce(sm.deliverydate,60)),0))
+                                                 between $P{monthGenStart}
+                                                     and
+                                                        $P{monthGenFinal}
+                                                         )
+                                              )
+                                               )
+                                               and es.statusrefcode = 1
+                                               )
+
+                                               or exists ( select q.code from  rqorderitem2enestimttm q where q.estimateitemcode = es.code  and es.statusrefcode <> 5  )
+
+                                              )
+
+                                          And p.departmentrefcode in (select code from endepartment )
+                                          And p.budgetrefcode in ($P!{strBudget} )
+                                          and p.statuscode not in (2,6)
+                                          and es.countfact <> 0
+                                          And es.kindrefcode = 1 /*материалы*/
+
+
+                                          and p.typerefcode <> 11 -- планы перевезення не берем
+                                          and (  ( es.planitemrefcode is null )
+                                                or
+                                                -- не берем если источник норматива "перевезення"
+                                                 ( 500000024 <> ( select tkd.techcardsourcecode  from enplanworkitem pi , tktechcard tkd
+                                                                                                where pi.kartarefcode = tkd.code
+                                                                                                  and pi.code = es.planitemrefcode limit 1  )
+                                                 )
+                                              )
+
+
+                                           -- s1 end
+                                          ) dat01
+
+                                       ) dat
+
+                             Where (
+                                    (
+                                    (dat.in_order = 1 and to_char(realorderperiod,'yyyy')::numeric = $P{yearGen} )
+                                         and  dat.ddscode in ( 44,46,164,53,54,173,174,172,55,47,56,57,185,186,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,187,188,73,74,75,76,189,190,77,78,79,80,81,197,198,82,83,85,86,201,202,87,88,215,216,89,90,91,45,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,199,200,114,115,203,204,116,117,118,119,120,121,122,207,208,123,124,125,126,127,128,129,130,131,132,133,134,135,136,205,206,137,138,139,140,191,192,141,193,194,142,195,196,143,144,145,146,147,148,149,150,151,152,153,154,155,167,165,180,183,214,285,278,279,280,281,282,283,284,286 )
+                                    )
+                                   or
+                                    ( dat.in_order = 0 and to_date('01.'||dat.monthgen1||'.'||dat.yeargen,'dd.mm.yyyy') >  dat.orderperiod )
+
+                                   )
+
+                              ) dat_1
+                            group by  identid , dname, dcode,  budgetrefname , budgetrefcode , objname ,  objcode , monthgenp,  monthgen,  mname, materialcode  ,  meas,
+                                      deliveryday, yeargen, /*cost,*/ price  , enresponsiblesname , paintcell, paintcellall
+                            order by  identid , monthgenp ,  objname , objcode , dname , dcode, budgetrefname ,budgetrefcode, mname , PRICE
+
+                            ) SEL
+                            ) sel2
+                            group by identid , dname ,dcode, budgetrefname ,budgetrefcode, objname ,objcode ,  mname, materialcode  ,   meas,  price , deliveryday,
+                            yeargen1 ,monthgen1 ,
+                            yeargen2 ,monthgen2 ,
+                            yeargen3 ,monthgen3 ,
+                            yeargen4 ,monthgen4 ,
+                            yeargen5 ,monthgen5 ,
+                            yeargen6 ,monthgen6 ,
+                            yeargen7 ,monthgen7 ,
+                            yeargen8 ,monthgen8 ,
+                            yeargen9 ,monthgen9 ,
+                            yeargen10 ,monthgen10 ,
+                            yeargen11 ,monthgen11 ,
+                            yeargen12 ,monthgen12 , enresponsiblesname
+                            ,paintcell1,
+                            paintcell2,
+                            paintcell3,
+                            paintcell4,
+                            paintcell5,
+                            paintcell6,
+                            paintcell7,
+                            paintcell8,
+                            paintcell9,
+                            paintcell10,
+                            paintcell11,
+                            paintcell12 ,
+                            paintcellall
+                            ) sel3
+
+
+                            group by  identid , dname,dcode , budgetrefname ,budgetrefcode, objname ,objcode , mname , materialcode , name_group
+                            ,  meas, deliveryday  , enresponsiblesname , paintcellall
+
+              UNION ALL
+
+              /*запрос средства защиты срок использования */
+              select
+                             mname,
+                             materialcode ,
+                             meas,
+                             deliveryday,
+                             objname ,
+                             objcode,
+                             dname ,
+                             dcode ,
+                             budgetrefname ,
+                             budgetrefcode ,
+                             0 as countfact1 ,
+
+                             case when 2 > sel_sz.paintcellall then sum(countfact2) else 0 end as countfact2 ,
+                             --
+                             case when 3 > sel_sz.paintcellall then sum(countfact3) else 0 end as countfact3 ,
+                             --
+                             case when 4 > sel_sz.paintcellall then sum(countfact4) else 0 end as countfact4 ,
+                             --
+                             case when 5 > sel_sz.paintcellall then sum(countfact5) else 0 end as countfact5 ,
+                             --
+                             case when 6 > sel_sz.paintcellall then sum(countfact6) else 0 end as countfact6 ,
+                             --
+                             case when 7 > sel_sz.paintcellall then sum(countfact7) else 0 end as countfact7 ,
+                             --
+                             case when 8 > sel_sz.paintcellall then  sum(countfact8) else 0 end as countfact8 ,
+                             --
+                             case when 9 > sel_sz.paintcellall then  sum(countfact9) else 0 end as countfact9 ,
+                             --
+                             case when 10 > sel_sz.paintcellall then  sum(countfact10) else 0 end as countfact10 ,
+                             --
+                             case when 11 > sel_sz.paintcellall then sum(countfact11) else 0 end as countfact11 ,
+                             --
+                             case when 12 > sel_sz.paintcellall then sum(countfact12) else 0 end  as countfact12 ,
+
+                             (
+                             sum(COALESCE(countfact1,0)) + sum(COALESCE(countfact2,0)) + sum(COALESCE(countfact3,0)) +
+                             sum(COALESCE(countfact4,0)) + sum(COALESCE(countfact5,0)) + sum(COALESCE(countfact6,0)) +
+                             sum(COALESCE(countfact7,0)) + sum(COALESCE(countfact8,0)) + sum(COALESCE(countfact9,0)) +
+                             sum(COALESCE(countfact10,0)) + sum(COALESCE(countfact11,0)) + sum(COALESCE(countfact12,0))
+                             )::numeric(15,2) AS sumcountfact ,
+
+                               name_group
+                             ,  identid
+                             , enresponsiblesname
+
+                            , 0 as paintcell1 ,
+                            0 as paintcell2 ,
+                            0 as paintcell3 ,
+                            0 as paintcell4 ,
+                            0 as paintcell5 ,
+                            0 as paintcell6 ,
+                            0 as paintcell7 ,
+                            0 as paintcell8 ,
+                            0 as paintcell9 ,
+                            0 as paintcell10 ,
+                            0 as paintcell11 ,
+                            0 as paintcell12
+                            , paintcellall
+
+              from (
+              ----------------------------
+                select          /*sel_sz_in*/
+                                realmaterialfromplan as mname
+                              , realmaterialfromplan_code as materialcode
+                              , measurename
+
+                              , sum(month1) as  countfact1
+                              , sum(month2) as  countfact2
+                              , sum(month3) as  countfact3
+                              , sum(month4) as  countfact4
+                              , sum(month5) as  countfact5
+                              , sum(month6) as  countfact6
+                              , sum(month7) as  countfact7
+                              , sum(month8) as  countfact8
+                              , sum(month9) as  countfact9
+                              , sum(month10) as  countfact10
+                              , sum(month11) as  countfact11
+                              , sum(month12) as  countfact12
+
+                              ,coalesce(sum(month1)*price,0) as  cost1
+                              ,coalesce(sum(month2)*price,0) as  cost2
+                              ,coalesce(sum(month3)*price,0) as  cost3
+                              ,coalesce(sum(month4)*price,0) as  cost4
+                              ,coalesce(sum(month5)*price,0) as  cost5
+                              ,coalesce(sum(month6)*price,0) as  cost6
+                              ,coalesce(sum(month7)*price,0) as  cost7
+                              ,coalesce(sum(month8)*price,0) as  cost8
+                              ,coalesce(sum(month9)*price,0) as  cost9
+                              ,coalesce(sum(month10)*price,0) as  cost10
+                              ,coalesce(sum(month11)*price,0) as  cost11
+                              ,coalesce(sum(month12)*price,0) as  cost12
+
+                               , objcode
+                               , objname
+                               , identid
+                               , name_group
+                               , dname
+                               , dcode
+                             , budgetrefname
+                             , budgetrefcode
+                             , price
+                              , to_char(to_date($P{maxorderperiod},'dd.mm.yyyy'),'mm')::numeric as paintcellall
+                              , (select tms.name from tkmaterials sm , tkmeasurement tms where sm.code = realmaterialfromplan_code and sm.measurementcode = tms.code ) as meas
+                              , ( select rs.fio ||' ' || 'таб.№' ||' '|| rs.tabnumber from enresponsibles rs , tkmaterials tm where rs.code = tm.responsiblesrefcode and tm.code = realmaterialfromplan_code limit 1  )  as enresponsiblesname
+                              , (select sm.deliverydate from tkmaterials sm where sm.code = realmaterialfromplan_code  ) as deliveryday
+                              from (
+                                      ---
+                                      /*sel4*/
+                                      select
+                                        realmaterialfromplan
+                                      , realmaterialfromplan_code
+                                      , measurename
+                                      , musenumbermonth
+                                      , case when musenumbermonth >= 100 then null else neededorno  end as neededorno
+
+                                      , case when ( 1 <= 1  or 1 > 12  ) OR musenumbermonth >= 100 then null else  month1 end as month1
+                                      , case when ( 2 <= 1  or 2 > 12  ) OR musenumbermonth >= 100 then null else  month2 end as month2
+                                      , case when ( 3 <= 1  or 3 > 12  ) OR musenumbermonth >= 100 then null else  month3 end as month3
+                                      , case when ( 4 <= 1   or 4 > 12  ) OR musenumbermonth >= 100 then null else  month4 end as month4
+                                      , case when ( 5 <= 1   or 5 > 12  ) OR musenumbermonth >= 100 then null else  month5 end as month5
+                                      , case when ( 6 <= 1   or 6 > 12  ) OR musenumbermonth >= 100 then null else  month6 end as month6
+                                      , case when ( 7 <= 1   or 7 > 12  ) OR musenumbermonth >= 100 then null else  month7 end as month7
+                                      , case when ( 8 <= 1   or 8 > 12  ) OR musenumbermonth >= 100 then null else  month8 end as month8
+                                      , case when ( 9 <= 1   or 9 > 12  ) OR musenumbermonth >= 100 then null else  month9 end as month9
+                                      , case when ( 10 <= 1   or 10 > 12  ) OR musenumbermonth >= 100 then null else  month10 end as month10
+                                      , case when ( 11 <= 1   or 11 > 12  ) OR musenumbermonth >= 100 then null else  month11 end as month11
+                                      , case when ( 12 <= 1   or 12 > 12  ) OR musenumbermonth >= 100 then null else  month12 end as month12
+
+                                      , (select (coalesce(sm.cost, 0) * 1.2 )::numeric(15,2) from tkmaterials sm where sm.code = realmaterialfromplan_code ) as price
+
+                                       ---
+                                       , objcode
+                                       , objname
+                                       ,
+                                         coalesce( (select sm.identid2010::varchar from tkmaterials sm where sm.code = realmaterialfromplan_code  ) , 'Без класіфікатора' )
+
+                                       as identid
+                                       ,
+                                       'name_group'::text as name_group
+
+                                      , dname
+                                      , dcode
+                                      , budgetrefname
+                                      , budgetrefcode
+
+                                         from (
+                                         /*sel3*/
+                                      select
+                                        dname
+                                      , dcode
+                                      , budgetrefname
+                                      , budgetrefcode
+                                      , realmaterialfromplan
+                                      , realmaterialfromplan_code
+                                      , measurename
+                                      , matname
+                                      , musenumbermonth
+                                      , maxdateeditmaterial
+                                      , worktimeonmaxdateedit
+                                      , fact_use_month
+                                      , neededorno
+                                      , periodend
+                                      , kolvo
+                                      , add_months1 ,
+                                              add_months2,
+                                              add_months3,
+                                              add_months4,
+                                              add_months5,
+                                              add_months6,
+                                              add_months7,
+                                              add_months8,
+                                              add_months9,
+                                              add_months10,
+                                              add_months11,
+                                              add_months12
+                                      , case       when to_char(add_months1,'mm.yyyy') = '01.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months2,'mm.yyyy') = '01.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months3,'mm.yyyy') = '01.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months4,'mm.yyyy') = '01.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months5,'mm.yyyy') = '01.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months6,'mm.yyyy') = '01.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months7,'mm.yyyy') = '01.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months8,'mm.yyyy') = '01.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months9,'mm.yyyy') = '01.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months10,'mm.yyyy') = '01.'||$P{yearGen} then  kolvo
+                                                   when to_char(add_months11,'mm.yyyy') = '01.'||$P{yearGen} then  kolvo
+                                                   when to_char(add_months12,'mm.yyyy') = '01.'||$P{yearGen} then  kolvo
+                                                   when to_char(periodend,'mm.yyyy') = '01.'||$P{yearGen}    then  kolvo
+                                                   else 0
+                                                   end as month1 ,
+                                               case
+                                                   when to_char(add_months1,'mm.yyyy') = '02.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months2,'mm.yyyy') = '02.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months3,'mm.yyyy') = '02.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months4,'mm.yyyy') = '02.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months5,'mm.yyyy') = '02.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months6,'mm.yyyy') = '02.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months7,'mm.yyyy') = '02.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months8,'mm.yyyy') = '02.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months9,'mm.yyyy') = '02.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months10,'mm.yyyy') = '02.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months11,'mm.yyyy') = '02.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months12,'mm.yyyy') = '02.'||$P{yearGen}  then  kolvo
+                                                   when to_char(periodend,'mm.yyyy') = '02.'||$P{yearGen}  then  kolvo
+                                                   else 0
+                                                   end as month2    ,
+
+                                                   case
+                                                   when to_char(add_months1,'mm.yyyy') = '03.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months2,'mm.yyyy') = '03.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months3,'mm.yyyy') = '03.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months4,'mm.yyyy') = '03.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months5,'mm.yyyy') = '03.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months6,'mm.yyyy') = '03.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months7,'mm.yyyy') = '03.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months8,'mm.yyyy') = '03.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months9,'mm.yyyy') = '03.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months10,'mm.yyyy') = '03.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months11,'mm.yyyy') = '03.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months12,'mm.yyyy') = '03.'||$P{yearGen}  then  kolvo
+                                                   when to_char(periodend,'mm.yyyy') = '03.'||$P{yearGen} then  kolvo
+                                                   else 0
+                                                   end as month3 ,
+
+                                                   case
+                                                   when to_char(add_months1,'mm.yyyy') = '04.'||$P{yearGen} then  kolvo
+                                                   when to_char(add_months2,'mm.yyyy') = '04.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months3,'mm.yyyy') = '04.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months4,'mm.yyyy') = '04.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months5,'mm.yyyy') = '04.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months6,'mm.yyyy') = '04.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months7,'mm.yyyy') = '04.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months8,'mm.yyyy') = '04.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months9,'mm.yyyy') = '04.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months10,'mm.yyyy') = '04.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months11,'mm.yyyy') = '04.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months12,'mm.yyyy') = '04.'||$P{yearGen}  then  kolvo
+                                                    when to_char(periodend,'mm.yyyy') = '04.'||$P{yearGen}  then  kolvo
+                                                   else 0
+                                                   end as month4 ,
+
+                                                   case
+                                                   when to_char(add_months1,'mm.yyyy') = '05.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months2,'mm.yyyy') = '05.'||$P{yearGen} then  kolvo
+                                                   when to_char(add_months3,'mm.yyyy') = '05.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months4,'mm.yyyy') = '05.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months5,'mm.yyyy') = '05.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months6,'mm.yyyy') = '05.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months7,'mm.yyyy') = '05.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months8,'mm.yyyy') = '05.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months9,'mm.yyyy') = '05.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months10,'mm.yyyy') = '05.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months11,'mm.yyyy') = '05.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months12,'mm.yyyy') = '05.'||$P{yearGen}  then  kolvo
+                                                   when to_char(periodend,'mm.yyyy') = '05.'||$P{yearGen}  then  kolvo
+                                                   else 0
+                                                   end as month5 ,
+
+                                                   case
+                                                   when to_char(add_months1,'mm.yyyy') = '06.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months2,'mm.yyyy') = '06.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months3,'mm.yyyy') = '06.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months4,'mm.yyyy') = '06.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months5,'mm.yyyy') = '06.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months6,'mm.yyyy') = '06.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months7,'mm.yyyy') = '06.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months8,'mm.yyyy') = '06.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months9,'mm.yyyy') = '06.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months10,'mm.yyyy') = '06.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months11,'mm.yyyy') = '06.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months12,'mm.yyyy') = '06.'||$P{yearGen}  then  kolvo
+                                                   when to_char(periodend,'mm.yyyy') = '06.'||$P{yearGen} then  kolvo
+                                                   else 0
+                                                   end as month6 ,
+
+                                                   case
+                                                   when to_char(add_months1,'mm.yyyy') = '07.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months2,'mm.yyyy') = '07.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months3,'mm.yyyy') = '07.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months4,'mm.yyyy') = '07.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months5,'mm.yyyy') = '07.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months6,'mm.yyyy') = '07.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months7,'mm.yyyy') = '07.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months8,'mm.yyyy') = '07.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months9,'mm.yyyy') = '07.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months10,'mm.yyyy') = '07.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months11,'mm.yyyy') = '07.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months12,'mm.yyyy') = '07.'||$P{yearGen}  then  kolvo
+                                                   when to_char(periodend,'mm.yyyy') = '07.'||$P{yearGen}  then  kolvo
+                                                   else 0
+                                                   end as month7 ,
+                                                   case
+                                                   when to_char(add_months1,'mm.yyyy') = '08.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months2,'mm.yyyy') = '08.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months3,'mm.yyyy') = '08.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months4,'mm.yyyy') = '08.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months5,'mm.yyyy') = '08.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months6,'mm.yyyy') = '08.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months7,'mm.yyyy') = '08.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months8,'mm.yyyy') = '08.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months9,'mm.yyyy') = '08.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months10,'mm.yyyy') = '08.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months11,'mm.yyyy') = '08.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months12,'mm.yyyy') = '08.'||$P{yearGen}  then  kolvo
+                                                   when to_char(periodend,'mm.yyyy') = '08.'||$P{yearGen}  then  kolvo
+                                                   else 0
+                                                   end as month8 ,
+                                                   case
+                                                   when to_char(add_months1,'mm.yyyy') = '09.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months2,'mm.yyyy') = '09.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months3,'mm.yyyy') = '09.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months4,'mm.yyyy') = '09.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months5,'mm.yyyy') = '09.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months6,'mm.yyyy') = '09.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months7,'mm.yyyy') = '09.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months8,'mm.yyyy') = '09.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months9,'mm.yyyy') = '09.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months10,'mm.yyyy') = '09.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months11,'mm.yyyy') = '09.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months12,'mm.yyyy') = '09.'||$P{yearGen}  then  kolvo
+                                                   when to_char(periodend,'mm.yyyy') = '09.'||$P{yearGen}  then  kolvo
+                                                   else 0
+                                                   end as month9 ,
+
+                                                   case
+                                                   when to_char(add_months1,'mm.yyyy') = '10.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months2,'mm.yyyy') = '10.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months3,'mm.yyyy') = '10.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months4,'mm.yyyy') = '10.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months5,'mm.yyyy') = '10.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months6,'mm.yyyy') = '10.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months7,'mm.yyyy') = '10.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months8,'mm.yyyy') = '10.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months9,'mm.yyyy') = '10.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months10,'mm.yyyy') = '10.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months11,'mm.yyyy') = '10.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months12,'mm.yyyy') = '10.'||$P{yearGen}  then  kolvo
+                                                   when to_char(periodend,'mm.yyyy') = '10.'||$P{yearGen}  then  kolvo
+                                                   else 0
+                                                   end as month10 ,
+
+                                                   case
+                                                   when to_char(add_months1,'mm.yyyy') = '11.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months2,'mm.yyyy') = '11.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months3,'mm.yyyy') = '11.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months4,'mm.yyyy') = '11.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months5,'mm.yyyy') = '11.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months6,'mm.yyyy') = '11.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months7,'mm.yyyy') = '11.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months8,'mm.yyyy') = '11.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months9,'mm.yyyy') = '11.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months10,'mm.yyyy') = '11.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months11,'mm.yyyy') = '11.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months12,'mm.yyyy') = '11.'||$P{yearGen}  then  kolvo
+                                                   when to_char(periodend,'mm.yyyy') = '11.'||$P{yearGen}  then  kolvo
+                                                   else 0
+                                                   end as month11 ,
+                                                   case
+                                                   when to_char(add_months1,'mm.yyyy') = '12.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months2,'mm.yyyy') = '12.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months3,'mm.yyyy') = '12.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months4,'mm.yyyy') = '12.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months5,'mm.yyyy') = '12.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months6,'mm.yyyy') = '12.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months7,'mm.yyyy') = '12.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months8,'mm.yyyy') = '12.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months9,'mm.yyyy') = '12.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months10,'mm.yyyy') = '12.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months11,'mm.yyyy') = '12.'||$P{yearGen}  then  kolvo
+                                                   when to_char(add_months12,'mm.yyyy') = '12.'||$P{yearGen}  then  kolvo
+                                                   when to_char(periodend,'mm.yyyy') = '12.'||$P{yearGen}  then  kolvo
+                                                   else 0
+                                                   end as month12
+
+                                       ---------
+                                       , objcode
+                                       , objname
+                                      From (
+                                       /*sel2*/
+                                      select
+                                        dname
+                                      ,dcode
+                                      , budgetrefname
+                                      , budgetrefcode
+                                      , realmaterialfromplan
+                                      , realmaterialfromplan_code
+                                      , measurename
+                                      , matname
+                                      , musenumbermonth
+                                      , maxdateeditmaterial
+                                      , worktimeonmaxdateedit
+                                      , fact_use_month
+                                      /*если (факт время использ-ия больше нормативного вр использования
+                                               ИЛИ по материалу небыло вообще события в наявносты
+                                             ) И время использования материала строго кол-во месяцев то считаем что материал нужен на момент формирования отчета
+                                            */
+                                      , case when  ( fact_use_month >=  musenumbermonth or maxdateeditmaterial is null )
+                                                  and musenumbermonth < 100
+                                                  /*и период окончания использования материала в периоде отчета */
+                                                  and ( periodend between to_date('01.'||1::varchar||'.'||$P{yearGen} ,'dd.mm.yyyy')
+                                                                   and  last_day(to_date('01.'||12::varchar||'.'||$P{yearGen} ,'dd.mm.yyyy') )
+                                                      or musenumbermonth > 12
+                                                       )
+                                                                    then kolvo else 0 end as neededorno
+
+                                      , periodend
+                                            , add_months(periodend, musenumbermonth::integer) as add_months1  ,
+                                              add_months(periodend,(musenumbermonth+musenumbermonth)::integer) as add_months2,
+                                              add_months(periodend,(musenumbermonth+musenumbermonth+musenumbermonth)::integer) as add_months3,
+                                              add_months(periodend,(musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth)::integer) as add_months4,
+                                              add_months(periodend,(musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth)::integer) as add_months5,
+                                              add_months(periodend,(musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth)::integer) as add_months6,
+                                              add_months(periodend,(musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth)::integer) as add_months7 ,
+                                              add_months(periodend,(musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth)::integer) as add_months8,
+                                              add_months(periodend,(musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth)::integer) as add_months9,
+                                              add_months(periodend,(musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth)::integer) as add_months10,
+                                              add_months(periodend,(musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth)::integer) as add_months11,
+                                              add_months(periodend,(musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth+musenumbermonth)::integer) as add_months12
+                                      , kolvo
+                                      --------------
+                                      , objcode
+                                      , objname
+                                      From
+                                      (
+                                      select
+                                       dname
+                                      ,dcode
+                                      , budgetrefname
+                                      , budgetrefcode
+                                      , case when realmaterialfromplan is null then matname else realmaterialfromplan end as realmaterialfromplan
+                                      , case when realmaterialfromplan_code is null then mat_code else realmaterialfromplan_code end as realmaterialfromplan_code
+                                      , measurename
+                                      , matname
+                                      , musenumbermonth
+                                      , maxdateeditmaterial
+                                      , worktimeonmaxdateedit
+                                      , case when maxdateeditmaterial is not null and worktimeonmaxdateedit is not null and worktimeonmaxdateedit < musenumbermonth then
+                                         abs(_diffmonth(to_date('01.'||1||'.'||$P{yearGen} ,'dd.mm.yyyy')  ,
+                                                                                             add_months(maxdateeditmaterial,-worktimeonmaxdateedit::integer)::date
+                                                                                                          )
+                                                                                              )
+                                           /*v*/    when maxdateeditmaterial is not null and worktimeonmaxdateedit is not null and worktimeonmaxdateedit = musenumbermonth then
+                                           /*v*/   abs(_diffmonth(to_date('01.'||1||'.'||$P{yearGen} ,'dd.mm.yyyy')  ,maxdateeditmaterial::date) )
+                                           when maxdateeditmaterial is not null
+                                               and worktimeonmaxdateedit is not null
+                                               and worktimeonmaxdateedit = musenumbermonth
+                                               and to_char(maxdateeditmaterial,'mm.yyyy') <= to_char(to_date('01.'||1||'.'||$P{yearGen} ,'dd.mm.yyyy'),'mm.yyyy')
+                                               then
+                                             abs(_diffmonth(to_date('01.'||1||'.'||$P{yearGen} ,'dd.mm.yyyy')  ,maxdateeditmaterial::date) )
+                                        end as fact_use_month
+                                        , kolvo
+                                        , case /*если срок использования материала 1 мес тогда месяц окончания срока действия ставим на первую дату текущего периода выборки */
+                                                   when coalesce(musenumbermonth,0) = 1 then to_date('01.'||1::varchar||'.'||$P{yearGen} ,'dd.mm.yyyy')
+                                                  /*если срок исп на карточке не нулевой а срок на устимейт нулевой  и dateedit не null значит
+                                                   от макс даты редактирования строки материала в плате отсчитываем колл-во месяцев использования по норме и получаем
+                                                   дату конца использования материала */
+                                                   when coalesce(musenumbermonth,0) <> 0 and coalesce(worktimeonmaxdateedit,0) = 0 and maxdateeditmaterial is not null
+                                                   then add_months(maxdateeditmaterial, musenumbermonth::integer)
+                                                   /*если срок исп на карточке не нулевой и срок на устимейт не нулевой и срок на карточке больше срока на естимейте
+                                                     и dateedit не null
+                                                     значит от макс даты редактирования строки материала в плате отсчитываем срок на  разницу месяцев срок по карточке минус срок из естимейта  */
+                                                   when ( coalesce(musenumbermonth,0) <> 0 and coalesce(worktimeonmaxdateedit,0) <>  0 ) and ( coalesce(musenumbermonth,0) > coalesce(worktimeonmaxdateedit,0)) and ( maxdateeditmaterial is not null )
+                                                   then add_months(maxdateeditmaterial, (musenumbermonth-worktimeonmaxdateedit)::integer)
+                                                   /*если сроки на карточке и естимейте совпадают И dateedit не null и срок испольщования не 1 мес  то берем прибавляем срок использования указанный на карточке */
+                                                   when (( coalesce(musenumbermonth,0) <> 0 and coalesce(worktimeonmaxdateedit,0) <> 0 ) and  (musenumbermonth::integer = worktimeonmaxdateedit::integer ) and (coalesce(musenumbermonth,0) <> 1)) and ( maxdateeditmaterial is not null )
+                                                   then add_months(maxdateeditmaterial, musenumbermonth::integer)
+                                                   /*если по материалу небыло вообще события в наявносты то месяц окончания срока действия ставим на первую дату текущего периода выборки */
+                                                   when
+                                                   maxdateeditmaterial is null then to_date('01.'||1::varchar||'.'||$P{yearGen} ,'dd.mm.yyyy')
+
+
+                                       end as periodend
+                                      -------
+                                      , 1 as objcode
+                                      , 'objname'::text as objname
+                                      From (
+
+                                      Select  'dname'::text as dname
+                                      , 1 as dcode
+                                      , 'budgetrefname'::text as budgetrefname
+                                      , 1 as budgetrefcode
+                                      , tm.name as matname
+                                      , tm.code as mat_code
+                                      , (Select tm2.name from ensizmaterials2tkmtrls sm2tkm , tkmaterials as tm2
+                                          Where sm2tkm.tkmaterialsrefcode  = tm2.code
+                                            and tm2.code = sm2tkm.tkmaterialsrefcode
+                                            and sm2tkm.elementrefcode = so.elementcode
+                                            and sm2tkm.sizmaterialsrefcode = tm.code limit 1  )  as  realmaterialfromplan
+                                      , (Select tm2.code from ensizmaterials2tkmtrls sm2tkm , tkmaterials as tm2
+                                          Where sm2tkm.tkmaterialsrefcode  = tm2.code
+                                            and tm2.code = sm2tkm.tkmaterialsrefcode
+                                            and sm2tkm.elementrefcode = so.elementcode
+                                            and sm2tkm.sizmaterialsrefcode = tm.code limit 1  )  as  realmaterialfromplan_code
+
+
+                                      , tus.countmonth as musenumbermonth
+                                      , (select case when max(rf.dategen) is null then  max(ei.dateedit) else max(rf.dategen) end
+                                                          from enestimateitem ei left join rqfkorderitem2enstmttm rf2ei on (rf2ei.estimateitemcode = ei.code)
+                                                                                 left join rqfkorderitem rfi on (rf2ei.fkorderitemrefcode = rfi.code )
+                                                                                 left join rqfkorder rf on (rfi.fkorderrefcode = rf.code )
+                                                             , enplanwork p
+                                                       where p.code = ei.planrefcode
+                                                       and p.elementrefcode =  so.elementcode
+                                                       and ei.materialrefcode::integer =  (Select tm2.code from ensizmaterials2tkmtrls sm2tkm , tkmaterials as tm2
+                                                                                    Where sm2tkm.tkmaterialsrefcode  = tm2.code
+                                                                                      and tm2.code = sm2tkm.tkmaterialsrefcode
+                                                                                      and sm2tkm.elementrefcode = so.elementcode
+                                                                                      and sm2tkm.sizmaterialsrefcode = tm.code limit 1
+                                                                                   )::integer
+                                                       and ei.dateedit = (select max(i.dateedit) from enestimateitem i
+                                                       where i.planrefcode = p.code and i.materialrefcode = ei.materialrefcode
+                                                       and i.statusrefcode in (3,6))) as maxdateeditmaterial
+                                      ,  (   Select max(i.useworktime) as dateeditestim  from enplanwork p , enestimateitem i , tkmaterials tkm
+
+                                         Where p.code = i.planrefcode
+                                         and i.statusrefcode in (3,6) /* статус материала в наявности и введено в эксплуатацию*/
+                                         and p.typerefcode = 13 /* Засоби захисту*/
+                                         and p.staterefcode = 17 /*Спецодяг*/
+                                         and p.kindcode = 2 /*только по месячным планам*/
+                                         and p.elementrefcode = so.elementcode
+                                         and i.materialrefcode = tkm.code
+                                         and tkm.code::integer = (Select tm2.code from ensizmaterials2tkmtrls sm2tkm , tkmaterials as tm2
+                                                          Where sm2tkm.tkmaterialsrefcode  = tm2.code
+                                                            and tm2.code = sm2tkm.tkmaterialsrefcode
+                                                            and sm2tkm.elementrefcode = so.elementcode
+                                                            and sm2tkm.sizmaterialsrefcode = tm.code limit 1
+                                                         )::integer
+                                         and i.dateedit = (   Select max(i.dateedit) as dateeditestim  from enplanwork p , enestimateitem i , tkmaterials tkm
+                                                             Where p.code = i.planrefcode
+                                                             and i.statusrefcode in (3,6) /* статус материала в наявности и введено в эксплуатацию*/
+                                                             and p.typerefcode = 13 /* Засоби захисту*/
+                                                             and p.staterefcode = 17 /*Спецодяг*/
+                                                             and p.kindcode = 2 /*только по месячным планам*/
+                                                             and p.elementrefcode = so.elementcode
+                                                             and i.materialrefcode = tkm.code
+                                                             and tkm.code::integer = (Select tm2.code from ensizmaterials2tkmtrls sm2tkm , tkmaterials as tm2
+                                                                              Where sm2tkm.tkmaterialsrefcode  = tm2.code
+                                                                                and tm2.code = sm2tkm.tkmaterialsrefcode
+                                                                                and sm2tkm.elementrefcode = so.elementcode
+                                                                                and sm2tkm.sizmaterialsrefcode = tm.code limit 1
+                                                                             )::integer
+
+                                                         )
+                                         ) as worktimeonmaxdateedit
+                                        , t2e.kolvo
+                                        , tu.name as measurename
+                                          ------------
+                                        , so.elementcode
+                                      from tkelement e, tkelement2techcard t2e, tktechcard tch1,
+                                           tkmeasurement tu,  ensizobject so , tkmaterials tm left join tktimeuse tus on tus.code = tm.timeusecode
+                                         , endepartment d
+                                      where e.code =  t2e.elementcode
+                                      and t2e.techkartcode = tch1.code
+                                      and e.elementtypecode = 240000004
+                                      and tm.elementcode = e.code
+                                      and tm.measurementcode = tu.code
+                                      and tch1.techcardsourcecode = 500000035
+                                      and tch1.megaelementtypecode = 500000115
+                                      and so.sizcode::integer = tch1.techkartnumber::integer
+                                      and so.cehid = d.code
+                                      and so.statuscode = 0
+                                     -- and so.podrid in ({department} )
+                                     -- and (so.elementcode = {elementCode} or {elementCode}  = 0)
+                                       /* группа материалов */
+                                        /* and tm.code in
+                                          (select sm.code from tkmaterials sm
+                                          where sm.rootgrouprefcode = !{materialGroupCode} or !{materialGroupCode} = 0)*/
+
+                                       ) sel1
+                                       ) sel2
+                                       ) sel3
+                                       ) sel4
+
+                              ) as sel_sz_in
+                              /*если не выберут по СОТ то не отображаем спецодежду */
+                              Where coalesce((select 1  where
+
+                               500000003 in ($P!{strBudget}) ),0) > 0
+                              group by realmaterialfromplan, realmaterialfromplan_code, measurename
+                              , price
+                              , objcode
+                              , objname
+                              , identid
+                              , name_group
+                              , dname
+                              , dcode
+                              , budgetrefname
+                              , budgetrefcode
+                              HAVING sum(coalesce(month1,0)) > 0 or sum(coalesce(month2,0)) > 0 or sum(coalesce(month3,0)) > 0 or sum(coalesce(month4,0)) > 0
+                                  or sum(coalesce(month5,0)) > 0 or sum(coalesce(month6,0)) > 0 or sum(coalesce(month7,0)) > 0 or sum(coalesce(month8,0)) > 0
+                                  or sum(coalesce(month9,0)) > 0 or sum(coalesce(month10,0)) > 0 or sum(coalesce(month11,0)) > 0 or sum(coalesce(month12,0)) > 0
+              ) sel_sz
+
+              group by /*price ,*/
+                             mname,
+                             materialcode ,
+                             meas,
+                             deliveryday,
+                             objname ,
+                             objcode,
+                             dname ,
+                             dcode ,
+                             budgetrefname ,
+                             budgetrefcode ,  name_group ,  identid, enresponsiblesname , paintcellall
+
+              /*order by identid2010 , name_group , mname*/
+        ) as mat_plan
+        left join
+        (
+              select m.identid2010 , m.code as matcode , m.name as matname , meas.name as measname , sum(cti.countgen)::numeric(15,6) as countfact , ct.contractnumber ,
+              cti.price*1.2 as pricewithnds
+              from encontract ct , encontractitem  cti , tkmaterials m , tkmeasurement meas
+              where ct.code = cti.contractcode
+              and cti.materialcode = m.code
+              and m.measurementcode = meas.code
+              --and coalesce(ct.contractenddate,'01.01.3000') >= to_date('01.01.'||{year},'dd.mm.yyyy')
+              and (  ct.contractdate between to_date($P{DateContractFrom},'dd.mm.yyyy') and to_date($P{DateContractTo},'dd.mm.yyyy')
+                 or ct.contractenddate between to_date($P{DateContractFrom},'dd.mm.yyyy') and to_date($P{DateContractTo},'dd.mm.yyyy')
+                 or (ct.contractdate <= to_date($P{DateContractFrom},'dd.mm.yyyy') and  ct.contractenddate >= to_date($P{DateContractTo},'dd.mm.yyyy') )
+                 or ct.contractenddate is null
+                )
+              group by m.identid2010 , m.code  , m.name , meas.name , ct.contractnumber  ,  cti.price
+
+        ) as mat_tend
+        on mat_plan.matcode = mat_tend.matcode and mat_plan.identid2010 = mat_tend.identid2010
+
+        group by
+        mat_plan.identid2010 ,
+        mat_plan.matcode ,
+        mat_plan.matname ,
+        mat_plan.measname ,
+        mat_plan.sumcountfact,
+
+        mat_plan.countfact1,
+        mat_plan.countfact2,
+        mat_plan.countfact3,
+        mat_plan.countfact4,
+        mat_plan.countfact5,
+        mat_plan.countfact6,
+        mat_plan.countfact7,
+        mat_plan.countfact8,
+        mat_plan.countfact9,
+        mat_plan.countfact10,
+        mat_plan.countfact11,
+        mat_plan.countfact12
+
+        order by mat_plan.identid2010 ,
+        mat_plan.matname
+) as sel_in
+group by mat_planidentid2010,
+mat_planmatcode,
+mat_planmatname,
+mat_planmeasname ,
+mat_tendcountfact ,
+pricewithnds ,
+mat_tendcontractnumber
+order by mat_planidentid2010,mat_planmatname]]>
+	</queryString>
+	<field name="mat_planidentid2010" class="java.lang.String"/>
+	<field name="mat_planmatcode" class="java.lang.Integer"/>
+	<field name="mat_planmatname" class="java.lang.String"/>
+	<field name="mat_planmeasname" class="java.lang.String"/>
+	<field name="mat_plancountfact" class="java.math.BigDecimal"/>
+	<field name="mat_tendcountfact" class="java.math.BigDecimal"/>
+	<field name="pricewithnds" class="java.math.BigDecimal"/>
+	<field name="mat_tendcontractnumber" class="java.lang.String"/>
+	<field name="delta_count" class="java.math.BigDecimal"/>
+	<field name="delta_sumwithnds" class="java.math.BigDecimal"/>
+	<variable name="delta_sumwithnds" class="java.math.BigDecimal" resetType="Group" resetGroup="koddk" calculation="Sum">
+		<variableExpression><![CDATA[$F{delta_sumwithnds}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="delta_sumwithnds_sum" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{delta_sumwithnds}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<group name="koddk">
+		<groupExpression><![CDATA[$F{mat_planidentid2010}]]></groupExpression>
+		<groupFooter>
+			<band height="20">
+				<textField isStretchWithOverflow="true" pattern="#0.00" isBlankWhenNull="true">
+					<reportElement positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="696" y="0" width="116" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement>
+						<font isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{delta_sumwithnds}]]></textFieldExpression>
+				</textField>
+				<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+					<reportElement positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="696" height="20" isPrintWhenDetailOverflows="true"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement>
+						<font isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Ітого по коду ДК " + $F{mat_planidentid2010}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="79" splitType="Stretch">
+			<staticText>
+				<reportElement x="80" y="0" width="616" height="79"/>
+				<box>
+					<topPen lineWidth="0.0"/>
+					<leftPen lineWidth="0.0"/>
+					<bottomPen lineWidth="0.0"/>
+					<rightPen lineWidth="0.0"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font size="12"/>
+				</textElement>
+				<text><![CDATA[Дефіцит/профіцит матеріалів із планів з урахуванням проведених тендерів]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="35" splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="91" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="80" height="61"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[Код ДК]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="80" y="0" width="268" height="61"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[Назва матеріалу]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="348" y="0" width="116" height="61"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[Од.вим.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="464" y="0" width="116" height="61"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[Кількість матеріалу по планам с початку року]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="580" y="0" width="116" height="61"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[Кількість матеріалу по тендерним договорам]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="696" y="0" width="116" height="61"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[Дефіцит/Профіцит бюджету ((к.4-к.5)* тендерна ціна з ПДВ) грн. з ПДВ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="61" width="80" height="30"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[1]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="80" y="61" width="268" height="30"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[2]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="348" y="61" width="116" height="30"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[3]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="464" y="61" width="116" height="30"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[4]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="580" y="61" width="116" height="30"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[5]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="696" y="61" width="116" height="30"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle"/>
+				<text><![CDATA[6]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="80" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{mat_planidentid2010}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="80" y="0" width="268" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{mat_planmatname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="348" y="0" width="116" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{mat_planmeasname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="464" y="0" width="116" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{mat_plancountfact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="580" y="0" width="116" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{mat_tendcountfact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.00" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="696" y="0" width="116" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement/>
+				<textFieldExpression><![CDATA[$F{delta_sumwithnds}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="42" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="696" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Ітого "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.00" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="696" y="0" width="116" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{delta_sumwithnds_sum}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

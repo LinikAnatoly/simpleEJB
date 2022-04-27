@@ -1,0 +1,633 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="agree" pageWidth="595" pageHeight="842" whenNoDataType="AllSectionsNoDetail" columnWidth="557" leftMargin="28" rightMargin="10" topMargin="15" bottomMargin="10" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.4641000000000006"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="199"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="soCode" class="java.lang.String">
+		<defaultValueExpression><![CDATA["500146221"]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[Select so.code  ,
+       so.contractnumber ,
+  so.contractdate ,
+  so.name ,
+  so.partnercode ,
+  so.findoccode ,
+  so.findocid ,
+  so.commentgen ,
+  so.usergen ,
+  so.dateedit ,
+  so.domain_info ,
+  so.modify_time ,
+  so.departmentcode ,
+  so.elementcode ,
+  so.contractnumberservices ,
+  replace(trim(so.contragentname),chr(10),'') as contragentname,
+  replace(trim(so.contragentaddress),chr(10),'') as contragentaddress,
+  so.contragentokpo ,
+  so.contragentbankaccount ,
+  so.contragentbankname ,
+  so.contragentbankmfo ,
+  so.contragentbossname ,
+  replace(trim(so.contragentpassport),chr(10),'') as contragentpassport ,
+  so.contractstatusrefcode ,
+  so.contracttyperefcode ,
+  so.contragenttyperefcode ,
+  so.billstatusrefcode ,
+ /* to_char(so.contractdateservices,'dd.MM.yyyy') as so.contractdateservices, */
+so.contractdateservices,
+  so.contractservicessumma ,
+  so.contractservicespower ,
+  so.commentservicesgen ,
+  so.contractservicesdistnc,
+  so.contractservicesday ,
+  so.warrantrefcode ,
+       dep.name as depname
+        ,    group_concat(tcl.name ,';  ') as workname
+
+,  trunc(cct.totalcost  + get_calc_additional_sum(pw.code)*1.2 )  as summaGRN
+
+ ,  textgrivna(cast (cct.totalcost + get_calc_additional_sum(pw.code)*1.2 as numeric))  as summaGRNKOPtxt
+
+ ,  ((cct.totalcost +  get_calc_additional_sum(pw.code)*1.2) - trunc(cct.totalcost +  get_calc_additional_sum(pw.code)*1.2 ))::numeric(15,2) * 100    as summaKOP
+
+   ,  trunc(cct.costvat +  get_calc_additional_sum(pw.code)*0.2)  as ndsGRN
+
+   ,  ((cct.costvat+ get_calc_additional_sum(pw.code)*0.2) -   trunc(cct.costvat+ get_calc_additional_sum(pw.code)*0.2))::numeric(15,2) * 100  as   ndsKOP
+
+   ,  textgrivna(cast (cct.costvat +  get_calc_additional_sum(pw.code)*0.2 as numeric))  as summaNDStxt
+
+        , enw.warrantfio , enw.numbergen, to_char(enw.datestart, 'dd.MM.yyyy') as datestart, enw.warrantposition, dep.code as depcode
+ , to_char(so.warrantdate,'dd.mm.yyyy') as cntrwarrantdate
+ , replace(trim(so.warrantnumber),chr(10),'') as cntrwarrantnumber
+ , replace(trim(so.warrantfio),chr(10),'') as cntrwarrantfio
+ , enw.warrantshortfio
+ , coalesce(so.basistype,0) as basistype, bd.bankname
+ , bd.bankokpo
+ , bd.bankmfo
+ , bd.bankaccount
+ , case when coalesce(tcl.isnotlicensedactivity,0) = 1 then 1 else 0 end as isnotlicensedactivity
+ , replace(trim(enw.genitivefio),chr(10),'') as genitivefio
+ , replace(trim(enw.genitiveposition),chr(10),'') as genitiveposition
+ , coalesce(so.isnopay,0) as isnopay
+, fcalc.percentprepay
+
+ , fcalc.sumprepay + get_calc_additional_sum(pw.code) as sumprepay /*Сума часткової оплати без ПДВ, грн.*/
+ , fcalc.vatsumprepay + get_calc_additional_sum(pw.code)*0.2 as vatsumprepay /*ПДВ для часткової оплати, грн.*/
+ , fcalc.totalsumprepay + get_calc_additional_sum(pw.code)*1.2 as totalsumprepay /*Сума часткової оплати з ПДВ, грн.*/
+ , trunc(fcalc.totalsumprepay + get_calc_additional_sum(pw.code)*1.2) AS totalsumprepay_grn
+ , ((fcalc.totalsumprepay + get_calc_additional_sum(pw.code)*1.2)
+  - trunc(fcalc.totalsumprepay + get_calc_additional_sum(pw.code)*1.2))::numeric(15,2) * 100   as totalsumprepay_kop
+ , textgrivna(cast ((fcalc.totalsumprepay + get_calc_additional_sum(pw.code)*1.2) as numeric)) as totalsumprepay_txt
+ , trunc(fcalc.vatsumprepay + get_calc_additional_sum(pw.code)*0.2) AS vatsumprepay_grn
+ , ((fcalc.vatsumprepay + get_calc_additional_sum(pw.code)*0.2)
+  - trunc(fcalc.vatsumprepay + get_calc_additional_sum(pw.code)*0.2 ))::numeric(15,2) * 100   as vatsumprepay_kop
+ , textgrivna(cast ((fcalc.vatsumprepay + get_calc_additional_sum(pw.code)*0.2) as numeric)) as vatsumprepay_txt
+
+
+    , tcl.iswithoutprecost
+ ,   so.contragentposition
+ , pw.code as plancode
+
+ from enservicesobject so
+ left join enwarrant enw on (so.warrantrefcode = enw.code )
+ left join   enservicesfactcalc fcalc on (so.code = fcalc.servicesobjectrefcode)
+     , enplanwork pw  left join   encalccontracttotal cct on (cct.planrefcode = pw.code) ,
+      enelement e,
+      endepartment dep ,
+      enplanwork2classfctntp p2c ,
+      tkclassificationtype tcl ,
+      enbankingdetails bd
+
+Where pw.elementrefcode = e.code
+and so.departmentcode = bd.departmentrefcode
+and so.elementcode = e.code
+and so.code =  $P!{soCode}
+and pw.kindcode = 5
+and dep.code = so.departmentcode
+and pw.code = p2c.planrefcode
+and p2c.classificationtyperfcd = tcl.code
+group by so.code  ,
+  so.warrantdate  , so.warrantnumber , so.warrantfio , cct.totalcost ,  cct.costvat ,
+  so.contractnumber ,
+  so.contractdate ,
+  so.name ,
+  so.partnercode ,
+  so.findoccode ,
+  so.findocid ,
+  so.commentgen ,
+  so.usergen ,
+  so.dateedit ,
+  so.domain_info ,
+  so.modify_time ,
+  so.departmentcode ,
+  so.elementcode ,
+  so.contractnumberservices ,
+  so.contragentname ,
+  so.contragentaddress ,
+  so.contragentokpo ,
+  so.contragentbankaccount ,
+  so.contragentbankname ,
+  so.contragentbankmfo ,
+  so.contragentbossname ,
+  so.contragentpassport ,
+  so.contractstatusrefcode ,
+  so.contracttyperefcode ,
+  so.contragenttyperefcode ,
+  so.billstatusrefcode ,
+  so.contractdateservices ,
+  so.contractservicessumma ,
+  so.contractservicespower ,
+  so.commentservicesgen ,
+  so.contractservicesdistnc,
+  so.contractservicesday ,
+  so.warrantrefcode ,
+  dep.name , dep.code,
+  enw.warrantfio, enw.numbergen, to_char(enw.datestart, 'dd.MM.yyyy'),
+  enw.warrantposition
+  , enw.warrantshortfio
+  , so.basistype,
+   bd.bankname
+ , bd.bankokpo
+ , bd.bankmfo
+ , bd.bankaccount
+ , case when coalesce(tcl.isnotlicensedactivity,0) = 1 then 1 else 0 end
+ , enw.genitivefio
+ , enw.genitiveposition
+ , so.isnopay
+ , fcalc.percentprepay
+ , fcalc.sumprepay
+ , fcalc.vatsumprepay
+ , fcalc.totalsumprepay
+ ,fcalc.totalsum
+ ,fcalc.vatsum
+ , fcalc.TOTALSUMCALC
+ , fcalc.VATSUMCALC
+ , tcl.iswithoutprecost
+ , so.contragentposition
+  , pw.code]]>
+	</queryString>
+	<field name="code" class="java.lang.Double"/>
+	<field name="contractnumber" class="java.lang.String"/>
+	<field name="contractdate" class="java.sql.Date"/>
+	<field name="name" class="java.lang.String"/>
+	<field name="partnercode" class="java.lang.String"/>
+	<field name="findoccode" class="java.lang.String"/>
+	<field name="findocid" class="java.lang.Double"/>
+	<field name="commentgen" class="java.lang.String"/>
+	<field name="usergen" class="java.lang.String"/>
+	<field name="dateedit" class="java.sql.Date"/>
+	<field name="domain_info" class="java.lang.String"/>
+	<field name="modify_time" class="java.lang.Double"/>
+	<field name="departmentcode" class="java.lang.Double"/>
+	<field name="elementcode" class="java.lang.Double"/>
+	<field name="contractnumberservices" class="java.lang.String"/>
+	<field name="contragentname" class="java.lang.String"/>
+	<field name="contragentaddress" class="java.lang.String"/>
+	<field name="contragentokpo" class="java.lang.String"/>
+	<field name="contragentbankaccount" class="java.lang.String"/>
+	<field name="contragentbankname" class="java.lang.String"/>
+	<field name="contragentbankmfo" class="java.lang.String"/>
+	<field name="contragentbossname" class="java.lang.String"/>
+	<field name="contragentpassport" class="java.lang.String"/>
+	<field name="contractstatusrefcode" class="java.lang.Double"/>
+	<field name="contracttyperefcode" class="java.lang.Double"/>
+	<field name="contragenttyperefcode" class="java.lang.Double"/>
+	<field name="billstatusrefcode" class="java.lang.Double"/>
+	<field name="contractdateservices" class="java.sql.Date"/>
+	<field name="contractservicessumma" class="java.math.BigDecimal"/>
+	<field name="contractservicespower" class="java.math.BigDecimal"/>
+	<field name="commentservicesgen" class="java.lang.String"/>
+	<field name="contractservicesdistnc" class="java.math.BigDecimal"/>
+	<field name="contractservicesday" class="java.math.BigDecimal"/>
+	<field name="warrantrefcode" class="java.lang.Double"/>
+	<field name="depname" class="java.lang.String"/>
+	<field name="workname" class="java.lang.String"/>
+	<field name="summagrn" class="java.lang.Integer"/>
+	<field name="summakop" class="java.lang.Integer"/>
+	<field name="ndsgrn" class="java.lang.Integer"/>
+	<field name="ndskop" class="java.lang.Integer"/>
+	<field name="warrantfio" class="java.lang.String"/>
+	<field name="numbergen" class="java.lang.String"/>
+	<field name="datestart" class="java.lang.String"/>
+	<field name="warrantposition" class="java.lang.String"/>
+	<field name="depcode" class="java.lang.Double"/>
+	<field name="cntrwarrantdate" class="java.lang.String"/>
+	<field name="cntrwarrantnumber" class="java.lang.String"/>
+	<field name="cntrwarrantfio" class="java.lang.String"/>
+	<field name="warrantshortfio" class="java.lang.String"/>
+	<field name="basistype" class="java.lang.Double"/>
+	<field name="bankname" class="java.lang.String"/>
+	<field name="bankokpo" class="java.lang.String"/>
+	<field name="bankmfo" class="java.lang.String"/>
+	<field name="bankaccount" class="java.lang.String"/>
+	<field name="isnotlicensedactivity" class="java.lang.Integer"/>
+	<field name="summaGRNKOPtxt" class="java.lang.String"/>
+	<field name="summaNDStxt" class="java.lang.String"/>
+	<field name="genitivefio" class="java.lang.String"/>
+	<field name="genitiveposition" class="java.lang.String"/>
+	<field name="isnopay" class="java.lang.Integer"/>
+	<field name="percentprepay" class="java.lang.Integer"/>
+	<field name="totalsumprepay_grn" class="java.lang.Integer"/>
+	<field name="totalsumprepay_kop" class="java.lang.Integer"/>
+	<field name="totalsumprepay_txt" class="java.lang.String"/>
+	<field name="vatsumprepay_grn" class="java.lang.Integer"/>
+	<field name="vatsumprepay_kop" class="java.lang.Integer"/>
+	<field name="vatsumprepay_txt" class="java.lang.String"/>
+	<field name="contragentposition" class="java.lang.String"/>
+	<field name="iswithoutprecost" class="java.lang.Integer"/>
+	<field name="plancode" class="java.lang.String"/>
+	<variable name="companyShortName" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyShortName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("company.shortname")]]></initialValueExpression>
+	</variable>
+	<variable name="departmentAddress" class="java.lang.String">
+		<variableExpression><![CDATA[$V{departmentAddress}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getContactValue($F{departmentcode}.intValue(), com.ksoe.rqorder.valueobject.RQContactType.ADDRESS, $F{contractdateservices})]]></initialValueExpression>
+	</variable>
+	<variable name="departmentTelephone" class="java.lang.String">
+		<variableExpression><![CDATA[$V{departmentTelephone}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getContactValue($F{departmentcode}.intValue(), com.ksoe.rqorder.valueobject.RQContactType.TELEPHONE, $F{contractdateservices})]]></initialValueExpression>
+	</variable>
+	<variable name="companyAddress" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyAddress}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getContactValue(com.ksoe.energynet.valueobject.ENDepartment.ENDEPARTMENT_KSOE, com.ksoe.rqorder.valueobject.RQContactType.ADDRESS, $F{contractdateservices})]]></initialValueExpression>
+	</variable>
+	<variable name="companyPostalCode" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyPostalCode}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getContactValue(com.ksoe.energynet.valueobject.ENDepartment.ENDEPARTMENT_KSOE, com.ksoe.rqorder.valueobject.RQContactType.POSTAL_CODE, $F{contractdateservices})]]></initialValueExpression>
+	</variable>
+	<title>
+		<band height="44" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" mode="Transparent" x="0" y="29" width="270" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["______________________ "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="dd.MM.yyyy" isBlankWhenNull="true">
+				<reportElement key="textField-30" positionType="Float" mode="Transparent" x="270" y="29" width="287" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="true" isItalic="false" isUnderline="true" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{contractdateservices}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" positionType="Float" mode="Transparent" x="0" y="0" width="557" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Договір про надання послуги № " + $F{contractnumberservices}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="140" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-22" positionType="Float" mode="Transparent" x="0" y="0" width="557" height="30" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[($F{depcode}.intValue() != 500000019 ?  "<b>" + $F{depname} + " " + $V{companyShortName} + "</b> в особі " : " <b>" + $V{companyShortName} + "</b> в особі "  ) + $F{genitiveposition} + " " +
+( ($F{genitivefio} != "") ? $F{genitivefio} : "______________________________" )
++ ", що  діє на підставі довіреності " + $F{numbergen} + " від " + $F{datestart} +
+" та ліцензії виданої відповідно до наказу МВС України від 05.03.2018р. №178 (надалі - Виконавець) та " + new String(
+( $F{contragentbossname} != null || $F{basistype}.intValue() == 3)  ?
+new String("<b>" + $F{contragentname} + ", " + $F{contragentaddress} + "</b> в особі " ) : "<b>" + $F{contragentname} +  ", " + $F{contragentaddress} + "</b>"
+)
++
+/*если есть довереное лицо заказчика то подставляем его иначе самого боса заказчика*/
+($F{cntrwarrantfio} != null ? $F{cntrwarrantfio} : (($F{contragentposition} != null ? $F{contragentposition} + " " : "") + ($F{contragentbossname} != null ? $F{contragentbossname} : "")  ))
++  ($F{basistype}.intValue() != 0 ? ", що  діє на підставі" : "") +
+($F{basistype}.intValue() == 1 ? " Статуту " :
+ $F{basistype}.intValue() == 2 ? " Положення " :
+ $F{basistype}.intValue() == 3 ? (" Довіреності №" + $F{cntrwarrantnumber} + " від " + $F{cntrwarrantdate} + " " ) :
+ $F{basistype}.intValue() == 4 ? " Закона України про місцеве самоврядування " :
+ $F{basistype}.intValue() == 5 ? " Свідоцтва про державну реєстрацію " :
+ $F{basistype}.intValue() == 6 ? " Паспорта " + $F{contragentpassport} :
+ $F{basistype}.intValue() == 7 ? " Закона України про місцеві державні адміністрації " :
+ $F{basistype}.intValue() == 8 ? " Закона України про державну прикордонну службу " :
+ $F{basistype}.intValue() == 9 ? " Закона України про СБУ " :
+ $F{basistype}.intValue() == 10 ? " Закона України про Прокуратуру " : "" ) +
+"(надалі – Замовник), які разом за текстом Договору називаються - Сторони, " +
+"уклали цей Договір про наступне:"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-33" positionType="Float" mode="Transparent" x="0" y="40" width="557" height="100" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None" markup="styled">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new String(
+    "    <b>1. ТЕРМІНИ, ЩО ЗАСТОСОВУЮТЬСЯ В ЦЬОМУ ДОГОВОРІ</b> \n\n" +
+    "    <b>ОБ'ЄКТ</b> – будівля, приміщення, територія та окремо визначене майно, що охороняється ВИКОНАВЦЕМ.\n" +
+    "    <b>ОХОРОНА</b> - організація та практичне здійснення заходів, спрямованих на забезпечення схоронності, цілісності визначених <b>ЗАМОВНИКОМ</b> та належних йому будівель, споруд, територій, транспортних засобів та майна, з метою відвернення та/або недопущення безпосередніх протиправних посягань на майно, припинення несанкціонованого <b>ЗАМОВНИКОМ</b> доступу до нього для збереження його фізичного стану і забезпечення здійснення <b>ЗАМОВНИКОМ</b>  всіх належних йому повноважень щодо майна.\n" +
+    "    <b>ВІДПОВІДАЛЬНА ОСОБА</b> - особа, на яку покладено обов'язок по взаємодії <b>ЗАМОВНИКА</b> з <b>ВИКОНАВЦЕМ</b> по виконанню умов цього Договору.\n" +
+    "    <b>ДИСЛОКАЦІЯ</b> - найменування об'єктів, адреса, кількість постів, період охорони Об’єктів на яких здійснюється охорона.\n\n" +
+
+    "    <b>2. ПРЕДМЕТ  ДОГОВОРУ</b>\n\n" +
+    "    <b>2.1.</b> ЗАМОВНИК доручає, а ВИКОНАВЕЦЬ зобов’язується:\n" +
+    "    - надати послуги з фізичної охорони об’єктів, майна ЗАМОВНИКА, що зазначені у Додатку № 2 до цього Договору. Наступні об’єкти Замовника приймаються під охорону на умовах цього Договору шляхом підписання відповідних додаткових угод до цього Договору;\n" +
+    "    - оперативно реагувати на правопорушення, що відбуваються на території об’єктів, що знаходяться під охороною.\n" +
+    "    <b>2.2.</b> Кількість постів, найменування, адреса та період охорони об’єктів вказується у Додатку №2 до цього Договору.\n\n" +
+
+    "    <b>3. ПРАВА ТА ОБОВ’ЯЗКИ  ЗАМОВНИКА</b>\n\n" +
+    "    <b>3.1.</b> ЗАМОВНИК має право отримувати:\n" +
+    "    <b>3.1.1.</b> Інформацію щодо охорони об’єктів.\n" +
+    "    <b>3.1.2.</b> Консультації щодо поліпшення здійснення охорони на об’єктах.\n" +
+    "    <b>3.1.3.</b> Інформацію щодо новітніх способів здійснення охорони та систем охоронної сигналізації.\n" +
+    "    <b>3.1.4.</b> За окремими угодами додаткові послуги від ВИКОНАВЦЯ.\n\n" +
+    "    <b>3.2.</b> ЗАМОВНИК зобов’язаний:\n" +
+    "    <b>3.2.1.</b> Створювати належні умови для забезпечення схоронності матеріальних цінностей на об’єкті та сприяти ВИКОНАВЦЮ при виконанні ним своїх обов’язків.\n" +
+    "    <b>3.2.2.</b> При здачі об’єктів під охорону перевіряти цілісність металевих грат, вікон,люків, замків, дверей та інших інженерно-технічних засобів, які повинні забезпечити неможливість несанкційованого проникнення на об’єкти без їх пошкодження. Зачиняти на надійні запірні пристрої дверей, вікна та інші місця можливого доступу до об’єктів, що знаходяться під охороною, опломбовувати чи опечатувати  приміщення.\n" +
+    "    <b>3.2.3.</b> Забезпечити працівників ВИКОНАВЦЯ належними умовами для виконання ними функціональних обов’язків згідно Договору (приміщенням та засобами  пожежогасіння).\n" +
+    "    <b>3.2.4.</b> Надати ВИКОНАВЦЮ для ознайомлення оригінали документів та їх копії на право власності або користування об'єктами на день підписання даного Договору. Повідомляти письмово про появу обставин, що припиняють законні підстави володіння або користування об’єктами.\n" +
+    "    <b>3.2.5.</b> Призначити відповідальних осіб для взаємодії з ВИКОНАВЦЕМ. Кількість відповідальних осіб має бути такою, що забезпечує, у випадку надзвичайних ситуацій, можливість цілодобового контакту з ними (Додаток №3 до цього Договору).\n" +
+    "    <b>3.2.6.</b> У разі необхідності здійснити своєчасне виконання заходів щодо технічної укріпленості об’єктів, технічного обслуговування обладнання представниками ЗАМОВНИКА або сторонніх підрядних організацій, про що ЗАМОВНИК не менш ніж, як за дві доби до дати проведення заходів повинен повідомляти ВИКОНАВЦЯ.\n" +
+    "    <b>3.2.7.</b> Своєчасно та в повному обсязі сплачувати послуги ВИКОНАВЦЯ за цим Договором.\n\n" +
+
+    "    <b>4. ПРАВА ТА ОБОВ’ЯЗКИ ВИКОНАВЦЯ</b>\n\n" +
+    "    <b>4.1.</b> ВИКОНАВЕЦЬ має право:\n" +
+    "    <b>4.1.1.</b> При необхідності проводити обстеження стану технічної укріпленості об’єктів, що приймаються під охорону.\n" +
+    "       У разі виявлення недоліків складається відповідний Акт. До усунення недоліків, які вказані в Акті, об’єкти під охорону не приймаються.\n" +
+    "    <b>4.1.2.</b> Тимчасово не надавати послуги за цим Договором, якщо:\n" +
+    "    - ЗАМОВНИК має заборгованість з оплати послуг більше ніж 15 днів;\n" +
+    "    - ЗАМОВНИК не повідомив у встановленому порядку ВИКОНАВЦЯ про появу обставин, що припиняють законні підстави володіння Об’єктом.\n" +
+    "    <b>4.1.3.</b> У разі необхідності, залучати для виконання своїх окремих зобов'язань за даним Договором третіх осіб, беручи на себе відповідальність за їх дії.\n" +
+    "    <b>4.1.4.</b> Змінювати ціну за надані послуги у разі зміни риночної вартості надання послуг з охорони власності шляхом укладання додаткової угоди з ЗАМОВНИКОМ.\n\n" +
+    "    <b>4.2.</b> ВИКОНАВЕЦЬ зобов’язаний:\n" +
+    "    <b>4.2.1.</b> Здійснювати заходи охорони на об’єктах та не допускати проникнення сторонніх осіб на нього.\n" +
+    "    <b>4.2.2.</b> Оперативно реагувати на правопорушення, що скоюються на території об’єктів, здійснювати пропускний режим (при його наявності). Повідомляти ЗАМОВНИКА про факт порушення цілісності об’єктів або завдання збитків при пошкодженні майна.\n" +
+    "    <b>4.2.3.</b> Здійснювати заходи щодо впровадження технічних засобів охорони спільно із ЗАМОВНИКОМ.\n" +
+    "    <b>4.2.4.</b> Забезпечувати дотримання встановлених правил технічної та пожежної безпеки на постах при виконанні зобов’язань по цьому Договору.\n" +
+    "    <b>4.2.5.</b> При виявленні ознак проникнення сторонніх осіб на об’єкти вживати термінові заходи щодо затримання правопорушників, здійснювати охорону місця пригоди, при необхідності інформувати відповідальних осіб ЗАМОВНИКА та територіальну чергову частину Національної поліції України.\n" +
+    "    <b>4.2.6.</b> Не розголошувати відомості стосовно діяльності ЗАМОВНИКА, що були отримані під час здійснення охорони.\n" +
+    "    <b>4.2.7.</b> Здійснювати допуск на територію об’єктів охорони представників контролюючих (правоохоронних) органів та представників засобів масової інформації у порядку та на підставах, передбачених чинним законодавством, за згодою керівництва ЗАМОВНИКА.\n" +
+    "    <b>4.2.8.</b> Проводити у встановленому порядку інструктаж охоронців щодо необхідності дотримання ними правил технічної та пожежної безпеки на Об’єктах ЗАМОВНИКА.\n" +
+    "    <b>4.2.9.</b> Вести журнал реєстрації відкриття (відвідування) об’єктів представниками ЗАМОВНИКА.\n" +
+    "    <b>4.2.10.</b> У разі спроби проникнення сторонніх осіб на об’єкти, за заявкою замовника (письмовою, при настанні форс - мажорних обставин по телефону або усно) посилити охорону об'єкта необхідною кількістю охоронників.\n\n" +
+
+    "    <b>5. ВІДПОВІДАЛЬНІСТЬ СТОРІН</b> \n\n" +
+    "    <b>5.1.</b> ЗАМОВНИК:\n" +
+    "    <b>5.1.1.</b> За невиконання чи неналежне виконання зобов’язань по Договору та у разі порушення строку оплати наданих ВИКОНАВЦЕМ послуг ЗАМОВНИК за кожний день прострочення зобов’язаний сплатити ВИКОНАВЦЮ пеню у розмірі, передбаченому статею 1 Закону України «Про відповідальність за несвоєчасне виконання грошових зобов`язань», яка обчислюється від суми простроченого платежу та не може перевищувати подвійної облікової ставки Національного Банку України, що діяла у період, за який сплачується пеня.\n\n" +
+    "    <b>5.2.</b> ВИКОНАВЕЦЬ:\n" +
+    "    <b>5.2.1.</b> За невиконання чи неналежне виконання зобов’язань по Договору, несе відповідальність відповідно до умов даного Договору та чинного законодавства України у разі спричинення збитків з вини ВИКОНАВЦЯ.\n" +
+    "    <b>5.3.</b> Факти крадіжки, грабежу, розбою, а також факти знищення або пошкодження майна сторонніми особами, які проникли на об’єкти або в силу інших причин з вини працівників, що здійснюють охорону об’єктів, встановлюються в установленому законодавством порядку. Майнова відповідальність настає з моменту доведення вини ВИКОНАВЦЯ.\n" +
+    "    <b>5.4.</b> Розмір збитків повинен бути підтверджений відповідним документом та розрахунком вартості викрадених, пошкоджених або знищених матеріальних цінностей, складеними за участю представника ВИКОНАВЦЯ та звіреними з бухгалтерськими даними.\n" +
+    "    <b>5.5.</b> При поверненні викраденого майна та при складанні відповідних документів присутність представника ВИКОНАВЦЯ є обов’язковою. Вартість поверненого майна виключається із загальної суми вартості, оціненої ЗАМОВНИКОМ, а раніше сплачена ВИКОНАВЦЕМ сума за це майно повертається останньому.\n" +
+    "    <b>5.6.</b> ВИКОНАВЕЦЬ не несе (звільняється від) майнової відповідальності:\n" +
+    "    <b>5.6.1.</b> За завдані збитки майну із зобов’язань і договорів ЗАМОВНИКА перед третіми особами.\n" +
+    "    <b>5.6.2.</b> За залишене на об’єктах особисте майно працівників ЗАМОВНИКА.\n" +
+    "    <b>5.6.3.</b> Якщо особа, що завдала майнової шкоди ЗАМОВНИКУ, затримана.\n" +
+    "    <b>5.6.4.</b> Якщо збитки завдані протиправними діями сторонніми особами без проникнення на об’єкт.\n" +
+    "    <b>5.6.5.</b> За збитки, завдані ЗАМОВНИКУ крадіжкою, грабежем, розбоєм, навмисним знищенням або пошкодженням майна, що здійснені внаслідок проникнення на об’єкт через місця, від обладнання яких технічними засобами охорони і безпеки ЗАМОВНИК відмовився.\n" +
+    "    <b>5.6.6.</b> Якщо ЗАМОВНИК має заборгованість за послуги охорони.\n\n" +
+
+    "    <b>6. ФОРС-МАЖОРНІ ОБСТАВИНИ</b>\n\n" +
+    "    <b>6.1.</b> У разі виникнення форс-мажорних обставин, Сторони звільняються від відповідальності за несвоєчасно виконані умови Договору.\n" +
+    "    <b>6.2.</b> Доказам виникнення форс-мажорних обставин, непереборної сили та строку їх дії є відповідні документи, які видаються Торгово-промисловою палатою України, або іншими уповноваженими Державними організаціями.\n" +
+    "    <b>6.3.</b> У випадках, не передбачених цим Договором, Сторони керуються чинним законодавством України.\n\n" +
+
+    "    <b>7. ВИРІШЕННЯ СПОРІВ</b>\n\n" +
+    "    <b>7.1.</b> Усі спори, що виникають з цього Договору або пов'язані із ним, вирішуються шляхом переговорів між Сторонами.\n" +
+    "    <b>7.2.</b> Якщо відповідний спір не можливо вирішити шляхом переговорів, то він вирішується в судовому порядку за встановленою підвідомчістю та підсудністю такого спору відповідно до чинного законодавства України.\n" +
+    "    <b>7.3.</b> У випадку виникнення під час виконання Договору ситуацій, що не врегульовані цим Договором, Сторони керуються вимогами, у відповідності до чинного законодавства України.\n\n" +
+
+    "    <b>8. СУМА ДОГОВОРУ ТА ПОРЯДОК РОЗРАХУНКІВ</b>\n\n" +
+    "    <b>8.1.</b> Вартість послуг з фізичної охорони об’єктів ЗАМОВНИКА, зазначених у Додатку№2 становить: __________ гривень за годину охорони без ПДВ, крім того ПДВ __________ гривень, разом __________ гривень за виставлення одного поста охорони з одним охоронником, згідно з протоколом узгодженої договірної ціни (Додаток №1) Договору.\n" +
+    "    <b>8.2.</b> Оплата за цим Договором здійснюється за фактом наданих послуг і проводиться щомісячно, в термін перших п’яти банківських днів місяця наступного за звітним на підставі наданого рахунку-фактури та підписаного Акта приймання-передачі наданих послуг.\n" +
+    "    <b>8.3.</b> В разі зміни норм витрат на охорону, у тому числі при проведенні державної індексації доходів населення, інших заходів, що викликають зростання (зменшення) витрат на утримання охорони, вартість охоронних послуг може змінюватися на основі наданого ВИКОНАВЦЕМ обґрунтованого розрахунку за погодженням ЗАМОВНИКА та оформляється додатковою угодою.\n" +
+    "    <b>8.4.</b> Надання Замовнику за його вимогою додаткових сил i засобів охорони оплачується Замовником за окремим рахунком.\n" +
+    "    <b>8.5.</b> Сторони щомісячно підписують Акт приймання-передачі наданих послуг, в строк до 5 числа кожного місяця наступного за звітним.\n\n" +
+
+    "    <b>9. ДІЯ ДОГОВОРУ</b>\n\n" +
+    "    <b>9.1.</b> Цей Договір вважається укладеним з моменту його підписання Сторонами й скріплення печатками Сторін.\n" +
+    "    <b>9.2.</b> Строк цього Договору починає свій перебіг з моменту, визначеного у п. 9.1 цього Договору та діє до «_____»_____________ 20___ року.\n" +
+    "    <b>9.3.</b> Якщо за 15 днів до закінчення дії Договору жодна із Сторін не вимагатиме його припинення, Договір вважається продовжений на наступний рік, на тих самих умовах, без обмеження кількості разів продовження дії Договору.\n" +
+    "    <b>9.4.</b> Закінчення терміну дії цього Договору не звільняє Сторони від відповідальності за його порушення, яке мало місце під час дії цього Договору.\n" +
+    "    <b>9.5.</b> Розірвання Договору раніше строку, на який він укладений, може проводитись за згодою Сторін, у випадках передбачених Договором, але при цьому не звільняє Сторони від виконання фінансових зобов’язань.\n" +
+    "    <b>9.6.</b> Кожна із Сторін має право на дострокове розірвання даного Договору, попередивши про це іншу Сторону письмово за 30 календарних днів.\n" +
+    "    <b>9.7.</b> Зміни у цей Договір набирають чинності з моменту належного оформлення Сторонами відповідної додаткової угоди до цього Договору, якщо інше не встановлено у самій додатковій угоді, цьому Договорі або у чинному в Україні законодавстві.\n\n" +
+
+    "    <b>10. ПРИКІНЦЕВІ ПОЛОЖЕННЯ</b>\n\n" +
+    "    <b>10.1.</b> Усі правовідносини, що виникають з цього Договору або пов'язані із ним, у тому числі пов'язані із дійсністю, укладенням, виконанням, зміною та припиненням цього Договору, тлумаченням його умов, визначенням наслідків недійсності або порушення Договору, регламентуються цим Договором та відповідними нормами чинного законодавства України, а також застосовними до таких правовідносин звичаями ділового обороту на підставі принципів добросовісності, розумності та справедливості.\n" +
+    "    <b>10.2.</b> Після підписання цього Договору всі попередні переговори за ним, листування, попередні договори, протоколи про наміри та будь-які інші усні або письмові домовленості Сторін з питань, що так чи інакше стосуються цього Договору, втрачають юридичну силу.\n" +
+    "    <b>10.3.</b> Сторони несуть повну відповідальність за правильність вказаних ними у цьому Договорі реквізитів та зобов'язуються своєчасно у письмовій формі повідомляти іншу Сторону про їх зміну, а у разі неповідомлення несуть ризик настання пов'язаних із ним несприятливих наслідків.\n" +
+    "    <b>10.4.</b> Додатки до цього Договору є його невід'ємними частинами і мають юридичну силу в разі, якщо вони викладені у письмовій формі, підписані Сторонами та скріплені їх печатками.\n" +
+    "    <b>10.5.</b> Цей Договір складений при повному розумінні Сторонами його умов та термінології українською мовою у двох автентичних примірниках, які мають однакову юридичну силу, по одному для кожної із Сторін.\n" +
+    "    <b>10.6.</b> Перелік Додатків до цього Договору:\n" +
+    "       - Додаток №1 - Протокол погодження договірної ціни;\n" +
+    "       - Додаток №2 - Дислокація об’єктів;\n" +
+    "       - Додаток №3 - Відповідальні особи Замовника для взаємодії з Виконавцем з питань охорони Об’єктів."
+)]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="125" splitType="Prevent">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-27" positionType="Float" mode="Transparent" x="0" y="15" width="557" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Юридичні адреси, банківські реквізити і підписи сторін"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-29" positionType="Float" mode="Transparent" x="288" y="45" width="269" height="35" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{contragentname} + "\n" +
+$F{contragentaddress} +
+($F{contragentpassport} != null ? "\n" + $F{contragentpassport} : "") +
+( $F{contragentbankaccount} != null ? "\n" + "р/р " +  $F{contragentbankaccount} : "" )
++
+( $F{contragentbankname} != null ? "\n" +  $F{contragentbankname} : "" )
++
+( $F{contragentbankmfo} != null ? "\n" + "МФО " + $F{contragentbankmfo} : "" )
++
+( $F{contragentokpo} != null ? " ЗКПО " + $F{contragentokpo} : "" )]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-31" positionType="Float" mode="Transparent" x="288" y="30" width="269" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ЗАМОВНИК"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-32" positionType="Float" mode="Transparent" x="0" y="30" width="288" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ВИКОНАВЕЦЬ"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-34" positionType="Float" mode="Transparent" x="0" y="45" width="288" height="35" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{companyShortName} + "\n" +
+" " + $V{companyPostalCode} + ", " + $V{companyAddress} + " \n " +
+" р/р UA743524570000026008303243802 в ТВБВ №10021/01 \n " +
+" ФХОУ АТ «Ощадбанк», у м. Херсон \n " +
+" МФО 352457 \n " +
+" ЄДРПОУ 05396638 \n " +
+" Факс: (0552)49-80-60 \n " +
+" Email: kanc@co.ksoe.com.ua "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-35" positionType="Float" mode="Transparent" x="0" y="80" width="288" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{warrantposition}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-36" positionType="Float" mode="Transparent" x="0" y="110" width="288" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["(посада)                                           "       +            " (підпис П.І.Б.) "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-37" positionType="Float" mode="Transparent" x="288" y="80" width="269" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["\n" +
+"__________________________/____________/ "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-38" positionType="Float" mode="Transparent" x="288" y="95" width="269" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["                                                   "         +            " (підпис П.І.Б.) "]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-39" positionType="Float" mode="Transparent" x="0" y="95" width="288" height="15" forecolor="#000000" backcolor="#FFFFFF"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="true" isItalic="false" isUnderline="true" isStrikeThrough="false" pdfFontName="timesbd.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["                                                            "       +   $F{warrantshortfio}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

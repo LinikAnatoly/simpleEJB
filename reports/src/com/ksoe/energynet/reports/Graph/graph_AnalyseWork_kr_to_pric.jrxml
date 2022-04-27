@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="graph_AnalyseWork_kr_to_pric" pageWidth="842" pageHeight="595" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="842" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="MONTHSTART" class="java.lang.String"/>
+	<parameter name="MONTHFINAL" class="java.lang.String"/>
+	<parameter name="YEARSTART" class="java.lang.String"/>
+	<parameter name="YEARFINAL" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[/* АНАЛІЗ ВИКОНАННЯ РАБОТ ПРИСОЕДИНЕНИЯ */
+SELECT DEPNAME AS RES,
+       DEPCODE AS RESCODE,
+       --STR_PLAN,
+       (SUM(WORKTIMEPLAN)/1000)::NUMERIC(15,2) AS PLAN ,
+       (SUM(WORKTIMEFACT)/1000)::NUMERIC(15,2) AS FACT ,
+       CASE WHEN SUM(WORKTIMEPLAN) = 0 THEN 0 ELSE ((SUM(WORKTIMEFACT)/SUM(WORKTIMEPLAN))*100)::NUMERIC(15,2) END  AS DIFF
+FROM (
+	SELECT DEPNAME ,
+	       DEPCODE ,
+	       --STR_PLAN,
+	       WORKTIMEPLAN ,
+	       (
+	      SELECT SUM(EPI.TIMEGEN) AS WORKTIME
+					 FROM  ENPLANWORK ENP LEFT JOIN  ENACT2ENPLANWORK ACT2PLAN ON ( ACT2PLAN.PLANCODE = ENP.CODE  )
+					                      LEFT JOIN ENACT ACT ON (  ACT2PLAN.ACTREFCODE = ACT.CODE        )
+					                      LEFT JOIN ENACTSTATUS STATACT ON ( ACT.STATUSREFCODE = STATACT.CODE)
+					                      LEFT JOIN ENPLANWORKSTATE ENPS ON ( ENPS.CODE = ACT.ACTTYPEREFCODE) ,
+					       ENWORKORDER2ENPLANWORK ORD2ENP  , ENPLANWORKITEM EPI , TKTECHCARD TKD ,
+					       ENPLANWORKTYPE ENPT , ENWORKORDER ORD
+					 WHERE ENP.CODE IN  ( SELECT EH2.PLANNEWREFCODE FROM ENPLANCORRECTHISTORY EH2
+					                       WHERE EH2.REASONCODE =  5
+					                       AND  EH2.PLANOLDREFCODE
+					                       IN (SELECT EH1.PLANNEWREFCODE
+					                       FROM ENPLANCORRECTHISTORY EH1
+					                       WHERE EH1.PLANOLDREFCODE IN (PLAN_PLANCODE)
+					                       AND EH1.REASONCODE = 4)
+					                      )
+					   AND EPI.KARTAREFCODE = DAT_PLAN.KARTAREFCODE
+					   AND ENP.CODE = ORD2ENP.PLANCODE
+					   AND EPI.KARTAREFCODE = TKD.CODE
+					   AND EPI.PLANREFCODE = ENP.CODE
+					   AND EPI.COUNTGEN <> 0
+					   AND ENP.KINDCODE = 4
+					   AND ENP.TYPEREFCODE = ENPT.CODE
+					   AND ENP.DEPARTMENTREFCODE = DAT_PLAN.DEPCODE
+					   AND ORD2ENP.WORKORDERCODE = ORD.CODE
+					   AND ENP.STATUSCODE IN (1, 3) /*ЧЕРНОВЫЕ И УТВЕРЖДЕННЫЕ*/
+						--DYNAM УСЛОВИЕ
+					   AND (
+		       				( ENP.BUDGETREFCODE NOT IN (240000001 /*ЕНЕРГОЗБУТ*/) AND ENP.TYPEREFCODE = 7 /*ПРИЄДНАННЯ (ГОСП. СПОСІБ)*/ and enp.typerefcode <> 2 /* <> АВР */ )
+
+					          OR  ( ENP.BUDGETREFCODE NOT IN (240000001 /*ЕНЕРГОЗБУТ*/)
+					           AND ENP.STATEREFCODE = 3/*ТО*/
+					           AND ENP.TYPEREFCODE <> 5 /*INVEST PROGR*/
+					           AND ENP.TYPEREFCODE <> 7 /*ПРИЄДНАННЯ  (ГОСП. СПОСІБ)*/ )
+				              OR ( enp.budgetrefcode not in (240000001 /*Енергозбут*/)
+				                   and enp.staterefcode = 1/*kr*/
+				                   and enp.typerefcode <> 5 /*invest progr*/ )
+				          )
+
+	       )::NUMERIC(15,2) AS WORKTIMEFACT
+	        , DAT_PLAN.KARTAREFCODE
+	        , PLAN_PLANCODE
+	FROM (
+		SELECT DEP.NAME AS DEPNAME ,
+		       DEP.CODE AS DEPCODE ,
+		       ENIM.PLANREFCODE AS PLAN_PLANCODE ,
+		       CASE WHEN SUM(COALESCE((SELECT SUM(COALESCE(HHI.COUNTFACT,0)) FROM NET.ENHUMENITEM HHI WHERE HHI.PLANITEMREFCODE = ENIM.CODE AND HHI.COUNTFACT > 0 ),0)) = 0
+		          THEN SUM(COALESCE(ENIM.TIMEGEN,0)) ELSE
+		          SUM(COALESCE((SELECT SUM(COALESCE(HHI.COUNTFACT,0)) FROM NET.ENHUMENITEM HHI WHERE HHI.PLANITEMREFCODE = ENIM.CODE AND HHI.COUNTFACT > 0 ),0))
+		          END AS WORKTIMEPLAN
+		       , ENIM.KARTAREFCODE
+		        FROM  ENPLANWORKITEM ENIM , TKTECHCARD TK , ENPLANWORK ENP  ,
+		    		  ENDEPARTMENT DEP , ENPLANWORKTYPE ENPT
+		WHERE ENIM.PLANREFCODE = ENP.CODE
+		  AND ENIM.KARTAREFCODE = TK.CODE
+		  AND ENP.DEPARTMENTREFCODE = DEP.CODE
+		  AND ENIM.PLANREFCODE = ENP.CODE
+		  AND ENP.KINDCODE = 2 /*БЕРЕМ ТОЛЬКО МЕСЯЧНЫЕ ПЛАНЫ*/
+		  AND ENIM.COUNTGEN <> 0
+		  AND ENIM.TIMEGEN > 0
+		  AND ENP.DATESTART BETWEEN  TO_DATE('01.'||$P{MONTHSTART} ||'.'|| $P{YEARSTART},'DD.MM.YYYY')
+		                         AND LAST_DAY(TO_DATE('01.'||$P{MONTHFINAL} ||'.'|| $P{YEARFINAL},'DD.MM.YYYY'))
+		  AND ENPT.CODE = ENP.TYPEREFCODE
+		  AND ENPT.CODE NOT IN (19,20) /*НЕ ВЫБИРАЕМ УСЛУГИ СО СТОРОНЫ */
+		  AND ENP.DEPARTMENTREFCODE IN (7,8,10,11,12,14,17,18,478,479,480,481)
+             --DYNAM УСЛОВИЕ
+		  AND (
+   				( ENP.BUDGETREFCODE NOT IN (240000001 /*ЕНЕРГОЗБУТ*/) AND ENP.TYPEREFCODE = 7 /*ПРИЄДНАННЯ (ГОСП. СПОСІБ)*/ )
+
+		          OR  ( ENP.BUDGETREFCODE NOT IN (240000001 /*ЕНЕРГОЗБУТ*/)
+		           AND ENP.STATEREFCODE = 3/*ТО*/
+		           AND ENP.TYPEREFCODE <> 5 /*INVEST PROGR*/
+		           AND ENP.TYPEREFCODE <> 7 /*ПРИЄДНАННЯ  (ГОСП. СПОСІБ)*/ )
+	              OR ( enp.budgetrefcode not in (240000001 /*Енергозбут*/)
+	                   and enp.staterefcode = 1/*kr*/
+	                   and enp.typerefcode <> 5 /*invest progr*/
+					   and enp.typerefcode <> 2 /* <> АВР */					   )
+	          )
+
+
+		 GROUP BY DEP.NAME  ,  DEP.CODE , ENIM.KARTAREFCODE ,  ENIM.PLANREFCODE
+	  ) AS DAT_PLAN
+) AS DAT_PLAN_FACT
+GROUP BY DEPNAME , DEPCODE]]>
+	</queryString>
+	<field name="res" class="java.lang.String"/>
+	<field name="plan" class="java.math.BigDecimal"/>
+	<field name="fact" class="java.math.BigDecimal"/>
+	<field name="diff" class="java.math.BigDecimal"/>
+	<variable name="companyShortName" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyShortName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("company.shortname")]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="585" splitType="Immediate">
+			<barChart>
+				<chart isShowLegend="true" evaluationTime="Report" renderType="draw" theme="default">
+					<reportElement stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" mode="Transparent" x="0" y="47" width="842" height="483"/>
+					<chartTitle position="Top"/>
+					<chartSubtitle/>
+					<chartLegend position="Bottom"/>
+				</chart>
+				<categoryDataset>
+					<categorySeries>
+						<seriesExpression><![CDATA[" План, тис.люд/год."]]></seriesExpression>
+						<categoryExpression><![CDATA[$F{res}]]></categoryExpression>
+						<valueExpression><![CDATA[$F{plan}]]></valueExpression>
+					</categorySeries>
+					<categorySeries>
+						<seriesExpression><![CDATA["Факт ,тис.люд/год."]]></seriesExpression>
+						<categoryExpression><![CDATA[$F{res}]]></categoryExpression>
+						<valueExpression><![CDATA[$F{fact}]]></valueExpression>
+					</categorySeries>
+					<categorySeries>
+						<seriesExpression><![CDATA["Відсоток виконання ,%"]]></seriesExpression>
+						<categoryExpression><![CDATA[$F{res}]]></categoryExpression>
+						<valueExpression><![CDATA[$F{diff}]]></valueExpression>
+					</categorySeries>
+				</categoryDataset>
+				<barPlot isShowLabels="true" isShowTickLabels="true" isShowTickMarks="true">
+					<plot labelRotation="-30.0">
+						<seriesColor seriesOrder="0" color="#3300FF"/>
+						<seriesColor seriesOrder="1" color="#FF3333"/>
+						<seriesColor seriesOrder="2" color="#660066"/>
+					</plot>
+					<itemLabel>
+						<font size="7"/>
+					</itemLabel>
+					<categoryAxisFormat labelRotation="-30.0">
+						<axisFormat verticalTickLabels="false">
+							<labelFont>
+								<font size="10"/>
+							</labelFont>
+							<tickLabelFont>
+								<font size="10"/>
+							</tickLabelFont>
+						</axisFormat>
+					</categoryAxisFormat>
+					<valueAxisLabelExpression><![CDATA[]]></valueAxisLabelExpression>
+					<valueAxisFormat>
+						<axisFormat verticalTickLabels="false">
+							<labelFont>
+								<font size="3"/>
+							</labelFont>
+							<tickLabelFont>
+								<font size="10"/>
+							</tickLabelFont>
+						</axisFormat>
+					</valueAxisFormat>
+				</barPlot>
+			</barChart>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-20" stretchType="RelativeToTallestObject" x="0" y="0" width="832" height="21"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="12" isBold="true" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Аналіз виконання робіт по тех. напрямку ( Приєднання  (госп. спосіб), ( ТО ) та  (КР)  )  по " + $V{companyShortName} +
+" за період з "
++ new String(Integer.parseInt($P{MONTHSTART})==1 ? "Січень" :
+             Integer.parseInt($P{MONTHSTART})==2 ? "Лютий" :
+             Integer.parseInt($P{MONTHSTART})==3 ? "Березень" :
+             Integer.parseInt($P{MONTHSTART})==4 ? "Квітень" :
+             Integer.parseInt($P{MONTHSTART})==5 ? "Травень" :
+             Integer.parseInt($P{MONTHSTART})==6 ? "Червень" :
+             Integer.parseInt($P{MONTHSTART})==7 ? "Липень" :
+             Integer.parseInt($P{MONTHSTART})==8 ? "Серпень" :
+             Integer.parseInt($P{MONTHSTART})==9 ? "Вересень" :
+             Integer.parseInt($P{MONTHSTART})==10 ? "Жовтень" :
+             Integer.parseInt($P{MONTHSTART})==11 ? "Листопад" :
+             Integer.parseInt($P{MONTHSTART})==12 ? "Грудень" : "" )
++" "+$P{YEARSTART} +" р." +
+" по " + new String(Integer.parseInt($P{MONTHFINAL})==1 ? "Січень" :
+             Integer.parseInt($P{MONTHFINAL})==2 ? "Лютий" :
+             Integer.parseInt($P{MONTHFINAL})==3 ? "Березень" :
+             Integer.parseInt($P{MONTHFINAL})==4 ? "Квітень" :
+             Integer.parseInt($P{MONTHFINAL})==5 ? "Травень" :
+             Integer.parseInt($P{MONTHFINAL})==6 ? "Червень" :
+             Integer.parseInt($P{MONTHFINAL})==7 ? "Липень" :
+             Integer.parseInt($P{MONTHFINAL})==8 ? "Серпень" :
+             Integer.parseInt($P{MONTHFINAL})==9 ? "Вересень" :
+             Integer.parseInt($P{MONTHFINAL})==10 ? "Жовтень" :
+             Integer.parseInt($P{MONTHFINAL})==11 ? "Листопад" :
+             Integer.parseInt($P{MONTHFINAL})==12 ? "Грудень" : "" ) +" "+$P{YEARFINAL} +" р."]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band splitType="Stretch"/>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band/>
+	</summary>
+</jasperReport>

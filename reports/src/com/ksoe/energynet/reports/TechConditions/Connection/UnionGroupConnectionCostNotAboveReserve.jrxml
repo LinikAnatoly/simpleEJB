@@ -1,0 +1,509 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="UnionGroupConnectionCostNotAboveReserve" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="15" bottomMargin="15" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet" >
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="tcsCode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[500000963]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select
+case when entechconditionsservcs.contractdate > '02.06.2015' then '300506' else '320627' end as mfobanka ,
+ enpriconnectiondata.code,
+ enpriconnectiondata.dategen,
+ enpriconnectiondata.powermaxcurrent,
+ enpriconnectiondata.powermaxafterreconstr,
+ enpriconnectiondata.powercontracttotal,
+ enpriconnectiondata.powercontractbyt,
+ enpriconnectiondata.powercontractprom,
+ enpriconnectiondata.powercontracttu,
+ enpriconnectiondata.powercontractnewtu,
+ enpriconnectiondata.countcustomer,
+ enpriconnectiondata.countcustomerbyt,
+ enpriconnectiondata.countcustomerprom,
+ enpriconnectiondata.coeffusage,
+ enpriconnectiondata.powerreservecurrent,
+ enpriconnectiondata.pricecurrent,
+ enpriconnectiondata.costdismantling,
+ enpriconnectiondata.powerreserveaftrrcnstr,
+ enpriconnectiondata.priceafterreconstr,
+ enpriconnectiondata.islast,
+ enpriconnectiondata.commentgen,
+ enpriconnectiondata.usergen,
+ enpriconnectiondata.dateedit,
+ enpriconnectiondata.modify_time,
+ enpriconnectiondata.elementrefcode,
+ enpriconnectiondata.parentrefcode,
+ enpriconnectiondata.paysum,
+ enpriconnectiondata.costtpbuilding,
+
+/* enpriconnectiondata.costlinesbuilding, */
+(coalesce(enpriconnectiondata.costlines04building,0) + coalesce(enpriconnectiondata.costlines10building,0))::numeric(15,5) as costlinesbuilding,
+
+ enpriconnectiondata.t1powercurrent,
+ enpriconnectiondata.t1powernew,
+ enpriconnectiondata.t2powercurrent,
+ enpriconnectiondata.t2powernew,
+ enpriconnectiondata.t3powercurrent,
+ enpriconnectiondata.t3powernew,
+ enpriconnectiondata.costfactexpenses,
+ enpriconnectiondata.techcondservrefcode,
+
+ entechconditionsservcs.contractnumber::text || '/' ||
+ entechconditionsservcs.findoccode::text as contractnumber,
+ to_char(entechconditionsservcs.contractdate, 'dd.MM.yyyy') as contractdate,
+ (select group_concat(cast(ag.contragentname as text),',')
+   from encontragent ag
+   where ag.techcondservicesrefcod = entechconditionsservcs.code
+ ) as contragentname,
+ enwarrant.warrantshortfio,
+ enwarrant.warrantposition,
+
+case when (enpriconnectiondata.includetu = 1 and enpriconnectiondata.includeagreement = 0 and  enpriconnectiondata.includeconnections = 0)
+/* 1 */
+then '(вартість підготовки технічних умов та договору про приєднання, згідно калькуляції.)'
+/* 2 */
+when (enpriconnectiondata.includetu = 0 and enpriconnectiondata.includeagreement = 1 and  enpriconnectiondata.includeconnections = 0)
+then '(вартість узгодження проектно-кошторисної документації, згідно калькуляції.)'
+/* 3 */
+when (enpriconnectiondata.includetu = 0 and enpriconnectiondata.includeagreement = 0 and  enpriconnectiondata.includeconnections = 1)
+then '(вартість підключення, згідно калькуляцій.)'
+/* 1 - 2 */
+when (enpriconnectiondata.includetu = 1 and enpriconnectiondata.includeagreement = 1 and  enpriconnectiondata.includeconnections = 0)
+then '(сума вартості підготовки технічних умов та узгодження проектно-кошторисної документації, згідно калькуляцій.)'
+/* 2 - 3 */
+when (enpriconnectiondata.includetu = 0 and enpriconnectiondata.includeagreement = 1 and  enpriconnectiondata.includeconnections = 1)
+then '(сума вартості узгодження проектно-кошторисної документації та підключення, згідно калькуляцій.)'
+/* 1 - 3 */
+when (enpriconnectiondata.includetu = 1 and enpriconnectiondata.includeagreement = 0 and  enpriconnectiondata.includeconnections = 1)
+then '(сума вартості підготовки технічних умов та підключення, згідно калькуляцій.)'
+/* 1 - 2 - 3 */
+when (enpriconnectiondata.includetu = 1 and enpriconnectiondata.includeagreement = 1 and  enpriconnectiondata.includeconnections = 1)
+then '(cума вартості підготовки технічних умов, сума вартості узгодження проектно-кошторисної документації та підключення, згідно калькуляцій.)'
+else '' end as costfactexpensestxt,
+
+enpriconnectiondata.powercontractalltu,
+(enpriconnectiondata.powercontractnewtu / enpriconnectiondata.powercontractalltu * enpriconnectiondata.costtpbuilding)::numeric(15,5) as bcosttp,
+(enpriconnectiondata.powercontractnewtu / enpriconnectiondata.powercontractalltu * enpriconnectiondata.othercosts)::numeric(15,5) as bothercosts,
+enpriconnectiondata.othercosts
+
+from enpriconnectiondata, entechconditionsservcs
+left join enwarrant on enwarrant.code = entechconditionsservcs.warrantrefcode
+where enpriconnectiondata.techcondservrefcode = entechconditionsservcs.code
+and entechconditionsservcs.code = $P{tcsCode}]]>
+	</queryString>
+	<field name="code" class="java.lang.Double"/>
+	<field name="dategen" class="java.sql.Date"/>
+	<field name="powermaxcurrent" class="java.lang.Double">
+		<fieldDescription><![CDATA[Макс. потужність, кВт]]></fieldDescription>
+	</field>
+	<field name="powermaxafterreconstr" class="java.lang.Double">
+		<fieldDescription><![CDATA[Макс. потужність після реконструкції, кВт]]></fieldDescription>
+	</field>
+	<field name="powercontracttotal" class="java.lang.Double">
+		<fieldDescription><![CDATA[Загальна договірна потужність, кВт]]></fieldDescription>
+	</field>
+	<field name="powercontractbyt" class="java.lang.Double">
+		<fieldDescription><![CDATA[Договірна потужність побут. споживачів, кВт]]></fieldDescription>
+	</field>
+	<field name="powercontractprom" class="java.lang.Double">
+		<fieldDescription><![CDATA[Договірна потужність юр. споживачів, кВт]]></fieldDescription>
+	</field>
+	<field name="powercontracttu" class="java.lang.Double">
+		<fieldDescription><![CDATA[Потужність, що приєднується з ТУ, кВт]]></fieldDescription>
+	</field>
+	<field name="powercontractnewtu" class="java.lang.Double">
+		<fieldDescription><![CDATA[Потужність, що замовляється, кВт]]></fieldDescription>
+	</field>
+	<field name="countcustomer" class="java.lang.Double">
+		<fieldDescription><![CDATA[Кількість споживачів, усього]]></fieldDescription>
+	</field>
+	<field name="countcustomerbyt" class="java.lang.Double">
+		<fieldDescription><![CDATA[Кількість побутових споживачів]]></fieldDescription>
+	</field>
+	<field name="countcustomerprom" class="java.lang.Double">
+		<fieldDescription><![CDATA[Кількість юр. споживачів]]></fieldDescription>
+	</field>
+	<field name="coeffusage" class="java.lang.Double">
+		<fieldDescription><![CDATA[Коефіцієнт використання потужності]]></fieldDescription>
+	</field>
+	<field name="powerreservecurrent" class="java.lang.Double">
+		<fieldDescription><![CDATA[Резерв приєднаної потужності, кВт]]></fieldDescription>
+	</field>
+	<field name="pricecurrent" class="java.lang.Double">
+		<fieldDescription><![CDATA[Вартість резерву приєднаної потужності, тис. грн./кВт]]></fieldDescription>
+	</field>
+	<field name="costdismantling" class="java.lang.Double">
+		<fieldDescription><![CDATA[Оприбуткована вартість демонтованого устаткування, тис. грн.]]></fieldDescription>
+	</field>
+	<field name="powerreserveaftrrcnstr" class="java.lang.Double">
+		<fieldDescription><![CDATA[Резерв приєднаної потужності після реконструкції, кВт]]></fieldDescription>
+	</field>
+	<field name="priceafterreconstr" class="java.lang.Double">
+		<fieldDescription><![CDATA[Вартість резерву приєднаної потужності після реконструкції, тис. грн./кВт]]></fieldDescription>
+	</field>
+	<field name="islast" class="java.lang.Double"/>
+	<field name="commentgen" class="java.lang.String"/>
+	<field name="usergen" class="java.lang.String"/>
+	<field name="dateedit" class="java.sql.Date"/>
+	<field name="modify_time" class="java.lang.Double"/>
+	<field name="elementrefcode" class="java.lang.Double"/>
+	<field name="parentrefcode" class="java.lang.Double"/>
+	<field name="paysum" class="java.lang.Double">
+		<fieldDescription><![CDATA[Вартість приєднання, тис. грн./кВт]]></fieldDescription>
+	</field>
+	<field name="costtpbuilding" class="java.lang.Double">
+		<fieldDescription><![CDATA[Вартість капітальних витрат з будівництва та/або реконструкції, тис. грн.]]></fieldDescription>
+	</field>
+	<field name="costlinesbuilding" class="java.math.BigDecimal"/>
+	<field name="t1powercurrent" class="java.lang.Double">
+		<fieldDescription><![CDATA[Номінальна потужність 1 трансформатора - існуюча, кВА]]></fieldDescription>
+	</field>
+	<field name="t1powernew" class="java.lang.Double">
+		<fieldDescription><![CDATA[Номінальна потужність 1 трансформатора - після реконструкції, кВА]]></fieldDescription>
+	</field>
+	<field name="t2powercurrent" class="java.lang.Double">
+		<fieldDescription><![CDATA[Номінальна потужність 2 трансформатора - існуюча, кВА]]></fieldDescription>
+	</field>
+	<field name="t2powernew" class="java.lang.Double">
+		<fieldDescription><![CDATA[Номінальна потужність 2 трансформатора - після реконструкції, кВА]]></fieldDescription>
+	</field>
+	<field name="t3powercurrent" class="java.lang.Double">
+		<fieldDescription><![CDATA[Номінальна потужність 3 трансформатора - існуюча, кВА]]></fieldDescription>
+	</field>
+	<field name="t3powernew" class="java.lang.Double">
+		<fieldDescription><![CDATA[Номінальна потужність 3 трансформатора - після реконструкції, кВА]]></fieldDescription>
+	</field>
+	<field name="costfactexpenses" class="java.lang.Double">
+		<fieldDescription><![CDATA[Сума фактичних витрат (без ПДВ) на приєднання (плата за підготовку технічних умов та підключення)]]></fieldDescription>
+	</field>
+	<field name="techcondservrefcode" class="java.lang.Double">
+		<fieldDescription><![CDATA[Договір про виконання технічних умов]]></fieldDescription>
+	</field>
+	<field name="contractnumber" class="java.lang.String">
+		<fieldDescription><![CDATA[Номер договору]]></fieldDescription>
+	</field>
+	<field name="contractdate" class="java.lang.String">
+		<fieldDescription><![CDATA[Дата договору]]></fieldDescription>
+	</field>
+	<field name="contragentname" class="java.lang.String">
+		<fieldDescription><![CDATA[Замовник]]></fieldDescription>
+	</field>
+	<field name="warrantshortfio" class="java.lang.String"/>
+	<field name="warrantposition" class="java.lang.String">
+		<fieldDescription><![CDATA[Должность доверенного лица]]></fieldDescription>
+	</field>
+	<field name="costfactexpensestxt" class="java.lang.String"/>
+	<field name="powercontractalltu" class="java.lang.Double">
+		<fieldDescription><![CDATA[Загальна потужність групи договорів, кВт]]></fieldDescription>
+	</field>
+	<field name="bcosttp" class="java.math.BigDecimal"/>
+	<field name="bothercosts" class="java.math.BigDecimal"/>
+	<field name="othercosts" class="java.lang.Double">
+		<fieldDescription><![CDATA[Загальна вартість витрат, пов’язаних з відрядженням, авторського та тех. надзору, коштор. прибутку та адмін. витрат, тис. грн./кВт]]></fieldDescription>
+	</field>
+	<field name="mfobanka" class="java.lang.String"/>
+	<variable name="bcost" class="java.lang.Double" calculation="Sum">
+		<variableExpression><![CDATA[$V{bcost}]]></variableExpression>
+		<initialValueExpression><![CDATA[$V{bcost}]]></initialValueExpression>
+	</variable>
+	<variable name="companyShortName" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyShortName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("company.shortname", $F{dategen})]]></initialValueExpression>
+	</variable>
+	<variable name="companyAddress" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyAddress}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getContactValue(com.ksoe.energynet.valueobject.ENDepartment.ENDEPARTMENT_KSOE, com.ksoe.rqorder.valueobject.RQContactType.ADDRESS, $F{dategen})]]></initialValueExpression>
+	</variable>
+	<title>
+		<band height="95" splitType="Stretch">
+			<textField>
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="356" y="0" width="191" height="61" isPrintWhenDetailOverflows="true" />
+				<textElement>
+					<font fontName="Times New Roman" size="9"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Додаток №1 \n" +
+"до додаткової угоди №________ від ____ _____________ 201_р. \n" +
+"до Договору № " + $F{contractnumber} + "\n" +
+"від " + $F{contractdate} + "р."]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="11" y="63" width="538" height="32" />
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="12" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Розрахунок плати за приєднання електроустановок Замовника до електромереж "+
+$V{companyShortName} + ", яке не є стандартним"]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="18">
+			<textField>
+				<reportElement isPrintRepeatedValues="false" x="11" y="0" width="538" height="15" isRemoveLineWhenBlank="true" />
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="12" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Замовник " + $F{contragentname} + "."]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<detail>
+		<band height="467" splitType="Stretch">
+			<textField isStretchWithOverflow="true">
+				<reportElement isPrintRepeatedValues="false" x="13" y="0" width="538" height="25" isRemoveLineWhenBlank="true" />
+				<textElement textAlignment="Left">
+					<font fontName="Times New Roman" size="12" isUnderline="true" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Заявлена до приєднання потужність: Р заявл = " + $F{powercontractnewtu} + " кВт (різниця між замовленою та існуючою)."]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" isPrintRepeatedValues="false" mode="Transparent" x="13" y="25" width="76" height="12" isRemoveLineWhenBlank="true" />
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="tscCode">
+					<subreportParameterExpression><![CDATA[$P{tcsCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/TechConditions/Connection/CustomersGroups.jasper")]]></subreportExpression>
+			</subreport>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="17" y="57" width="534" height="22" isRemoveLineWhenBlank="true" />
+				<textElement>
+					<font fontName="Times New Roman" size="12" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA["              " +  $F{costtpbuilding} + " тис. грн. без ПДВ (згідно проектно-кошторисної документації),  де питома вартість для замовника складає:"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-5" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="17" y="40" width="255" height="14" isRemoveLineWhenBlank="true" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="true" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["  Загальна вартість будівництва (реконструкції): "]]></textFieldExpression>
+			</textField>
+			<image>
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="15" y="53" width="76" height="22" isRemoveLineWhenBlank="true" />
+				<imageExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/TechConditions/Connection/png/21.PNG")]]></imageExpression>
+			</image>
+			<image>
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="15" y="89" width="158" height="38" isRemoveLineWhenBlank="true" />
+				<imageExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/TechConditions/Connection/png/20.PNG")]]></imageExpression>
+			</image>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="131" y="96" width="420" height="22" isRemoveLineWhenBlank="true" />
+				<textElement>
+					<font fontName="Times New Roman" size="12" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" = " + $F{powercontractnewtu} + " / " + $F{powercontractalltu} + " * " + $F{costtpbuilding} + " = " +
+new BigDecimal($F{powercontractnewtu}/$F{powercontractalltu}*$F{costtpbuilding}).setScale(5, BigDecimal.ROUND_HALF_UP) +
+" тис. грн. без ПДВ."]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="13" y="131" width="103" height="9" isRemoveLineWhenBlank="true" />
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="tscCode">
+					<subreportParameterExpression><![CDATA[$P{tcsCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<returnValue subreportVariable="bcost" toVariable="bcost" calculation="Sum"/>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/TechConditions/Connection/CustomersGroupCosts.jasper")]]></subreportExpression>
+			</subreport>
+			<image>
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="13" y="158" width="76" height="22" isRemoveLineWhenBlank="true" />
+				<imageExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/TechConditions/Connection/png/22.PNG")]]></imageExpression>
+			</image>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="15" y="161" width="534" height="22" isRemoveLineWhenBlank="true" />
+				<textElement>
+					<font fontName="Times New Roman" size="12" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA["              " +  $F{othercosts} + " тис. грн. без ПДВ (згідно проектно-кошторисної документації),  де питома вартість для замовника складає:"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-5" positionType="Float" isPrintRepeatedValues="false" mode="Transparent" x="15" y="144" width="532" height="14" isRemoveLineWhenBlank="true" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None">
+					<font fontName="Times New Roman" size="12" isBold="false" isItalic="false" isUnderline="true" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["  Загальна вартість витрат пов’язаних з відрядженням робітників, авторського та технічного надзору, кошторисного прибутку та адміністративних витрат: "]]></textFieldExpression>
+			</textField>
+			<image>
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="11" y="184" width="158" height="38" isRemoveLineWhenBlank="true" />
+				<imageExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/TechConditions/Connection/png/23.PNG")]]></imageExpression>
+			</image>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="127" y="191" width="420" height="22" isRemoveLineWhenBlank="true" />
+				<textElement>
+					<font fontName="Times New Roman" size="12" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" = " + $F{powercontractnewtu} + " / " + $F{powercontractalltu} + " * " + $F{othercosts} + " = " +
+new BigDecimal($F{powercontractnewtu}/$F{powercontractalltu}*$F{othercosts}).setScale(5, BigDecimal.ROUND_HALF_UP) +
+" тис. грн. без ПДВ."]]></textFieldExpression>
+			</textField>
+			<image>
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="139" y="239" width="48" height="22" isRemoveLineWhenBlank="true" />
+				<imageExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/TechConditions/Connection/png/4.PNG")]]></imageExpression>
+			</image>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="11" y="224" width="538" height="15" isRemoveLineWhenBlank="true" />
+				<textElement>
+					<font fontName="Times New Roman" size="12" isUnderline="true" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Сума фактичних витрат (без ПДВ) на приєднання, що формують виробничу собівартість"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="false">
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="11" y="242" width="543" height="28" isRemoveLineWhenBlank="true" />
+				<textElement>
+					<font fontName="Times New Roman" size="12" isBold="false" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["за джерелом живлення: " + "                 " +  $F{costfactexpenses} + " тис. грн. " + $F{costfactexpensestxt}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="11" y="275" width="538" height="15" isRemoveLineWhenBlank="true" />
+				<textElement textAlignment="Left">
+					<font fontName="Times New Roman" size="12" isUnderline="true" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Вартість будівництва (реконструкції) електромереж до точки приєднання, виключно для забезпечення"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="11" y="294" width="117" height="15" isRemoveLineWhenBlank="true" />
+				<textElement textAlignment="Left">
+					<font fontName="Times New Roman" size="12" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["потреб замовника: "]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="159" y="294" width="275" height="17" isRemoveLineWhenBlank="true" />
+				<textElement>
+					<font fontName="Times New Roman" size="12" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" " + $F{costlinesbuilding} + " тис. грн. без ПДВ."]]></textFieldExpression>
+			</textField>
+			<image>
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="117" y="289" width="74" height="26" isRemoveLineWhenBlank="true" />
+				<imageExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/TechConditions/Connection/png/21.PNG")]]></imageExpression>
+			</image>
+			<textField isStretchWithOverflow="true">
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="11" y="315" width="538" height="15" isRemoveLineWhenBlank="true" />
+				<textElement textAlignment="Left">
+					<font fontName="Times New Roman" size="12" isUnderline="true" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Питома вартість резерву абонованої приєднаної потужності на джерелі живлення на дату укладення "]]></textFieldExpression>
+			</textField>
+			<image>
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="155" y="329" width="50" height="24" isRemoveLineWhenBlank="true" />
+				<imageExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/TechConditions/Connection/png/8.PNG")]]></imageExpression>
+			</image>
+			<textField>
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="11" y="332" width="152" height="17" isRemoveLineWhenBlank="true" />
+				<textElement>
+					<font fontName="Times New Roman" size="12" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["договору про приєднання: "]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="204" y="333" width="230" height="18" isRemoveLineWhenBlank="true" />
+				<textElement>
+					<font fontName="Times New Roman" size="12" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" " + $F{pricecurrent} + " тис. грн. / кВт."]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="11" y="355" width="538" height="15" isRemoveLineWhenBlank="true" />
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="12" isUnderline="true" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Розрахунок плати:"]]></textFieldExpression>
+			</textField>
+			<image hAlign="Center">
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="5" y="371" width="547" height="49" isRemoveLineWhenBlank="true" />
+				<imageExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/TechConditions/Connection/png/24.PNG")]]></imageExpression>
+			</image>
+			<textField isStretchWithOverflow="true" evaluationTime="Report">
+				<reportElement positionType="Float" isPrintRepeatedValues="false" x="11" y="422" width="538" height="30" isRemoveLineWhenBlank="true" />
+				<textElement>
+					<font fontName="Times New Roman" size="12" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" П = " + $F{powercontractnewtu} + " * " + $F{pricecurrent} + " + " +
+/* сумма долевых по участкам */
+new BigDecimal($F{powercontractnewtu}/$F{powercontractalltu}*$F{costtpbuilding}+$V{bcost}).setScale(5, BigDecimal.ROUND_HALF_UP) + " + " +
+/* долевая командировочных */
+new BigDecimal($F{powercontractnewtu}/$F{powercontractalltu}*$F{othercosts}).setScale(5, BigDecimal.ROUND_HALF_UP) + " + " +
+/* линейная стоимость индивидуальная */
+$F{costlinesbuilding} + " + "+
+/* сумма фактических затрат */
+$F{costfactexpenses} + " = " +
+
+new BigDecimal($F{powercontractnewtu} * $F{pricecurrent}+($F{powercontractnewtu}/$F{powercontractalltu}*$F{costtpbuilding}+$V{bcost}))
+.setScale(5, BigDecimal.ROUND_HALF_UP)
+.add(
+new BigDecimal($F{powercontractnewtu}/$F{powercontractalltu}*$F{othercosts}).setScale(5, BigDecimal.ROUND_HALF_UP))
+.add(
+new BigDecimal($F{costlinesbuilding}.doubleValue()+$F{costfactexpenses}).setScale(5, BigDecimal.ROUND_HALF_UP))
+
++ " тис.грн. без ПДВ = \n" +
+
+(new BigDecimal($F{powercontractnewtu} * $F{pricecurrent}+($F{powercontractnewtu}/$F{powercontractalltu}*$F{costtpbuilding}+$V{bcost}))
+.setScale(5, BigDecimal.ROUND_HALF_UP)
+.add(
+new BigDecimal($F{powercontractnewtu}/$F{powercontractalltu}*$F{othercosts}).setScale(5, BigDecimal.ROUND_HALF_UP))
+.add(
+new BigDecimal($F{costlinesbuilding}.doubleValue()+$F{costfactexpenses}).setScale(5, BigDecimal.ROUND_HALF_UP))).multiply(new BigDecimal(1.2))
+.setScale(5, BigDecimal.ROUND_HALF_UP)
++ " тис.грн. з ПДВ."]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="142" splitType="Prevent">
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" stretchType="RelativeToTallestObject" mode="Transparent" x="292" y="19" width="260" height="93" isPrintWhenDetailOverflows="true" />
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="tscCode">
+					<subreportParameterExpression><![CDATA[$P{tcsCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/TechConditions/Connection/Customers.jasper")]]></subreportExpression>
+			</subreport>
+			<textField>
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="5" y="7" width="267" height="135" isPrintWhenDetailOverflows="true" />
+				<textElement>
+					<font fontName="Times New Roman" size="9" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[" Виконавець послуг: \n" +
+String.format(" %s \n", $V{companyShortName}) +
+" " + $V{companyAddress} + " \n " +
+" р/р UA443005060000026002007037568 " + " ПАТ \"Перший Інвестиційний Банк\"  " + " МФО 300506 \n " +
+" ЄДРПОУ 05396638 \n "
+ +
+" Тел.: _______________ \n" +
+"\n М.П. \n" +
+$F{warrantposition} + "__________" + $F{warrantshortfio} + "\n" +
+"«______»___________________________________"+ new SimpleDateFormat("yyyy").format(new Date()).toString() +"р."]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement positionType="Float" stretchType="RelativeToTallestObject" x="292" y="7" width="260" height="12" isPrintWhenDetailOverflows="true" />
+				<textElement>
+					<font fontName="Times New Roman" size="8" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Замовник:"]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

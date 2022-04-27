@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ax_drivers_percent_load_sub_transport" pageWidth="595" pageHeight="555" orientation="Landscape" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0">
+	<property name="ireport.zoom" value="0.9075000000000002"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="worked_time_in_month" class="java.math.BigDecimal"/>
+	<parameter name="tabnumber" class="java.lang.String">
+		<parameterDescription><![CDATA[Табельный номер водителя]]></parameterDescription>
+	</parameter>
+	<parameter name="start" class="java.util.Date">
+		<parameterDescription><![CDATA[Дата начала периода]]></parameterDescription>
+	</parameter>
+	<parameter name="end" class="java.util.Date">
+		<parameterDescription><![CDATA[Дата окончания периода]]></parameterDescription>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT transportname
+	, classificationname
+	, sum(distance_covered) AS distance_covered
+	, sum(machinehours) AS machinehours
+	, sum(hours_in_move) AS hours_in_move
+	, round(cast(sum(performance_time)
+		/ (CASE WHEN $P{worked_time_in_month} = 0 THEN 1
+		ELSE $P{worked_time_in_month} END) * 100 AS decimal), 2) AS performance_rate_percentage
+FROM
+(SELECT transportname
+	, classificationname
+	, data_on_date_by_travel_sheets.data_date
+	, distance_covered
+	, machinehours
+	, hours_in_move
+	, machinehours + hours_in_move AS performance_time
+FROM
+(SELECT f.tabnumber
+	, string_agg(DISTINCT f.name, ',') AS name
+	, string_agg(DISTINCT f.positionname, chr(10)||' + ') AS position
+	, string_agg(DISTINCT f.departmentname, chr(10)||',') AS departmentname
+FROM finworker f
+WHERE
+f.tabnumber = $P{tabnumber}
+AND (EXISTS (SELECT FROM entravelsheet AS ts1
+	WHERE ts1.datefinal BETWEEN $P{start} AND $P{end}
+	AND ts1.finworkercode = f.code))
+GROUP BY f.tabnumber) AS finworker_info
+INNER JOIN (
+SELECT data_by_travel_sheets.tabnumber
+	, data_by_travel_sheets.transportname
+	, data_by_travel_sheets.classificationname
+	, data_by_travel_sheets.data_date
+	, sum(coalesce(distance_covered, 0)) AS distance_covered
+	, sum(coalesce(machinehours, 0)) AS machinehours
+	, sum(coalesce(hours_in_move, 0)) AS hours_in_move
+	FROM
+(SELECT f.tabnumber
+	, ts.code AS travel_sheet_code
+	, re.buhname || ' ('  || re.gosnumber || ', ' || dep.name ||')'  AS transportname
+	, tcl.name AS classificationname
+	, ts.datefinal AS data_date
+	, sum(coalesce(CASE WHEN coalesce(tsi.speedometerfinal,0) - coalesce(tsi.speedometerstart,0) = 0
+		THEN  tsi.sumdistances
+		ELSE coalesce(tsi.speedometerfinal,0) - coalesce(tsi.speedometerstart,0)
+		END, 0)) AS distance_covered
+	, coalesce(sum(tsi.summachinehours),0) AS machinehours
+	, round(cast(sum(coalesce( CASE WHEN coalesce(tsi.hoursinmotionbygps, 0) <> 0
+			THEN tsi.hoursinmotionbygps
+			ELSE coalesce(CASE WHEN coalesce(tsi.speedometerfinal,0) - coalesce(tsi.speedometerstart,0) = 0
+				THEN  tsi.sumdistances
+				ELSE coalesce(tsi.speedometerfinal,0) - coalesce(tsi.speedometerstart,0)
+				END, 0) / 30
+			END, 0)) AS DECIMAL), 2) AS hours_in_move
+FROM entravelsheet AS ts
+INNER JOIN tktransportreal AS re ON ts.transportrealcode = re.code
+INNER JOIN tktransport AS tk ON re.transportcode = tk.code
+INNER JOIN entransportdepartment AS dep ON re.transportdepartmntrfcd = dep.code
+INNER JOIN tktransportclassifictn AS tcl ON tk.transportclassifictncd = tcl.code
+INNER JOIN finworker AS f ON ts.finworkercode = f.code
+INNER JOIN entravelsheetitem AS tsi ON ts.code = tsi.travelsheetrefcode
+LEFT JOIN (enact2enplanwork AS acpw
+	INNER JOIN enact AS a ON acpw.actrefcode = a.code)
+	ON (tsi.planrefcode = acpw.plancode)
+WHERE ts.datefinal BETWEEN $P{start} AND $P{end}
+AND tsi.kindrefcode = 2
+AND f.tabnumber = $P{tabnumber}
+GROUP BY f.tabnumber, ts.code, re.code, dep.name, tcl.name) AS data_by_travel_sheets
+GROUP BY data_by_travel_sheets.tabnumber, data_by_travel_sheets.transportname
+, data_by_travel_sheets.classificationname, data_by_travel_sheets.data_date) AS data_on_date_by_travel_sheets
+	ON finworker_info.tabnumber = data_on_date_by_travel_sheets.tabnumber
+) AS data_on_dates
+GROUP BY transportname, classificationname]]>
+	</queryString>
+	<field name="transportname" class="java.lang.String"/>
+	<field name="classificationname" class="java.lang.String"/>
+	<field name="distance_covered" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Пройденное расстояние, км]]></fieldDescription>
+	</field>
+	<field name="machinehours" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Отработанные машиночасы, ч.]]></fieldDescription>
+	</field>
+	<field name="hours_in_move" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Время за вождением автотранспорта, ч.]]></fieldDescription>
+	</field>
+	<field name="performance_rate_percentage" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Процент загрузки, %]]></fieldDescription>
+	</field>
+	<variable name="distance_covered" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{distance_covered}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="machinehours" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{machinehours}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="performance_rate_percentage" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{performance_rate_percentage}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<variable name="hours_in_move" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{hours_in_move}]]></variableExpression>
+		<initialValueExpression><![CDATA[java.math.BigDecimal.ZERO]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<detail>
+		<band height="28">
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="300" height="28" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{transportname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="395" y="0" width="50" height="28" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{distance_covered}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="495" y="0" width="50" height="28" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{machinehours}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="545" y="0" width="50" height="28" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{performance_rate_percentage}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true">
+				<reportElement stretchType="RelativeToTallestObject" x="300" y="0" width="95" height="28" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{classificationname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00;-###0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="445" y="0" width="50" height="28" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{hours_in_move}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>

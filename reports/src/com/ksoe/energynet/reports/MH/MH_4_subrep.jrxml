@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="MH_4_subrep" pageWidth="868" pageHeight="842" orientation="Landscape" whenNoDataType="AllSectionsNoDetail" columnWidth="868" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" scriptletClass="com.ksoe.energynet.reports.MH.MH4Scriplet" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="2"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="0.8467108950806659"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="PcodeAkt" class="java.lang.Integer"/>
+	<parameter name="userProfile" class="com.ksoe.lla.security.UserProfile"/>
+	<queryString>
+		<![CDATA[/*SUPP-19403 переписал запрос на использование двух подзапросов (добавил второй, кот. называется estimate_info),
+чтобы удалить задвоение данных, которые возникало в случае, если на один ENEstimateItem было два
+действующих FINMaterials*/
+
+/* Запрос материалы  */
+Select
+	mat_name
+	, wear_date
+	, nn
+	, mu_name
+	, mu_id
+	, cast(sum(countgen) as decimal) as countgen
+	, cast(cost as decimal)
+	, cast(sum(stoimost) as decimal) as stoimost
+	,  bal_sch
+	,  kindrefcode
+	, actnumber
+	, actdate
+	, div_code
+	, group_concat(cast(estimate_code as varchar), ',') as estimate_codes
+From (
+	Select
+		estimate_info.estimate_code
+		, estimate_info.mat_name
+		, estimate_info.mu_name
+		, estimate_info.mu_id
+		, estimate_info.countgen as countgen
+		, estimate_info.calc_price  as cost
+		, coalesce(estimate_info.cost,0) as stoimost
+		, estimate_info.bal_sch
+		, estimate_info.nn
+		, estimate_info.kindrefcode
+		, estimate_info.wear_date
+		, estimate_info.actnumber
+		, estimate_info.actdate
+		, estimate_info.div_code
+	From
+        (
+		Select
+			estimate.code as estimate_code
+			, Case When estimate.kindrefcode = 2 Then finmat.mat_name||('(ПММ)')
+				Else finmat.mat_name end as mat_name
+			, finmat.mu_name
+			, finmat.mu_id
+			, sum(finmat.quantity)  as countgen
+			, finmat.calc_price  as calc_price
+			, sum(finmat.cost) as cost
+			, ' '||finmat.bal_sch as bal_sch
+			, finmat.nn
+			, estimate.kindrefcode
+			, wear_date as wear_date
+			, a.numbergen as actnumber
+			, to_char(a.dateact,'dd.mm.yyyy') as actdate
+			, ' '||finmat.div_code as div_code
+		From
+			enestimateitem as estimate
+			inner join finmaterials as finmat on estimate.code = finmat.estimateitemrefcode
+			inner join enact2enplanwork as ena2 on ena2.plancode = estimate.planrefcode
+			inner join enact as a on ena2.actrefcode = a.code
+		where ena2.actrefcode = $P{PcodeAkt}
+			and finmat.statusrefcode = 1
+			and estimate.kindrefcode in (1,2)
+			and finmat.cost<> 0
+		group by
+			estimate.code
+			,Case When estimate.kindrefcode = 2 Then finmat.mat_name||('(ПММ)')
+				Else finmat.mat_name end
+			, finmat.mu_name
+			, finmat.mu_id
+			, finmat.calc_price
+			, ' '||finmat.bal_sch
+			, finmat.nn
+			, estimate.kindrefcode
+			, finmat.wear_date
+			, a.numbergen
+			, to_char(a.dateact,'dd.mm.yyyy')
+			, ' '||finmat.div_code
+		) as estimate_info
+) sel1
+group by
+	sel1.mat_name
+	, sel1.mu_name
+	, sel1.mu_id
+	, sel1.bal_sch
+	, sel1.nn
+	, sel1.cost
+	, kindrefcode
+	, wear_date
+	, actnumber
+	, actdate
+	, div_code
+order by
+	nn
+	, bal_sch
+	, mat_name
+	, mu_name
+	, cost]]>
+	</queryString>
+	<field name="mat_name" class="java.lang.String"/>
+	<field name="wear_date" class="java.sql.Date"/>
+	<field name="nn" class="java.lang.String"/>
+	<field name="mu_name" class="java.lang.String"/>
+	<field name="mu_id" class="java.lang.Double"/>
+	<field name="countgen" class="java.math.BigDecimal"/>
+	<field name="cost" class="java.math.BigDecimal"/>
+	<field name="stoimost" class="java.math.BigDecimal"/>
+	<field name="bal_sch" class="java.lang.String"/>
+	<field name="kindrefcode" class="java.lang.Double">
+		<fieldDescription><![CDATA[Вид строки кошторису(матеріали, ПММ (ГСМ))]]></fieldDescription>
+	</field>
+	<field name="actnumber" class="java.lang.String">
+		<fieldDescription><![CDATA[Номер акту здачі-приймання]]></fieldDescription>
+	</field>
+	<field name="actdate" class="java.lang.String">
+		<fieldDescription><![CDATA[Дата акту здачі-приймання]]></fieldDescription>
+	</field>
+	<field name="div_code" class="java.lang.String"/>
+	<field name="estimate_codes" class="java.lang.String"/>
+	<variable name="v_sum" class="java.math.BigDecimal" resetType="None">
+		<variableExpression><![CDATA[$V{v_sum}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="codesToExclude" class="java.lang.String">
+		<variableExpression><![CDATA[( $V{hashExcluded}.get($F{estimate_codes}) == null || ((ArrayList)$V{hashExcluded}.get($F{estimate_codes})).size() == 0 ? "-1" : $V{hashExcluded}.get($F{estimate_codes}).toString().substring(1, $V{hashExcluded}.get($F{estimate_codes}).toString().length() - 1) )]]></variableExpression>
+		<initialValueExpression><![CDATA["-1"]]></initialValueExpression>
+	</variable>
+	<variable name="hashExcluded" class="java.util.Hashtable">
+		<variableExpression><![CDATA[$V{hashExcluded}]]></variableExpression>
+		<initialValueExpression><![CDATA[new Hashtable<String,ArrayList<Integer>>()]]></initialValueExpression>
+	</variable>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" x="0" y="0" width="868" height="20"/>
+				<subreportParameter name="pCodesToInclude">
+					<subreportParameterExpression><![CDATA[((com.ksoe.energynet.reports.MH.MH4Scriplet)$P{REPORT_SCRIPTLET}).getENEstimateItem2ENEstimateItemCodesByEstimateOutCodeAndNeededQty($F{estimate_codes}, $V{codesToExclude}, $F{countgen})]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pHashExcluded">
+					<subreportParameterExpression><![CDATA[$V{hashExcluded}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pNn">
+					<subreportParameterExpression><![CDATA[$F{nn}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pMat_name">
+					<subreportParameterExpression><![CDATA[$F{mat_name}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pStoimost">
+					<subreportParameterExpression><![CDATA[$F{stoimost}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pEstimateCodes">
+					<subreportParameterExpression><![CDATA[$F{estimate_codes}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pCost">
+					<subreportParameterExpression><![CDATA[$F{cost}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pCountGen">
+					<subreportParameterExpression><![CDATA[$F{countgen}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pMu_name">
+					<subreportParameterExpression><![CDATA[$F{mu_name}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pBal_sch">
+					<subreportParameterExpression><![CDATA[$F{bal_sch}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pWear_date">
+					<subreportParameterExpression><![CDATA[$F{wear_date}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pMu_id">
+					<subreportParameterExpression><![CDATA[$F{mu_id}.toString()]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pCodesToExclude">
+					<subreportParameterExpression><![CDATA[$V{codesToExclude}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<returnValue subreportVariable="v_sum" toVariable="v_sum" calculation="Sum"/>
+				<returnValue subreportVariable="hashExcluded" toVariable="hashExcluded"/>
+				<subreportExpression><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/MH/MH_4_subrep_by_worker.jasper")]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+</jasperReport>

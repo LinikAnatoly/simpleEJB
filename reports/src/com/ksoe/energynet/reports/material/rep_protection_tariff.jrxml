@@ -1,0 +1,563 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="rep_protection_tariff" pageWidth="1050" pageHeight="842" columnWidth="1010" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<style name="table">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TH" mode="Opaque" backcolor="#FFF5EE">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_CH" mode="Opaque" backcolor="#FFDABF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<parameter name="budgetstringcode" class="java.lang.String"/>
+	<parameter name="yearGen" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(2009)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="isShowObject" class="java.lang.Integer"/>
+	<queryString>
+		<![CDATA[Select
+budgetrefname,
+objname,
+(sum(costkv1)/1000)::numeric(15,2) as costkv1,
+(sum(costkv2)/1000)::numeric(15,2) as costkv2,
+(sum(costkv3)/1000)::numeric(15,2) as costkv3,
+(sum(costkv4)/1000)::numeric(15,2) as costkv4,
+code ,
+enplanworkstate_shortname
+ from (
+Select
+ db.name As budgetrefname,
+ case when $P{isShowObject} = 1 then
+   case when db.code = 240000001 then ' Енергозбут ' else   ( ename||' , инв№ '|| coalesce(invnumber,' ') ) end
+ else
+   '' end
+  as objname,
+case when (p.monthgen = 1 or p.monthgen = 2 or p.monthgen = 3) then
+          sum(coalesce((coalesce(sm.cost_tariff, 0) * es.countfact), 0)) else 0 end as costkv1 ,
+case when (p.monthgen = 4 or p.monthgen = 5 or p.monthgen = 6) then
+          sum(coalesce((coalesce(sm.cost_tariff, 0) * es.countfact), 0)) else 0 end as costkv2,
+case when (p.monthgen = 7 or p.monthgen = 8 or p.monthgen = 9) then
+          sum(coalesce((coalesce(sm.cost_tariff, 0) * es.countfact), 0)) else 0 end as costkv3,
+case when (p.monthgen = 10 or p.monthgen = 11 or p.monthgen = 12) then
+          sum(coalesce((coalesce(sm.cost_tariff, 0) * es.countfact), 0)) else 0 end as costkv4,
+
+
+ db.code ,
+ ps.shortname as enplanworkstate_shortname
+ From enplanwork p ,
+ enelementdata e ,
+ tkmeasurement ei,
+ enestimateitem es,
+ tkmaterials sm ,
+ endepartment db ,
+ enplanworkstate ps
+Where ps.code = p.staterefcode
+and p.code = es.planrefcode
+And p.budgetrefcode = db.code
+And p.elementrefcode = e.ecode
+And es.materialrefcode = sm.code
+And ei.code=sm.measurementcode
+And p.kindcode = 2  /*годовой(1) или текущий(2)*/
+And p.yeargen = $P{yearGen}
+And $P!{budgetstringcode}
+And p.statuscode not in (2,6)
+And es.countfact <> 0
+And es.kindrefcode  In (1,2)
+and es.statusrefcode in (1 /*запланир*/
+                           , 2 /*замовлено*/ )
+
+and p.typerefcode <> 11 -- планы перевезення не берем
+and (  ( es.planitemrefcode is null )
+      or
+      -- не берем если источник норматива "перевезення"
+       ( 500000024 <> ( select tkd.techcardsourcecode from enplanworkitem pi , tktechcard tkd
+                                                      where pi.kartarefcode = tkd.code
+                                                        and pi.code = es.planitemrefcode limit 1  )
+       )
+    )
+ group by
+ coalesce(sm.cost_tariff, 0) ,
+ objname  ,
+ db.name,
+ db.code,
+ ps.shortname,
+ p.monthgen
+ ) as qqq
+ group by
+ budgetrefname,
+ objname,
+ code ,
+ enplanworkstate_shortname
+
+
+order by budgetrefname  , objname]]>
+	</queryString>
+	<field name="budgetrefname" class="java.lang.String">
+		<fieldDescription><![CDATA[Наименование бюджетодержателя]]></fieldDescription>
+	</field>
+	<field name="objname" class="java.lang.String"/>
+	<field name="costkv1" class="java.math.BigDecimal"/>
+	<field name="costkv2" class="java.math.BigDecimal"/>
+	<field name="costkv3" class="java.math.BigDecimal"/>
+	<field name="costkv4" class="java.math.BigDecimal"/>
+	<field name="enplanworkstate_shortname" class="java.lang.String"/>
+	<variable name="sum_all" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{costkv1}.add($F{costkv2}).add($F{costkv3}).add($F{costkv4})]]></variableExpression>
+	</variable>
+	<variable name="budj_sum" class="java.math.BigDecimal" resetType="Group" resetGroup="budj_g" calculation="Sum">
+		<variableExpression><![CDATA[$F{costkv1}.add($F{costkv2}).add($F{costkv3}).add($F{costkv4})]]></variableExpression>
+	</variable>
+	<variable name="budj_sum_kv1" class="java.math.BigDecimal" resetType="Group" resetGroup="budj_g" calculation="Sum">
+		<variableExpression><![CDATA[$F{costkv1}]]></variableExpression>
+	</variable>
+	<variable name="budj_sum_kv2" class="java.math.BigDecimal" resetType="Group" resetGroup="budj_g" calculation="Sum">
+		<variableExpression><![CDATA[$F{costkv2}]]></variableExpression>
+	</variable>
+	<variable name="budj_sum_kv3" class="java.math.BigDecimal" resetType="Group" resetGroup="budj_g" calculation="Sum">
+		<variableExpression><![CDATA[$F{costkv3}]]></variableExpression>
+	</variable>
+	<variable name="budj_sum_kv4" class="java.math.BigDecimal" resetType="Group" resetGroup="budj_g" calculation="Sum">
+		<variableExpression><![CDATA[$F{costkv4}]]></variableExpression>
+	</variable>
+	<variable name="sum_all_kv1" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{costkv1}]]></variableExpression>
+	</variable>
+	<variable name="sum_all_kv2" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{costkv2}]]></variableExpression>
+	</variable>
+	<variable name="sum_all_kv3" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{costkv3}]]></variableExpression>
+	</variable>
+	<variable name="sum_all_kv4" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{costkv4}]]></variableExpression>
+	</variable>
+	<group name="budj_g">
+		<groupExpression><![CDATA[$F{budgetrefname}]]></groupExpression>
+		<groupHeader>
+			<band height="20">
+				<textField pattern="##0.00">
+					<reportElement mode="Opaque" x="0" y="0" width="720" height="20" backcolor="#E9E9E6"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{budgetrefname}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="20">
+				<textField pattern="##0.00">
+					<reportElement mode="Opaque" x="0" y="0" width="320" height="20" backcolor="#E6E4E0"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA["Ітого по " + $F{budgetrefname}]]></textFieldExpression>
+				</textField>
+				<textField pattern="###0.00">
+					<reportElement mode="Opaque" x="320" y="0" width="80" height="20" backcolor="#E6E4E0"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{budj_sum}]]></textFieldExpression>
+				</textField>
+				<textField pattern="###0.00">
+					<reportElement mode="Opaque" x="400" y="0" width="80" height="20" backcolor="#E6E4E0"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{budj_sum_kv1}]]></textFieldExpression>
+				</textField>
+				<textField pattern="###0.00">
+					<reportElement mode="Opaque" x="480" y="0" width="80" height="20" backcolor="#E6E4E0"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{budj_sum_kv2}]]></textFieldExpression>
+				</textField>
+				<textField pattern="###0.00">
+					<reportElement mode="Opaque" x="560" y="0" width="80" height="20" backcolor="#E6E4E0"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{budj_sum_kv3}]]></textFieldExpression>
+				</textField>
+				<textField pattern="###0.00">
+					<reportElement mode="Opaque" x="640" y="0" width="80" height="20" backcolor="#E6E4E0"/>
+					<box>
+						<topPen lineWidth="0.5"/>
+						<leftPen lineWidth="0.5"/>
+						<bottomPen lineWidth="0.5"/>
+						<rightPen lineWidth="0.5"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{budj_sum_kv4}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="79" splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="40" splitType="Stretch">
+			<staticText>
+				<reportElement x="120" y="0" width="200" height="40"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Об`єкт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="320" y="0" width="80" height="40"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Сума(тис.грн.)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="0" width="30" height="40"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[№п.п]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="0" width="90" height="40"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Тип акту]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="400" y="0" width="80" height="40"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Сума(тис.грн.)  І квартал]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="480" y="0" width="80" height="40"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Сума(тис.грн.)  ІІ квартал]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="560" y="0" width="80" height="40"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Сума(тис.грн.)  ІІІ квартал]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="640" y="0" width="80" height="40"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<text><![CDATA[Сума(тис.грн.)  ІV квартал]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="21" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="##0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="120" y="0" width="200" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{objname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="##0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="320" y="0" width="80" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{costkv1}.add($F{costkv2}).add($F{costkv3}).add($F{costkv4})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="##0">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="30" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{REPORT_COUNT}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="##0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="30" y="0" width="90" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{enplanworkstate_shortname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="##0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="400" y="0" width="80" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{costkv1}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="##0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="480" y="0" width="80" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{costkv2}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="##0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="560" y="0" width="80" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{costkv3}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="##0.00">
+				<reportElement stretchType="RelativeToTallestObject" x="640" y="0" width="80" height="20" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{costkv4}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="48" splitType="Stretch">
+			<textField pattern="##0.00">
+				<reportElement mode="Opaque" x="0" y="0" width="320" height="20" backcolor="#E8E6E1"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Всього : "]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00">
+				<reportElement mode="Opaque" x="320" y="0" width="80" height="20" backcolor="#E8E6E1"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sum_all}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00">
+				<reportElement mode="Opaque" x="400" y="0" width="80" height="20" backcolor="#E8E6E1"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sum_all_kv1}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00">
+				<reportElement mode="Opaque" x="480" y="0" width="80" height="20" backcolor="#E8E6E1"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sum_all_kv2}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00">
+				<reportElement mode="Opaque" x="560" y="0" width="80" height="20" backcolor="#E8E6E1"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sum_all_kv3}]]></textFieldExpression>
+			</textField>
+			<textField pattern="###0.00">
+				<reportElement mode="Opaque" x="640" y="0" width="80" height="20" backcolor="#E8E6E1"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sum_all_kv4}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

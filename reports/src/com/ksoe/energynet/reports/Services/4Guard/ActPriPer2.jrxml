@@ -1,0 +1,511 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ActPriPer" pageWidth="566" pageHeight="842" columnWidth="518" leftMargin="38" rightMargin="10" topMargin="28" bottomMargin="0" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet" isIgnorePagination="true" >
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="2.0"/>
+	<property name="ireport.x" value="54"/>
+	<property name="ireport.y" value="28"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="billCode" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select contractnumber,
+bill_date,
+numbergen,
+contractdate,
+daygen,
+monthgen,
+txt_monthgen,
+txt_date_vid,
+yeargen,
+depname,
+depcode,
+rencity,
+position_nach,
+fio_nach,
+fio_nach_short,
+contragentname,
+summa,
+txt_summa,
+nds,
+txt_nds,
+contragenttype,
+contragentboss,
+btrim( nameworks , ';') as nameworks ,
+genitivefio,
+genitiveposition,
+contracttyperefcode,
+contragentobjectwork,
+contragentaddresswork ,
+warrantfio,
+warrantrefcode,
+contractstatusrefcode,
+
+okpo,   bankname
+  , bankokpo
+  ,  bankmfo
+  ,  bankaccount
+  , contragentaddress
+ , contragentokpo
+, contragentbankmfo
+
+from (
+select
+    coalesce(so.contractnumberservices,'') as contractnumber,
+    coalesce(wa.numbergen,' ') as numbergen,
+    to_char(so.contractdateservices,'dd.MM.yyyy') as contractdate,
+    bill.dategen as bill_date,
+    so.contractstatusrefcode,
+    coalesce(to_char(bill.dategen, 'dd'),'') as daygen,
+    coalesce(to_char(bill.dategen, 'mm'),'') as monthgen,
+
+
+    (select case cast(to_char(bill.dategen, 'mm') as numeric)
+        	when 1 then 'січня'
+            when 2 then 'лютого'
+            when 3 then 'березня'
+            when 4 then 'квітня'
+            when 5 then 'травня'
+            when 6 then 'червня'
+            when 7 then 'липня'
+            when 8 then 'серпня'
+            when 9 then 'вересня'
+            when 10 then 'жовтня'
+            when 11 then 'листопада'
+            when 12 then 'грудня'
+            else 'невідомо' end) as txt_monthgen,
+
+ (select  '"'||to_char(bill.dategen, 'dd')||'"'||' '||
+        (case cast(to_char(bill.dategen, 'mm') as numeric)
+        	when 1 then 'січня'
+            when 2 then 'лютого'
+            when 3 then 'березня'
+            when 4 then 'квітня'
+            when 5 then 'травня'
+            when 6 then 'червня'
+            when 7 then 'липня'
+            when 8 then 'серпня'
+            when 9 then 'вересня'
+            when 10 then 'жовтня'
+            when 11 then 'листопада'
+            when 12 then 'грудня'
+            else 'невідомо' end)||' '||to_char(bill.dategen, 'yyyy')) as txt_date_vid,
+
+    coalesce(to_char(bill.dategen, 'yyyy'),'') as yeargen,
+    coalesce(de.name,'') as depname,
+    coalesce(de.code,0) as depcode,
+    coalesce(ep.rencity,'') as rencity,
+    coalesce((wa.warrantposition),'') as position_nach,
+
+    coalesce(wa.warrantfio,'') as fio_nach,
+
+    coalesce(wa.warrantshortfio,'') as fio_nach_short,
+    coalesce(so.contragentname,'') as contragentname,
+
+
+   cast(coalesce(bill.sumtotal,0) as numeric(10,2)) as summa,
+    textgrivna(coalesce(bill.sumtotal::numeric(15,2),0)) as txt_summa,
+   cast(coalesce(bill.sumvat,0) as numeric(10,2)) as nds,
+    textgrivna(coalesce(bill.sumvat::numeric(15,2),0)) as txt_nds,
+
+    so.contragenttyperefcode as contragenttype,
+   case
+     when coalesce(so.warrantfio , '' ) <> '' then
+       'в особі ' || coalesce(so.contragentbossname, coalesce(so.warrantfio , '' ))
+     else ''
+   end as contragentboss ,
+    (select group_concat(t.name || ';'  , chr(10) ) from enplanwork2classfctntp p , tkclassificationtype t where p.classificationtyperfcd = t.code and p.planrefcode = pw.code  ) as nameworks ,
+   wa.genitivefio ,
+   wa.genitiveposition ,
+   so.contracttyperefcode ,
+   trim(replace(so.contragentobjectwork,chr(10),' ')) as contragentobjectwork ,
+   trim(replace(so.contragentaddresswork,chr(10),' ')) as contragentaddresswork ,
+ so.warrantfio as warrantfio,
+ so.warrantrefcode,
+  coalesce(so.contragentokpo,'') as okpo
+,  bd.bankname  as bankname
+  , bd.bankokpo
+  ,  bd.bankmfo  as bankmfo
+  ,   bd.bankaccount  as bankaccount
+ , so.contragentaddress
+ , so.contragentokpo
+, so.contragentbankmfo
+
+from
+	(enservicesobject as so left join enwarrant as wa
+    on wa.code = 1040002771 ) left join
+    (endepartment as de inner join
+    (endepartment as de1 inner join
+    (endepartment2epren as deep inner join epren as ep
+    on deep.renrefcode = ep.code)
+    on de1.code = deep.departmentrefcode)
+    on de1.code = de.rencode)
+    on so.departmentcode = de.code
+    left join     enbankingdetails bd on (     de.code = bd.departmentrefcode)
+    , enplanwork pw ,  encalccontracttotal cct, ensobill bill
+
+where
+    so.elementcode = pw.elementrefcode
+    and cct.planrefcode = pw.code
+    and pw.kindcode = 5
+    and so.code = bill.servicesobjectrefcode
+    and bill.code = $P{billCode}
+
+) ggg]]>
+	</queryString>
+	<field name="contractnumber" class="java.lang.String">
+		<fieldDescription><![CDATA[Номер договору]]></fieldDescription>
+	</field>
+	<field name="bill_date" class="java.sql.Date"/>
+	<field name="numbergen" class="java.lang.String"/>
+	<field name="contractdate" class="java.lang.String">
+		<fieldDescription><![CDATA[Дата договору]]></fieldDescription>
+	</field>
+	<field name="daygen" class="java.lang.String"/>
+	<field name="monthgen" class="java.lang.String">
+		<fieldDescription><![CDATA[Місяць відомості]]></fieldDescription>
+	</field>
+	<field name="txt_monthgen" class="java.lang.String"/>
+	<field name="txt_date_vid" class="java.lang.String"/>
+	<field name="yeargen" class="java.lang.String">
+		<fieldDescription><![CDATA[Рік відомості]]></fieldDescription>
+	</field>
+	<field name="depname" class="java.lang.String">
+		<fieldDescription><![CDATA[Назва підрозділу]]></fieldDescription>
+	</field>
+	<field name="depcode" class="java.lang.Double">
+		<fieldDescription><![CDATA[Код підрозділу (ФК)]]></fieldDescription>
+	</field>
+	<field name="rencity" class="java.lang.String"/>
+	<field name="position_nach" class="java.lang.String"/>
+	<field name="fio_nach" class="java.lang.String"/>
+	<field name="fio_nach_short" class="java.lang.String"/>
+	<field name="contragentname" class="java.lang.String">
+		<fieldDescription><![CDATA[Замовник]]></fieldDescription>
+	</field>
+	<field name="summa" class="java.math.BigDecimal">
+		<fieldDescription><![CDATA[Сума]]></fieldDescription>
+	</field>
+	<field name="txt_summa" class="java.lang.String"/>
+	<field name="nds" class="java.math.BigDecimal"/>
+	<field name="txt_nds" class="java.lang.String"/>
+	<field name="contragenttype" class="java.lang.Double"/>
+	<field name="contragentboss" class="java.lang.String"/>
+	<field name="nameworks" class="java.lang.String"/>
+	<field name="genitivefio" class="java.lang.String">
+		<fieldDescription><![CDATA[П.І.Б довіреної особи(Падеж)]]></fieldDescription>
+	</field>
+	<field name="genitiveposition" class="java.lang.String">
+		<fieldDescription><![CDATA[Посада довіреної особи (Падеж)]]></fieldDescription>
+	</field>
+	<field name="contracttyperefcode" class="java.lang.Double">
+		<fieldDescription><![CDATA[Вид договора по услугам на сторону]]></fieldDescription>
+	</field>
+	<field name="contragentobjectwork" class="java.lang.String">
+		<fieldDescription><![CDATA[Объект на котором проводятся работы]]></fieldDescription>
+	</field>
+	<field name="contragentaddresswork" class="java.lang.String">
+		<fieldDescription><![CDATA[Адрес места проведения работ]]></fieldDescription>
+	</field>
+	<field name="warrantfio" class="java.lang.String">
+		<fieldDescription><![CDATA[П.І.Б довіреної особи замовника]]></fieldDescription>
+	</field>
+	<field name="warrantrefcode" class="java.lang.Double">
+		<fieldDescription><![CDATA[Довіреності]]></fieldDescription>
+	</field>
+	<field name="contractstatusrefcode" class="java.lang.Double">
+		<fieldDescription><![CDATA[Статус договора по услугам на сторону]]></fieldDescription>
+	</field>
+	<field name="bankname" class="java.lang.String"/>
+	<field name="bankokpo" class="java.lang.String"/>
+	<field name="bankmfo" class="java.lang.String"/>
+	<field name="bankaccount" class="java.lang.String"/>
+	<field name="okpo" class="java.lang.String"/>
+	<field name="contragentaddress" class="java.lang.String"/>
+	<field name="contragentokpo" class="java.lang.String"/>
+	<field name="contragentbankmfo" class="java.lang.String"/>
+	<variable name="companyShortName" class="java.lang.String">
+		<variableExpression><![CDATA[$V{companyShortName}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("company.shortname", $F{bill_date})]]></initialValueExpression>
+	</variable>
+	<variable name="departmentAddress" class="java.lang.String">
+		<variableExpression><![CDATA[$V{departmentAddress}]]></variableExpression>
+		<initialValueExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getContactValue($F{depcode}.intValue(), com.ksoe.rqorder.valueobject.RQContactType.ADDRESS, $F{bill_date})]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="162" splitType="Stretch">
+			<textField isStretchWithOverflow="true" evaluationTime="Report" isBlankWhenNull="true">
+				<reportElement key="textField-3" positionType="Float" mode="Transparent" x="1" y="20" width="488" height="33" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="14" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Акт"+"\n"+
+" прийому передачі виконаних робіт"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-4" stretchType="RelativeToBandHeight" mode="Transparent" x="0" y="53" width="142" height="16" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="14" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{rencity}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-6" stretchType="RelativeToBandHeight" mode="Transparent" x="196" y="53" width="293" height="16" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="14" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["№ "+ $F{contractnumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-6" stretchType="RelativeToBandHeight" mode="Transparent" x="142" y="0" width="376" height="20" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="14" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{contractstatusrefcode}.intValue() == new Integer(8) ?
+"Скасовано згідно наказу №Саф-258 від 07.06.2013 р." :
+""]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" positionType="Float" mode="Transparent" x="2" y="69" width="241" height="93" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ВИКОНАВЕЦЬ " + "\n" +
+$F{depname} + "\n" +
+$V{departmentAddress} + "\n" +
+"ОКПО " + $F{bankokpo} + "\n" +
+"р/р " + $F{bankaccount} + "\n" +
+$F{bankname} + "\n" +
+"МФО " + $F{bankmfo}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-19" stretchType="RelativeToBandHeight" mode="Transparent" x="243" y="69" width="275" height="93" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["ЗАМОВНИК" + "\n" +
+$F{contragentname} + "\n"
++ $F{contragentaddress} + "\n" +
+"МФО " + $F{contragentbankmfo} + " ЕДРПОУ " + $F{contragentokpo}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="227" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-5" positionType="Float" mode="Transparent" x="0" y="19" width="518" height="200" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="14" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new String("    Ми, що нижче підписались, ") +
+($F{depcode}.intValue() != 500000019 ? "   " + $F{depname} + " " + $V{companyShortName} + " в особі " : "   " + $V{companyShortName} + " в особі  "  )
++((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("sec.dir.position.genitiv", $F{bill_date})+" "+((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("sec.dir.fullname.genitiv", $F{bill_date})+", що діє на підставі "
+ + ( ($F{warrantrefcode}.intValue() == 500000023 || $F{warrantrefcode}.intValue() == 1017000140 ) ? "статуту" :
+"Довіреності № " + $F{numbergen} ) +
+ " з однієї сторони та " +$F{contragentname} +
+new String (($F{warrantfio} != null ) ?  " в особі " + $F{warrantfio} + "\n" :
+($F{warrantfio} == null) ? $F{contragentboss} : "" )  + " з іншої сторони,"+
+" згідно з договором № "+$F{contractnumber}+" від " + $F{contractdate} + " року, склали цей акт про те, що послуги з фізичної охорони об'єкта " +
+$F{contragentname} +" в період з ________________ по ________________ виконані якісно у повному обсязі. ЗАМОВНИК не має претензій до ВИКОНАВЦЯ.\n"+
+"   За надані послуги ЗАМОВНИК сплачує ВИКОНАВЦЮ "+$F{summa}+" грн. ("+$F{txt_summa}+")"+" в тому числі ПДВ "+$F{nds}+" ("+$F{txt_nds}+")."+"\n"]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band height="197" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" stretchType="RelativeToTallestObject" mode="Transparent" x="0" y="0" width="226" height="16" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Виконавець"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-11" stretchType="RelativeToTallestObject" mode="Transparent" x="243" y="0" width="247" height="16" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Замовник"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-14" positionType="Float" stretchType="RelativeToTallestObject" x="2" y="140" width="97" height="16" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["(підпис)"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-15" positionType="Float" stretchType="RelativeToTallestObject" x="243" y="140" width="120" height="16" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["(підпис)"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-16" stretchType="RelativeToTallestObject" mode="Transparent" x="100" y="16" width="126" height="110" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("sec.dir.position", $F{bill_date}, false) + "\n"
++ ((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getSettings("sec.dir.initials.and.surname", $F{bill_date}, true) + "\n"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-17" stretchType="RelativeToTallestObject" mode="Transparent" x="243" y="16" width="72" height="109" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="9" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA["_______________"]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-18" positionType="Float" x="120" y="140" width="47" height="16" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None">
+					<font fontName="Times New Roman" size="9" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["М.П."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-19" stretchType="RelativeToBandHeight" mode="Transparent" x="315" y="16" width="174" height="109" isPrintWhenDetailOverflows="true" forecolor="#000000" backcolor="#FFFFFF" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{contragentname} + "\n"
++
+new String (($F{warrantfio} != null ) ?  " в особі " + $F{warrantfio} + "\n" :
+($F{warrantfio} == null) ? $F{contragentboss} + "\n" : "" )]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement key="textField-21" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="16" width="100" height="110" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Bottom" rotation="None">
+					<font fontName="Times New Roman" size="9" isUnderline="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["___________ "]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>

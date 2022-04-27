@@ -1,0 +1,806 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="planFactWorkZbyt" columnCount="3" printOrder="Horizontal" pageWidth="1400" pageHeight="595" orientation="Landscape" columnWidth="460" leftMargin="10" rightMargin="10" topMargin="10" bottomMargin="10" isTitleNewPage="true" isIgnorePagination="true">
+	<property name="ireport.zoom" value="1.5000000000000013"/>
+	<property name="ireport.x" value="1241"/>
+	<property name="ireport.y" value="0"/>
+	<property name="net.sf.jasperreports.export.xls.sheet.name" value="$P{nameDodatok}"/>
+	<parameter name="datestart" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("01.03.2012")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="datefinal" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("31.03.2012")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="podr" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="finexecutorname" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="finexecutorcode" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="podrname" class="java.lang.String"/>
+	<parameter name="obj" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="worktypecode" class="java.lang.Integer"/>
+	<parameter name="formplan" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="statusplanfact" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="conditionTechcard" class="java.lang.String"/>
+	<parameter name="nameDodatok" class="java.lang.String"/>
+	<parameter name="pwkindcode" class="java.lang.Integer"/>
+	<queryString>
+		<![CDATA[select  case when q_month.obj is null then q_fact.obj else q_month.obj end as monthobj, q_month.fidername,
+        case when q_month.planmonthcode is null then q_fact.planmonthcode else q_month.planmonthcode end as planmonthcode,
+
+        COALESCE(
+          (
+           select fe.name
+           from finexecutor fe where fe.code =
+           (select pp.finexecutorcode from enplanwork pp where pp.code =
+            (case when q_month.planmonthcode is null then q_fact.planmonthcode else q_month.planmonthcode end)
+           )
+          ),
+        '') as finexecutorname,
+
+        q_month.countgen as monthcountgen,
+
+        q_fact.countgen as factcountgen
+
+ from
+ (   --не услуги
+    select ( select coalesce(eld.ename,'') ||' Інв.№ '|| coalesce(eld.invnumber,'')  from enelementdata eld  where eld.ecode  = pw.elementrefcode)  as obj
+    	, (select fd.fidername from (
+         select b.elementcode as ecode, b.fidername as fidername from enrecordpointbyt b
+		  where b.fidercode is not null
+		 union all
+		 select p.elementcode as ecode, p.fidername as fidername from enrecordpointprom p
+		  where p.fidercode is not null ) fd where fd.ecode = pw.elementrefcode ) as fidername
+
+	   , sum(pwi.countgen) as countgen  , pw.code as planmonthcode , pwi.kartarefcode , dep.code as podrcode
+    from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas , tkclassificationtype tkcl
+    where pw.departmentrefcode = dep.code
+    and pw.code = pwi.planrefcode
+    and pwi.kartarefcode = tc.code
+    and tc.measurementcode = tmeas.code
+    and pwi.countgen <> 0
+    and pw.departmentrefcode in  (select array2items(string_to_array(getdepartmentcodesdown($P{podr}),','))::double precision)
+    and pw.budgetrefcode = 240000001 --только енергосбыт
+    and pw.kindcode = $P{pwkindcode}
+    and tc.classificationtypecode = tkcl.code
+    and pw.datestart between to_date($P{datestart} ,'dd.mm.yyyy') and to_date($P{datefinal},'dd.mm.yyyy')
+    -- and pw.typerefcode <> 101 --ЕЗ - Плановий обхід  --- не берем в репорт
+    and pw.typerefcode <> 8 --услуги отдельно
+	and tc.techcardsourcecode not  in (500000039,1000000004,1000000003) -- не берем работы взятые из калькуляций
+     and case when $P{finexecutorcode}= ''
+     then 1=1
+     else ( ($P{finexecutorcode} in
+             (select distinct f.fincode::text from enplanwork p , finexecutor f where p.code = pw.code and p.finexecutorcode = f.code   )
+             )
+             or
+             ($P{finexecutorcode} in
+             (select distinct f.axorgid from enplanwork p , finexecutor f where p.code = pw.code and p.finexecutorcode = f.code   )
+             )
+          )
+     end
+    and ( pw.elementrefcode = $P{obj}  or $P{obj}  = 0 )
+    and ( pw.typerefcode = $P{worktypecode}  or $P{worktypecode}  = 0   ) /*подвид работ*/
+    and ( pw.formrefcode = $P{formplan}  or $P{formplan}  = 0   ) /*работы плановые позаплановые*/
+    and $P!{conditionTechcard}  /*tc.code in (75001315)*/
+	/*не берем месячные планы которые со статусом работы завершены и с них не делались задания планы(типа не выполнялись)*/
+    and case when (select ch.plannewrefcode from enplancorrecthistory ch
+                    where ch.planoldrefcode = pw.code
+                      and ch.reasoncode = 4 limit 1 ) is null          and pw.statuscode = 8 then 1=2 else 1=1 end
+    group by pw.elementrefcode , pw.code  , pwi.kartarefcode , dep.code
+
+) q_month
+full join
+(   --не услуги
+	 select  obj, fidername, sum(countgen) as countgen , kartarefcode ,  podrcode ,planmonthcode
+      from (
+				select ( select coalesce(eld.ename,'') ||' Інв.№ '|| coalesce(eld.invnumber,'')  from enelementdata eld  where eld.ecode  = pw.elementrefcode)  as obj
+    	, (select fd.fidername from (
+         select b.elementcode as ecode, b.fidername as fidername from enrecordpointbyt b
+		  where b.fidercode is not null
+		 union all
+		 select p.elementcode as ecode, p.fidername as fidername from enrecordpointprom p
+		  where p.fidercode is not null ) fd where fd.ecode = pw.elementrefcode ) as fidername,
+
+					   sum(pwi.countgen) as countgen , pwi.kartarefcode , dep.code as podrcode ,
+					  /*SUPP-66729*/
+					  case when $P{pwkindcode}=2
+					  then  (select DISTINCT eh2.planoldrefcode from  enplancorrecthistory eh1  , enplancorrecthistory eh2
+					 	      where eh1.plannewrefcode = pw.code
+						        and eh1.reasoncode = 5
+						        and eh1.planoldrefcode = eh2.plannewrefcode
+						        and eh2.reasoncode = 4 )
+					  when $P{pwkindcode}=1
+					  then  (select DISTINCT eh3.planoldrefcode from  enplancorrecthistory eh1  , enplancorrecthistory eh2 , enplancorrecthistory eh3
+					 	      where eh1.plannewrefcode = pw.code
+						        and eh1.reasoncode = 5
+						        and eh1.planoldrefcode = eh2.plannewrefcode
+						        and eh2.reasoncode = 4
+						        and eh2.planoldrefcode = eh3.plannewrefcode
+						        and eh3.reasoncode = 3) end  as planmonthcode
+
+				from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas , tkclassificationtype tkcl
+				where pw.departmentrefcode = dep.code
+				and pw.code = pwi.planrefcode
+				and pwi.kartarefcode = tc.code
+				and tc.measurementcode = tmeas.code
+				and pwi.countgen <> 0
+				and tc.classificationtypecode = tkcl.code
+				and ( pw.statuscode = $P{statusplanfact} or $P{statusplanfact} = 0   )
+				and tc.techcardsourcecode not  in (500000039,1000000004,1000000003) -- не берем работы взятые из калькуляций
+				and $P!{conditionTechcard} /*tc.code in (75001315)*/
+				and case when $P{pwkindcode} =2 then pw.code in ( select eh2.plannewrefcode from enplanwork pw , enplancorrecthistory eh1 , enplancorrecthistory eh2
+								where pw.departmentrefcode in  (select array2items(string_to_array(getdepartmentcodesdown($P{podr}),','))::double precision)
+								  and pw.budgetrefcode = 240000001 --только енергосбыт
+								  and pw.kindcode = $P{pwkindcode}
+								  and pw.datestart between to_date($P{datestart} ,'dd.mm.yyyy') and to_date($P{datefinal} ,'dd.mm.yyyy')
+								 -- and pw.typerefcode <> 101 --ЕЗ - Плановий обхід  --- не берем в репорт
+								  and pw.typerefcode <> 8 --услуги отдельно
+								   and case when $P{finexecutorcode}= ''
+     then 1=1
+     else ( ($P{finexecutorcode} in
+             (select distinct f.fincode::text from enplanwork p , finexecutor f where p.code = pw.code and p.finexecutorcode = f.code   )
+             )
+             or
+             ($P{finexecutorcode} in
+             (select distinct f.axorgid from enplanwork p , finexecutor f where p.code = pw.code and p.finexecutorcode = f.code   )
+             )
+          )
+     end
+								  and ( pw.elementrefcode = $P{obj}   or $P{obj}  = 0 )
+								  and ( pw.typerefcode = $P{worktypecode} or $P{worktypecode}  = 0   ) /*подвид работ*/
+								  and ( pw.formrefcode = $P{formplan} or $P{formplan}  = 0   ) /*работы плановые позаплановые*/
+								  and eh1.planoldrefcode = pw.code
+								  and eh1.reasoncode = 4
+								  and eh2.planoldrefcode = eh1.plannewrefcode
+								  and eh2.reasoncode = 5
+							   )
+                          when $P{pwkindcode} =1 then pw.code in ( select eh3.plannewrefcode from enplanwork pw ,
+                           enplancorrecthistory eh1 , enplancorrecthistory eh2 , enplancorrecthistory eh3
+								where pw.departmentrefcode in  (select array2items(string_to_array(getdepartmentcodesdown($P{podr}),','))::double precision)
+								  and pw.budgetrefcode = 240000001 --только енергосбыт
+								  and pw.kindcode = $P{pwkindcode}
+								  and pw.datestart between to_date($P{datestart} ,'dd.mm.yyyy') and to_date($P{datefinal} ,'dd.mm.yyyy')
+								 -- and pw.typerefcode <> 101 --ЕЗ - Плановий обхід  --- не берем в репорт
+								  and pw.typerefcode <> 8 --услуги отдельно
+								   and case when $P{finexecutorcode}= ''
+     then 1=1
+     else ( ($P{finexecutorcode} in
+             (select distinct f.fincode::text from enplanwork p , finexecutor f where p.code = pw.code and p.finexecutorcode = f.code   )
+             )
+             or
+             ($P{finexecutorcode} in
+             (select distinct f.axorgid from enplanwork p , finexecutor f where p.code = pw.code and p.finexecutorcode = f.code   )
+             )
+          )
+     end
+								  and ( pw.elementrefcode = $P{obj}   or $P{obj}  = 0 )
+								  and ( pw.typerefcode = $P{worktypecode} or $P{worktypecode}  = 0   ) /*подвид работ*/
+								  and ( pw.formrefcode = $P{formplan} or $P{formplan}  = 0   ) /*работы плановые позаплановые*/
+								  and eh1.planoldrefcode = pw.code
+								  and eh1.reasoncode = 3
+								  and eh2.planoldrefcode = eh1.plannewrefcode
+								  and eh2.reasoncode = 4
+                                  and eh3.planoldrefcode = eh2.plannewrefcode
+                                  and eh3.reasoncode = 5
+							   )
+                          end
+
+				group by pw.elementrefcode , pw.code  , pwi.kartarefcode , dep.code
+		) q_factin
+            group by obj, fidername, kartarefcode ,  podrcode ,planmonthcode
+) q_fact
+ on  (q_month.podrcode = q_fact.podrcode and q_month.kartarefcode = q_fact.kartarefcode and q_month.planmonthcode = q_fact.planmonthcode )
+
+UNION ALL
+
+ select case when q_month.obj is null then q_fact.obj else q_month.obj end as monthobj, q_month.fidername,
+        case when q_month.planmonthcode is null then q_fact.planmonthcode else q_month.planmonthcode end as planmonthcode,
+
+        COALESCE(
+          (
+           select fe.name
+           from finexecutor fe where fe.code =
+           (select pp.finexecutorcode from enplanwork pp where pp.code =
+            (case when q_month.planmonthcode is null then q_fact.planmonthcode else q_month.planmonthcode end)
+           )
+          ),
+        '') as finexecutorname,
+
+        q_month.countgen as monthcountgen,
+
+        q_fact.countgen as factcountgen
+ from
+ (   -- услуги - картарефкоде - это код классификации
+    select  ( select coalesce(eld.ename,'') ||' Інв.№ '|| coalesce(eld.invnumber,'')  from enelementdata eld  where eld.ecode  = elementrefcode )  as obj
+    	, (select fd.fidername from (
+         select b.elementcode as ecode, b.fidername as fidername from enrecordpointbyt b
+		  where b.fidercode is not null
+		 union all
+		 select p.elementcode as ecode, p.fidername as fidername from enrecordpointprom p
+		  where p.fidercode is not null ) fd where fd.ecode = elementrefcode ) as fidername
+
+		  , sum(countgen) as countgen  , plancode as planmonthcode , kartarefcode ,  podrcode
+           from (
+              select dep.code as podrcode,  dep.name as podrname , pw.code as plancode, tkcl.code as kartarefcode ,
+                     tkcl.name as tktechcardname , 'ШТ'::text as tktechcardtkmeasurement,
+
+                -- если услуга то кол-во берем со связки калькуляция-план
+                    case when pw.typerefcode = 8 then
+                     ( select p2c.countgen from enplanwork2classfctntp p2c
+                        where p2c.classificationtyperfcd = tkcl.code
+                          and p2c.planrefcode in ( select ph.planoldrefcode from enplancorrecthistory ph where ph.plannewrefcode = pw.code and ph.reasoncode = 13 )
+                          limit 1
+                        )
+                    else
+                    ( select max(pi.countgen) from enplanwork p , enplanworkitem pi , tktechcard tkd
+                       where p.code = pi.planrefcode
+                       and   pi.kartarefcode = tkd.code
+                       and   tkd.classificationtypecode = tkcl.code
+                       and   p.code = pw.code  ) end as countgen ,
+
+                     sum(pwi.timegen) as timegen ,
+                     pw.datestart as mindate , pw.datestart maxdate , pw.elementrefcode
+              from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas , tkclassificationtype tkcl
+              where pw.departmentrefcode = dep.code
+              and pw.code = pwi.planrefcode
+              and pwi.kartarefcode = tc.code
+              and tc.measurementcode = tmeas.code
+              and pwi.countgen <> 0
+              and tc.classificationtypecode = tkcl.code
+              and pw.departmentrefcode in  (select array2items(string_to_array(getdepartmentcodesdown($P{podr} ),','))::double precision)
+              and pw.budgetrefcode = 240000001 --только енергосбыт
+              and pw.kindcode = $P{pwkindcode}
+              and pw.datestart between to_date($P{datestart} ,'dd.mm.yyyy') and to_date($P{datefinal} ,'dd.mm.yyyy')
+--              and pw.typerefcode <> 101 --ЕЗ - Плановий обхід  --- не берем в репорт
+              and ( pw.typerefcode = 8 or ( pw.typerefcode <> 8 and  tc.techcardsourcecode in (500000039,1000000004,1000000003) )  ) -- услуги или работы из источника калькуляции
+               and case when $P{finexecutorcode}= ''
+     then 1=1
+     else ( ($P{finexecutorcode} in
+             (select distinct f.fincode::text from enplanwork p , finexecutor f where p.code = pw.code and p.finexecutorcode = f.code   )
+             )
+             or
+             ($P{finexecutorcode} in
+             (select distinct f.axorgid from enplanwork p , finexecutor f where p.code = pw.code and p.finexecutorcode = f.code   )
+             )
+          )
+     end
+              and ( pw.elementrefcode = $P{obj}   or $P{obj}  = 0 )
+              and ( pw.typerefcode = $P{worktypecode}  or $P{worktypecode}  = 0   ) /*подвид работ*/
+              and ( pw.formrefcode = $P{formplan}  or $P{formplan}  = 0   ) /*работы плановые позаплановые*/
+              and $P!{conditionTechcard} /*tc.code in (75001315)*/
+			  /*не берем месячные планы которые со статусом работы завершены и с них не делались задания планы(типа не выполнялись)*/
+              and case when (select ch.plannewrefcode from enplancorrecthistory ch
+                    where ch.planoldrefcode = pw.code
+                      and ch.reasoncode = 4 limit 1 ) is null          and pw.statuscode = 8 then 1=2 else 1=1 end
+              group by dep.code, dep.name ,pw.code, tkcl.code,tkcl.name,pw.datestart ,pw.datestart
+              order by tkcl.name
+            ) q_month_in
+     group by  podrcode,  kartarefcode ,  plancode , elementrefcode
+) q_month
+full join
+(   select  ( select coalesce(eld.ename,'') ||' Інв.№ '|| coalesce(eld.invnumber,'')  from enelementdata eld  where eld.ecode  = elementrefcode )  as obj
+    	, (select fd.fidername from (
+         select b.elementcode as ecode, b.fidername as fidername from enrecordpointbyt b
+		  where b.fidercode is not null
+		 union all
+		 select p.elementcode as ecode, p.fidername as fidername from enrecordpointprom p
+		  where p.fidercode is not null ) fd where fd.ecode = elementrefcode ) as fidername
+
+          , sum(countgen) as countgen  , planmonthcode , kartarefcode ,  podrcode
+
+            from (
+              select dep.code as podrcode,  dep.name as podrname , pw.code as plancode, tkcl.code as kartarefcode ,
+                     tkcl.name as tktechcardname , 'ШТ'::text as tktechcardtkmeasurement,
+
+               -- если услуга, то по факту кол-во = кол-во работ по калькуляции делить на кол-фактов (типа когда сделают два факта по услуге
+               -- то выполнена будет равна всеравно кому количеству работ скоко заказывали)
+                    case when pw.typerefcode = 8 then
+                    ( select p2c.countgen from enplanwork2classfctntp p2c
+                        where p2c.classificationtyperfcd = tkcl.code
+                          and p2c.planrefcode in
+                          (select pcalc.code from enplanwork p , enplanwork pcalc
+                            where p.code = pw.code /*заходит код факта*/
+                            and p.elementrefcode = pcalc.elementrefcode
+                            and pcalc.kindcode = 5 )
+                            limit 1
+                        )
+                        /
+                        (
+                        select count(pf.code) from enplanwork p , enplanwork pcalc , enplanwork pf
+                        where p.code = pw.code /*заходит код факта*/
+                        and p.elementrefcode = pcalc.elementrefcode
+                        and pcalc.kindcode = 5
+                        and pf.elementrefcode = pcalc.elementrefcode
+                        and pf.elementrefcode = p.elementrefcode
+                        and pf.kindcode = 4
+                        )
+                   else
+                   ( select max(pi.countgen) from enplanwork p , enplanworkitem pi , tktechcard tkd
+                       where p.code = pi.planrefcode
+                       and   pi.kartarefcode = tkd.code
+                       and   tkd.classificationtypecode = tkcl.code
+                       and   p.code = pw.code  ) end as countgen ,
+
+                     sum(pwi.timegen) as timegen ,
+                     pw.datestart as mindate , pw.datestart maxdate  ,
+                      /*SUPP-66729*/
+					  case when $P{pwkindcode}=2
+					  then  (select DISTINCT eh2.planoldrefcode from  enplancorrecthistory eh1  , enplancorrecthistory eh2
+					 	      where eh1.plannewrefcode = pw.code
+						        and eh1.reasoncode = 5
+						        and eh1.planoldrefcode = eh2.plannewrefcode
+						        and eh2.reasoncode = 4 )
+					  when $P{pwkindcode}=1
+					  then  (select DISTINCT eh3.planoldrefcode from  enplancorrecthistory eh1  , enplancorrecthistory eh2 , enplancorrecthistory eh3
+					 	      where eh1.plannewrefcode = pw.code
+						        and eh1.reasoncode = 5
+						        and eh1.planoldrefcode = eh2.plannewrefcode
+						        and eh2.reasoncode = 4
+						        and eh2.planoldrefcode = eh3.plannewrefcode
+						        and eh3.reasoncode = 3) end  as planmonthcode
+                    , pw.elementrefcode
+              from enplanwork pw , endepartment dep , enplanworkitem pwi , tktechcard tc , tkmeasurement tmeas , tkclassificationtype tkcl
+              where pw.departmentrefcode = dep.code
+              and pw.code = pwi.planrefcode
+              and pwi.kartarefcode = tc.code
+              and tc.measurementcode = tmeas.code
+              and pwi.countgen <> 0
+              and tc.classificationtypecode = tkcl.code
+              and ( pw.statuscode = $P{statusplanfact}   or $P{statusplanfact}  = 0   )
+			  and ( pw.typerefcode = 8 or ( pw.typerefcode <> 8 and  tc.techcardsourcecode in (500000039,1000000004,1000000003) )  ) -- услуги или работы из источника калькуляции
+              and $P!{conditionTechcard} /*tc.code in (75001315)*/
+              and pw.code in ( select eh2.plannewrefcode from enplanwork pw , enplancorrecthistory eh1 , enplancorrecthistory eh2
+                    where pw.departmentrefcode in  (select array2items(string_to_array(getdepartmentcodesdown($P{podr}),','))::double precision)
+                      and pw.budgetrefcode = 240000001 --только енергосбыт
+                      and pw.kindcode = $P{pwkindcode}
+                      and pw.datestart between to_date($P{datestart} ,'dd.mm.yyyy') and to_date($P{datefinal} ,'dd.mm.yyyy')
+                      -- and pw.typerefcode <> 101 --ЕЗ - Плановий обхід  --- не берем в репорт
+                      and pw.typerefcode = 8 -- только услуги
+                       and case when $P{finexecutorcode}= ''
+     then 1=1
+     else ( ($P{finexecutorcode} in
+             (select distinct f.fincode::text from enplanwork p , finexecutor f where p.code = pw.code and p.finexecutorcode = f.code   )
+             )
+             or
+             ($P{finexecutorcode} in
+             (select distinct f.axorgid from enplanwork p , finexecutor f where p.code = pw.code and p.finexecutorcode = f.code   )
+             )
+          )
+     end
+                      and ( pw.elementrefcode = $P{obj}   or $P{obj}  = 0 )
+                      and ( pw.typerefcode = $P{worktypecode}  or $P{worktypecode} = 0   ) /*подвид работ*/
+                      and ( pw.formrefcode = $P{formplan} or $P{formplan} = 0   ) /*работы плановые позаплановые*/
+                      and eh1.planoldrefcode = pw.code
+                      and eh1.reasoncode = 4
+                      and eh2.planoldrefcode = eh1.plannewrefcode
+                      and eh2.reasoncode = 5
+                   )
+              group by dep.code, dep.name ,pw.code, tkcl.code,tkcl.name,pw.datestart ,pw.datestart , pw.elementrefcode
+              order by tkcl.name
+            ) q_fact_in
+     group by  podrcode,  podrname , kartarefcode , tktechcardname , tktechcardtkmeasurement, elementrefcode , planmonthcode
+) q_fact
+ on  (q_month.podrcode = q_fact.podrcode and q_month.kartarefcode = q_fact.kartarefcode and q_month.planmonthcode = q_fact.planmonthcode )
+order by monthobj]]>
+	</queryString>
+	<field name="monthobj" class="java.lang.String"/>
+	<field name="planmonthcode" class="java.lang.Integer"/>
+	<field name="finexecutorname" class="java.lang.String"/>
+	<field name="monthcountgen" class="java.math.BigDecimal"/>
+	<field name="factcountgen" class="java.math.BigDecimal"/>
+	<field name="fidername" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="42" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-38" stretchType="RelativeToTallestObject" x="336" y="0" width="754" height="33">
+					<propertyExpression name="net.sf.jasperreports.export.xls.sheet.name"><![CDATA[$P{nameDodatok}]]></propertyExpression>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center">
+					<font fontName="Times New Roman" size="13" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{nameDodatok}]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="60" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-8" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="0" y="0" width="130" height="60"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Назва об`єкту"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="336" y="0" width="30" height="60"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{pwkindcode}==1? "Код річного плана" : "Код місячного плана"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="366" y="0" width="94" height="30" isRemoveLineWhenBlank="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Об`єм виконаних робіт"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="366" y="30" width="47" height="30" isRemoveLineWhenBlank="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Заплановано кільк."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="413" y="30" width="47" height="30" isRemoveLineWhenBlank="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Виконано кільк."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-8" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="460" y="0" width="130" height="60"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Назва об`єкту"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="826" y="30" width="47" height="30" isRemoveLineWhenBlank="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Заплановано кільк."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="826" y="0" width="94" height="30" isRemoveLineWhenBlank="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Об`єм виконаних робіт"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="796" y="0" width="30" height="60"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{pwkindcode}==1? "Код річного плана" : "Код місячного плана"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="873" y="30" width="47" height="30" isRemoveLineWhenBlank="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Виконано кільк."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-8" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="920" y="0" width="130" height="60"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Назва об`єкту"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="1286" y="30" width="47" height="30" isRemoveLineWhenBlank="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Заплановано кільк."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="1286" y="0" width="94" height="30" isRemoveLineWhenBlank="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Об`єм виконаних робіт"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="1256" y="0" width="30" height="60"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$P{pwkindcode}==1? "Код річного плана" : "Код місячного плана"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-12" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="1333" y="30" width="47" height="30" isRemoveLineWhenBlank="true"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Виконано кільк."]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-8" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="1090" y="0" width="166" height="60"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Найменування бригади (згідно зі штатним розписом)"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-8" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="630" y="0" width="166" height="60"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Найменування бригади (згідно зі штатним розписом)"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-8" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="170" y="0" width="166" height="60"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Найменування бригади (згідно зі штатним розписом)"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="130" y="0" width="40" height="60"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Найменування фідеру 10(6)кВ"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="590" y="0" width="40" height="60"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Найменування фідеру 10(6)кВ"]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-10" stretchType="RelativeToTallestObject" isPrintRepeatedValues="false" x="1050" y="0" width="40" height="60"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="10" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Найменування фідеру 10(6)кВ"]]></textFieldExpression>
+			</textField>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="130" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="6" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{monthobj}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0" isBlankWhenNull="true">
+				<reportElement key="textField-9" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="336" y="0" width="30" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="6" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{planmonthcode}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-9" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="366" y="0" width="47" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{monthcountgen}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0.00" isBlankWhenNull="true">
+				<reportElement key="textField-9" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="413" y="0" width="47" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="7" isBold="false" isStrikeThrough="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{factcountgen}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="170" y="0" width="166" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="6" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{finexecutorname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="" isBlankWhenNull="true">
+				<reportElement key="textField-9" positionType="Float" stretchType="RelativeToTallestObject" mode="Opaque" x="130" y="0" width="40" height="15"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement verticalAlignment="Top">
+					<font fontName="Times New Roman" size="6" isBold="false" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{fidername}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

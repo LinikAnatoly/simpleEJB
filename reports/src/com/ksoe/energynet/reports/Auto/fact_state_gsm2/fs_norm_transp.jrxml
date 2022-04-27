@@ -1,0 +1,516 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="fs_norm_transp" pageWidth="1400" pageHeight="842" orientation="Landscape" columnWidth="1400" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="datestart" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("01.07.2012")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="datefinal" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("01.07.2012")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="codemonthplan" class="java.lang.Integer"/>
+	<parameter name="groupByTravelSheet" class="java.lang.Integer" isForPrompting="false">
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="transportDepartmentCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Код подразделения транспорта: если -1 - то выбираются все]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(-1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="fuelTypeCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Код типа топлива: если -1 - то выбираются все]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(-1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="tktransportRealCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Код реального транспорта, если равен -1, то выбираются все]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new Integer(-1)]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select nameavto , transportcode,
+sum(countworkfact) as countworkfact,
+sum(distance) as distance ,
+sum(gsm_dp) as gsm_dp ,
+sum(gsm_80) as gsm_80 ,
+sum(gsm_92) as gsm_92 ,
+sum(gsm_95) as gsm_95 ,
+
+ group_concat(strtranspitem::text , ',') as strtranspitem  ,
+ ( select group_concat( pi.code::text , ',')  from enplancorrecthistory ph , enplancorrecthistory ph2  , enplanworkitem pi
+                        where ph.planoldrefcode = $P{codemonthplan}
+                        and ph.reasoncode = 4
+                        and ph2.planoldrefcode = ph.plannewrefcode
+                        and ph2.reasoncode = 5
+                        and ph2.plannewrefcode = pi.planrefcode
+                        and pi.countgen <> 0 ) as strtransportitemcode
+from (
+select tr.name as nameavto , tr.code as transportcode,
+ ti.countworkfact as countworkfact,
+coalesce((select sum(dist.distance) from endistance dist where dist.transportitemrefcode = ti.code ),0) as distance  ,
+coalesce((select sum(eii.countfact) from entransport2enestimate tr2ei  , enestimateitem eii
+where tr2ei.transportrefcode = ti.code
+and tr2ei.estimaterefcode = eii.code
+and eii.kindrefcode = 2
+and eii.materialrefcode = 75000843 /*дизтопливо*/
+  ),0) as gsm_dp ,
+coalesce((select sum(eii.countfact) from entransport2enestimate tr2ei  , enestimateitem eii
+where tr2ei.transportrefcode = ti.code
+and tr2ei.estimaterefcode = eii.code
+and eii.kindrefcode = 2
+and eii.materialrefcode = 500000120 /*Бензин А-92*/
+  ),0) as gsm_92 ,
+coalesce((select sum(eii.countfact) from entransport2enestimate tr2ei  , enestimateitem eii
+where tr2ei.transportrefcode = ti.code
+and tr2ei.estimaterefcode = eii.code
+and eii.kindrefcode = 2
+and eii.materialrefcode = 500002447 /*Бензин А-80*/
+  ),0) as gsm_80 ,
+coalesce((select sum(eii.countfact) from entransport2enestimate tr2ei  , enestimateitem eii
+where tr2ei.transportrefcode = ti.code
+and tr2ei.estimaterefcode = eii.code
+and eii.kindrefcode = 2
+and eii.materialrefcode = 75000844 /*Бензин А-95*/
+  ),0) as gsm_95 ,
+  ti.code as strtranspitem
+  from entransportitem ti  , tktransport tr , enplanworkitem pi
+where
+ti.planrefcode in ($P{codemonthplan})
+and exists (select plan_code from
+		(select distinct plan_month.code as plan_code from
+		enplanwork as plan_month inner join enplancorrecthistory as history_month on plan_month.code = history_month.planoldrefcode
+		inner join enplanwork as plan_plan on history_month.plannewrefcode = plan_plan.code
+		where history_month.reasoncode = 4 /*Перенос у НПЗ*/
+                and plan_plan.datestart between to_date($P{datestart},'dd.mm.yyyy') and to_date($P{datefinal},'dd.mm.yyyy')
+		and not exists (select pcho.planoldrefcode from enplancorrecthistory as pcho where pcho.planoldrefcode = plan_plan.code)
+                /*если задано транспортное подразделение или реальный транспорт
+                , то запрос смотрит только на фактические планы*/
+                and $P{transportDepartmentCode} = -1
+                and $P{tktransportRealCode} = -1
+		and plan_month.code = $P{codemonthplan}
+
+		union all
+
+		select distinct plan_month.code as plan_code from
+		enplanwork as plan_month inner join enplancorrecthistory as history_month on plan_month.code = history_month.planoldrefcode
+		inner join enplanwork as plan_plan on history_month.plannewrefcode = plan_plan.code
+		inner join enplancorrecthistory as history_plan on plan_plan.code = history_plan.planoldrefcode
+		inner join enplanwork as plan_fact on history_plan.plannewrefcode = plan_fact.code
+            	inner join entransportitem as ti_fact on ti_fact.planrefcode = plan_fact.code
+		inner join tktransportreal as tr on ti_fact.transportrealcode = tr.code
+        inner join tktransportrealhistory as trh on (tr.code = trh.transportrealrefcode and trh.transportdepartmntrfcd is not null and trh.datestart <= plan_fact.datestart and coalesce(trh.datefinal,to_date('31.12.9999','dd.MM.yyyy')) >= plan_fact.datestart)
+            	inner join entransport2enestimate as ties on ti_fact.code = ties.transportrefcode
+            	inner join entravlshttm2trnsprttm as tvti on tvti.transportitemrefcode = ti_fact.code
+            	where
+            	history_month.reasoncode = 4 /*Перенос у НПЗ*/
+		and history_plan.reasoncode = 5 /*Перенос у Факт*/
+                and plan_fact.datestart between to_date($P{datestart},'dd.mm.yyyy') and to_date($P{datefinal},'dd.mm.yyyy')
+		and ($P{transportDepartmentCode} = -1 or trh.transportdepartmntrfcd = $P{transportDepartmentCode})
+                and ($P{tktransportRealCode} = -1 or tr.code = $P{tktransportRealCode})
+                and plan_month.code = $P{codemonthplan}
+                and ti_fact.transportcode = ti.transportcode
+
+		union all
+
+		select distinct plan_month.code as plan_code from
+		enplanwork as plan_month
+		where
+                plan_month.datestart between to_date($P{datestart},'dd.mm.yyyy') and to_date($P{datefinal},'dd.mm.yyyy')
+		and not exists(select pcho.planoldrefcode from enplancorrecthistory as pcho where pcho.planoldrefcode = plan_month.code)
+                /*если задано транспортное подразделение или реальный транспорт
+                , то запрос смотрит только на фактические планы*/
+                and $P{transportDepartmentCode} = -1
+                and $P{tktransportRealCode} = -1
+		and plan_month.code = $P{codemonthplan}) as query
+	where plan_code = $P{codemonthplan})
+and ti.transportcode = tr.code
+and pi.planrefcode = ti.planrefcode
+and pi.code = ti.planitemrefcode
+and pi.countgen <> 0
+/*Если выбран тип топлива, то ставиться ограничение - выбирать только те месячные планы в нпз
+и фактах, которых есть это топливо*/
+and case
+	when $P{fuelTypeCode} = -1
+	then 1=1
+	else exists (select plan_code, fuel_code from
+			(select distinct plan_month.code as plan_code, fu.code as fuel_code, ti_month.code as transport_code from
+			enplanwork as plan_month
+            		inner join entransportitem as ti_month on ti_month.planrefcode = plan_month.code
+            		inner join entransport2enestimate as ties on ti_month.code = ties.transportrefcode
+                    	inner join enestimateitem as es on ties.estimaterefcode = es.code
+                    	inner join tkmaterials as ma on es.materialrefcode = ma.code
+                    	inner join tkfueltype as fu on ma.code = fu.materialrefcode
+			where
+			ti_month.code = ti.code
+
+			union all
+
+			select distinct plan_month.code as plan_code, fu.code as fuel_code, ti_month.code as transport_code from
+            		enplanwork as plan_month inner join enplancorrecthistory as history_month on plan_month.code = history_month.planoldrefcode
+            		inner join enplanwork as plan_plan on history_month.plannewrefcode = plan_plan.code
+            		inner join enplancorrecthistory as history_plan on plan_plan.code = history_plan.planoldrefcode
+            		inner join enplanwork as plan_fact on history_plan.plannewrefcode = plan_fact.code
+            		inner join entransportitem as ti_fact on ti_fact.planrefcode = plan_fact.code
+            		inner join entransportitem as ti_month on ti_month.planrefcode = plan_month.code
+            		inner join entransport2enestimate as ties on ti_fact.code = ties.transportrefcode
+            		inner join entravlshttm2trnsprttm as tvti on tvti.transportitemrefcode = ti_fact.code
+            		inner join enestimateitem as es on ties.estimaterefcode = es.code
+			inner join tkmaterials as ma on es.materialrefcode = ma.code
+            		inner join tkfueltype as fu on ma.code = fu.materialrefcode
+            		where
+            		history_month.reasoncode = 4 /*Перенос у НПЗ*/
+			and history_plan.reasoncode = 5 /*Перенос у Факт*/
+			and ti_month.transportcode = ti_fact.transportcode
+			and ti_month.code = ti.code) as query
+		where plan_code = $P{codemonthplan}
+		and fuel_code = $P{fuelTypeCode}
+		and transport_code = ti.code)
+   end
+) qqq
+group by nameavto, transportcode
+UNION
+/*выборка из ЗАДАНИЯ ПЛАН того транспорта которого нет на месячном */
+
+select  nameavto , transportcode,
+sum(countworkfact) as countworkfact,
+sum(distance) as distance ,
+sum(gsm_dp) as gsm_dp ,
+sum(gsm_80) as gsm_80 ,
+sum(gsm_92) as gsm_92 ,
+sum(gsm_95) as gsm_95 ,
+ group_concat(strtranspitem::text , ',') as strtranspitem  ,
+ ( select group_concat( pi.code::text , ',')  from enplancorrecthistory ph , enplancorrecthistory ph2  , enplanworkitem pi
+                        where ph.planoldrefcode = $P{codemonthplan}
+                        and ph.reasoncode = 4
+                        and ph2.planoldrefcode = ph.plannewrefcode
+                        and ph2.reasoncode = 5
+                        and ph2.plannewrefcode = pi.planrefcode
+                        and pi.countgen <> 0 ) as strtransportitemcode
+from (
+select tr.name as nameavto ,  tr.code as transportcode,
+ ti.countworkfact as countworkfact,
+coalesce((select sum(dist.distance) from endistance dist where dist.transportitemrefcode = ti.code ),0) as distance  ,
+coalesce((select sum(eii.countfact) from entransport2enestimate tr2ei  , enestimateitem eii
+where tr2ei.transportrefcode = ti.code
+and tr2ei.estimaterefcode = eii.code
+and eii.kindrefcode = 2
+and eii.materialrefcode = 75000843 /*дизтопливо*/
+  ),0) as gsm_dp ,
+coalesce((select sum(eii.countfact) from entransport2enestimate tr2ei  , enestimateitem eii
+where tr2ei.transportrefcode = ti.code
+and tr2ei.estimaterefcode = eii.code
+and eii.kindrefcode = 2
+and eii.materialrefcode = 500000120 /*Бензин А-92*/
+  ),0) as gsm_92 ,
+coalesce((select sum(eii.countfact) from entransport2enestimate tr2ei  , enestimateitem eii
+where tr2ei.transportrefcode = ti.code
+and tr2ei.estimaterefcode = eii.code
+and eii.kindrefcode = 2
+and eii.materialrefcode = 500002447 /*Бензин А-80*/
+  ),0) as gsm_80 ,
+coalesce((select sum(eii.countfact) from entransport2enestimate tr2ei  , enestimateitem eii
+where tr2ei.transportrefcode = ti.code
+and tr2ei.estimaterefcode = eii.code
+and eii.kindrefcode = 2
+and eii.materialrefcode = 75000844 /*Бензин А-95*/
+  ),0) as gsm_95 ,
+  ti.code as strtranspitem
+  from entransportitem ti  , tktransport tr , enplanworkitem pi
+where
+ti.planrefcode in ( select ch.plannewrefcode from enplancorrecthistory ch where ch.planoldrefcode =  $P{codemonthplan}  and ch.reasoncode = 4)
+
+and ti.transportcode = tr.code
+and ti.transportcode not in (
+                      select distinct ti.transportcode
+                        from entransportitem ti  , tktransport tr
+                      where
+                      ti.planrefcode in ($P{codemonthplan} )
+                      and ti.transportcode = tr.code
+
+                                 )
+and pi.planrefcode = ti.planrefcode
+and pi.code = ti.planitemrefcode
+and pi.countgen <> 0
+and exists (select plan_code from
+		(select distinct plan_plan.code as plan_code from
+		enplanwork as plan_month inner join enplancorrecthistory as history_month on plan_month.code = history_month.planoldrefcode
+		inner join enplanwork as plan_plan on history_month.plannewrefcode = plan_plan.code
+		where history_month.reasoncode = 4 /*Перенос у НПЗ*/
+                and plan_plan.datestart between to_date($P{datestart},'dd.mm.yyyy') and to_date($P{datefinal},'dd.mm.yyyy')
+		and not exists (select pcho.planoldrefcode from enplancorrecthistory as pcho where pcho.planoldrefcode = plan_plan.code)
+                /*если задано транспортное подразделение или реальный транспорт
+                , то запрос смотрит только на фактические планы*/
+                and $P{transportDepartmentCode} = -1
+                and $P{tktransportRealCode} = -1
+		and plan_month.code = $P{codemonthplan}
+
+		union all
+
+		select distinct plan_plan.code as plan_code from
+            	enplanwork as plan_month inner join enplancorrecthistory as history_month on plan_month.code = history_month.planoldrefcode
+            	inner join enplanwork as plan_plan on history_month.plannewrefcode = plan_plan.code
+            	inner join enplancorrecthistory as history_plan on plan_plan.code = history_plan.planoldrefcode
+            	inner join enplanwork as plan_fact on history_plan.plannewrefcode = plan_fact.code
+                inner join entransportitem as ti_fact on ti_fact.planrefcode = plan_fact.code
+            	inner join entransport2enestimate as ties on ti_fact.code = ties.transportrefcode
+            	inner join entravlshttm2trnsprttm as tvti on tvti.transportitemrefcode = ti_fact.code
+                inner join tktransportreal as tr on ti_fact.transportrealcode = tr.code
+                        inner join tktransportrealhistory as trh on (tr.code = trh.transportrealrefcode and trh.transportdepartmntrfcd is not null and trh.datestart <= plan_fact.datestart and coalesce(trh.datefinal,to_date('31.12.9999','dd.MM.yyyy')) >= plan_fact.datestart)
+            	where history_month.reasoncode = 4 /*Перенос у НПЗ*/
+		and history_plan.reasoncode = 5 /*Перенос у Факт*/
+                and plan_fact.datestart between to_date($P{datestart},'dd.mm.yyyy') and to_date($P{datefinal},'dd.mm.yyyy')
+                and ($P{transportDepartmentCode} = -1 or trh.transportdepartmntrfcd = $P{transportDepartmentCode})
+                and ($P{tktransportRealCode} = -1 or tr.code = $P{tktransportRealCode})
+		and plan_month.code = $P{codemonthplan}
+                and ti_fact.transportcode = ti.transportcode) as query
+	where plan_code = ti.planrefcode)
+/*Если выбран тип топлива, то ставиться ограничение - выбирать только те месячные планы в нпз
+и фактах, которых есть это топливо*/
+and case
+	when $P{fuelTypeCode} = -1
+	then 1=1
+	else exists (select plan_code, fuel_code from
+			(select distinct plan_month.code as plan_code, fu.code as fuel_code, ti_plan.code as transport_code from
+			enplanwork as plan_month inner join enplancorrecthistory as history_month on plan_month.code = history_month.planoldrefcode
+			inner join enplanwork as plan_plan on history_month.plannewrefcode = plan_plan.code
+            		inner join entransportitem as ti_plan on ti_plan.planrefcode = plan_plan.code
+            		inner join entransport2enestimate as ties on ti_plan.code = ties.transportrefcode
+                    	inner join enestimateitem as es on ties.estimaterefcode = es.code
+                    	inner join tkmaterials as ma on es.materialrefcode = ma.code
+                    	inner join tkfueltype as fu on ma.code = fu.materialrefcode
+			where
+			history_month.reasoncode = 4 /*Перенос у НПЗ*/
+			and ti_plan.code = ti.code
+
+			union all
+
+			select distinct plan_month.code as plan_code, fu.code as fuel_code, ti_plan.code as transport_code from
+            		enplanwork as plan_month inner join enplancorrecthistory as history_month on plan_month.code = history_month.planoldrefcode
+            		inner join enplanwork as plan_plan on history_month.plannewrefcode = plan_plan.code
+            		inner join enplancorrecthistory as history_plan on plan_plan.code = history_plan.planoldrefcode
+            		inner join enplanwork as plan_fact on history_plan.plannewrefcode = plan_fact.code
+            		inner join entransportitem as ti_fact on ti_fact.planrefcode = plan_fact.code
+            		inner join entransportitem as ti_plan on ti_plan.planrefcode = plan_plan.code
+            		inner join entransport2enestimate as ties on ti_fact.code = ties.transportrefcode
+            		inner join entravlshttm2trnsprttm as tvti on tvti.transportitemrefcode = ti_fact.code
+            		inner join enestimateitem as es on ties.estimaterefcode = es.code
+			inner join tkmaterials as ma on es.materialrefcode = ma.code
+            		inner join tkfueltype as fu on ma.code = fu.materialrefcode
+            		where
+            		history_month.reasoncode = 4 /*Перенос у НПЗ*/
+			and history_plan.reasoncode = 5 /*Перенос у Факт*/
+			and ti_plan.transportcode = ti_fact.transportcode
+			and ti_plan.code = ti.code) as query
+		where plan_code = $P{codemonthplan}
+		and fuel_code = $P{fuelTypeCode}
+		and transport_code = ti.code)
+   end
+) qqq
+group by nameavto  , transportcode]]>
+	</queryString>
+	<field name="strtranspitem" class="java.lang.String"/>
+	<field name="gsm_dp" class="java.math.BigDecimal"/>
+	<field name="distance" class="java.math.BigDecimal"/>
+	<field name="countworkfact" class="java.math.BigDecimal"/>
+	<field name="nameavto" class="java.lang.String"/>
+	<field name="gsm_80" class="java.math.BigDecimal"/>
+	<field name="gsm_92" class="java.math.BigDecimal"/>
+	<field name="gsm_95" class="java.math.BigDecimal"/>
+	<field name="transportcode" class="java.lang.Integer"/>
+	<field name="strtransportitemcode" class="java.lang.String"/>
+	<variable name="sum_gsm_95" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_gsm_95}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_92" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_gsm_92}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_80" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_gsm_80}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_dp" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{sum_gsm_dp}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_dp_norm" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{gsm_dp}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_80_norm" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{gsm_80}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_92_norm" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{gsm_92}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="sum_gsm_95_norm" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{gsm_95}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="fuelGPS_fact" class="java.math.BigDecimal">
+		<variableExpression><![CDATA[$V{fuelGPS_fact}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" positionType="Float" stretchType="RelativeToTallestObject" x="0" y="0" width="200" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{nameavto}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-2" positionType="Float" stretchType="RelativeToTallestObject" x="200" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{distance}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-3" positionType="Float" stretchType="RelativeToTallestObject" x="250" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{countworkfact}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-4" positionType="Float" stretchType="RelativeToTallestObject" x="300" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{gsm_dp}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-5" positionType="Float" stretchType="RelativeToTallestObject" x="350" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{gsm_80}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-6" positionType="Float" stretchType="RelativeToTallestObject" x="400" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{gsm_92}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="#0.#######" isBlankWhenNull="true">
+				<reportElement key="textField-7" positionType="Float" stretchType="RelativeToTallestObject" x="450" y="0" width="50" height="20"/>
+				<box>
+					<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Top">
+					<font fontName="Times New Roman" size="10" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{gsm_95}]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" positionType="Float" stretchType="RelativeToTallestObject" x="500" y="0" width="500" height="20"/>
+				<subreportParameter name="codemonthplan">
+					<subreportParameterExpression><![CDATA[$P{codemonthplan}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="transportcode">
+					<subreportParameterExpression><![CDATA[$F{transportcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="strtransportitemcode">
+					<subreportParameterExpression><![CDATA[$F{strtransportitemcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="transportDepartmentCode">
+					<subreportParameterExpression><![CDATA[$P{transportDepartmentCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="fuelTypeCode">
+					<subreportParameterExpression><![CDATA[$P{fuelTypeCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="tktransportRealCode">
+					<subreportParameterExpression><![CDATA[$P{tktransportRealCode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="datestart">
+					<subreportParameterExpression><![CDATA[$P{datestart}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="datefinal">
+					<subreportParameterExpression><![CDATA[$P{datefinal}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<returnValue subreportVariable="sum_gsm_dp" toVariable="sum_gsm_dp" calculation="Sum"/>
+				<returnValue subreportVariable="sum_gsm_80" toVariable="sum_gsm_80" calculation="Sum"/>
+				<returnValue subreportVariable="sum_gsm_92" toVariable="sum_gsm_92" calculation="Sum"/>
+				<returnValue subreportVariable="sum_gsm_95" toVariable="sum_gsm_95" calculation="Sum"/>
+				<returnValue subreportVariable="fuelGPS" toVariable="fuelGPS_fact" calculation="Sum"/>
+				<subreportExpression><![CDATA[$P{groupByTravelSheet}.intValue() == 1 ?
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/Auto/fact_state_gsm2/fs_fact_transpNotGr.jasper")
+/*"D:\\Projects\\EnergyServerEclipse\\EnergyNet\\reports\\src\\com\\ksoe\\energynet\\reports\\Auto\\fact_state_gsm2\\fs_fact_transpNotGr.jasper"*/
+:
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/Auto/fact_state_gsm2/fs_fact_transp.jasper")
+/*"D:\\Projects\\EnergyServerEclipse\\EnergyNet\\reports\\src\\com\\ksoe\\energynet\\reports\\Auto\\fact_state_gsm2\\fs_fact_transp.jasper"*/
+/*"C:\\iReport-3.0.0\\tmp\\fs_fact_transp.jasper"*/]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

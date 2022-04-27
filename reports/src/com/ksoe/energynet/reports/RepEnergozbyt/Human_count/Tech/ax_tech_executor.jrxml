@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="ax_tech_executor" pageWidth="3000" pageHeight="595" orientation="Landscape" columnWidth="3000" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="2"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="monthGen" class="java.lang.String">
+		<defaultValueExpression><![CDATA["03"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="departmentCode" class="java.lang.String">
+		<defaultValueExpression><![CDATA["4"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="isViewFinExecutor" class="java.lang.String">
+		<defaultValueExpression><![CDATA["1"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="formrefcode" class="java.lang.Integer"/>
+	<parameter name="isnotplan" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(1)]]></defaultValueExpression>
+	</parameter>
+	<parameter name="strIdExecutor" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="pdate1" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="pdate2" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="yearGen" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="showNeplanWork" class="java.lang.Integer" isForPrompting="false">
+		<parameterDescription><![CDATA[1- показвать неплановіе работы
+0- непоказывать неплановые работы]]></parameterDescription>
+	</parameter>
+	<parameter name="mDaxConnection" class="java.lang.Object" isForPrompting="false"/>
+	<parameter name="netConnection" class="java.lang.Object" isForPrompting="false"/>
+	<parameter name="hrmorganizationid" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[select
+DESCRIPTION as podr_nazv ,
+HRMORGANIZATIONID as podr_id ,
+PARENTORGANIZATIONID as main_podr_id ,
+PARENTDESCRIPTION as podr_nazv_main ,
+case when rate like '%РЗА%' then 'RZA'
+     when rate like '%ДТУ%' then 'DTU'
+     when rate like '%ІЗ%'  then 'IZ'
+     else 'SHTAT' end as shortname ,
+count(name) as countpersonalinpodr
+
+,STREMPLID  --'string_agg табельных'
+
+from (
+    select
+    DESCRIPTION ,
+    HRMORGANIZATIONID ,
+    PARENTORGANIZATIONID ,
+    PARENTDESCRIPTION ,
+    NAME ,
+    RATE
+     from dbo.ENERGYNET_FN_STAFFLIST (
+                      /*@DATAAREAID =*/ 'KSOE'
+                    , /*@ACTUALITYDATE =*/ $P{pdate2} --'31.10.2015'
+                    , /*@ORGANIZATIONLIST =*/ $P{hrmorganizationid} --'038'
+                    , /*@ORGCHILD = */ 1
+                    , /*@EMPLOYMENTLIST =*/ ''
+, /*@EMPLOYMENTNAMELIST =*/ ''
+                    , /*@STAFFPOSITIONLIST =*/ ''
+                    , 'НВЗ_Д3;НВЗ_ДТУ_Д3;НВЗ_ІЗ_Д3;НВЗ_РЗА_Д3'
+    ) as r_in
+
+ ) as r1
+OUTER APPLY
+    (SELECT STUFF(( SELECT ',' + a.EMPLID
+       FROM dbo.ENERGYNET_FN_STAFFLIST (
+		 /*@DATAAREAID =*/ 'KSOE'
+                    , /*@ACTUALITYDATE =*/ $P{pdate2} --'31.10.2015'
+                    , /*@ORGANIZATIONLIST =*/ $P{hrmorganizationid} --'038'
+                    , /*@ORGCHILD = */ 1
+                    , /*@EMPLOYMENTLIST =*/ ''
+, /*@EMPLOYMENTNAMELIST =*/ ''
+                    , /*@STAFFPOSITIONLIST =*/ ''
+                    , r1.rate
+) AS a
+      WHERE a.HRMORGANIZATIONID = r1.HRMORGANIZATIONID
+      ORDER BY a.EMPLID
+        FOR XML PATH('') ), 1,1,'') AS STREMPLID ) AS f
+group by DESCRIPTION,
+ HRMORGANIZATIONID,
+ PARENTORGANIZATIONID,
+ PARENTDESCRIPTION ,
+ RATE,
+ STREMPLID
+
+ order by HRMORGANIZATIONID]]>
+	</queryString>
+	<field name="PODR_NAZV" class="java.lang.String"/>
+	<field name="podr_id" class="java.lang.String"/>
+	<field name="MAIN_PODR_ID" class="java.lang.String"/>
+	<field name="PODR_NAZV_MAIN" class="java.lang.String"/>
+	<field name="shortname" class="java.lang.String"/>
+	<variable name="var_klwork_month1" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_klwork_month1}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_hh_month1" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_hh_month1}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_hh_month2" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_hh_month2}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_klwork_month2" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_klwork_month2}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_hh_month3" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_hh_month3}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_klwork_month3" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_klwork_month3}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_hh_month4" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_hh_month4}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_klwork_month4" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_klwork_month4}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_hh_month5" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_hh_month5}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_klwork_month5" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_klwork_month5}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_hh_month6" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_hh_month6}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_klwork_month6" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_klwork_month6}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_hh_month7" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_hh_month7}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_klwork_month7" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_klwork_month7}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_hh_month8" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_hh_month8}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_klwork_month8" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_klwork_month8}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_hh_month9" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_hh_month9}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_klwork_month9" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_klwork_month9}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_hh_month10" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_hh_month10}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_klwork_month10" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_klwork_month10}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_hh_month11" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_hh_month11}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_klwork_month11" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_klwork_month11}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_hh_month12" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_hh_month12}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_klwork_month12" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_klwork_month12}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_klwork_month" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_klwork_month}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<variable name="var_hh_month" class="java.math.BigDecimal" resetType="Group" resetGroup="executor" calculation="Sum">
+		<variableExpression><![CDATA[$V{var_hh_month}]]></variableExpression>
+		<initialValueExpression><![CDATA[new BigDecimal(0)]]></initialValueExpression>
+	</variable>
+	<group name="executor">
+		<groupExpression><![CDATA[$F{PODR_NAZV}]]></groupExpression>
+		<groupHeader>
+			<band height="20" splitType="Stretch">
+				<textField isStretchWithOverflow="true" evaluationTime="Group" evaluationGroup="executor" isBlankWhenNull="false">
+					<reportElement key="textField-125" stretchType="RelativeToTallestObject" mode="Opaque" x="0" y="0" width="2743" height="20" backcolor="#FFFF99"/>
+					<box>
+						<topPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+						<leftPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+						<bottomPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+						<rightPen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+					</box>
+					<textElement>
+						<font fontName="Times New Roman" size="9" isBold="false" pdfFontName="Times-Roman"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{PODR_NAZV}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band splitType="Stretch"/>
+		</groupFooter>
+	</group>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" stretchType="RelativeToTallestObject" x="0" y="0" width="2743" height="20"/>
+				<parametersMapExpression><![CDATA[$P{REPORT_PARAMETERS_MAP}]]></parametersMapExpression>
+				<subreportParameter name="pdate1">
+					<subreportParameterExpression><![CDATA[$P{pdate1}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="finexecutorCode">
+					<subreportParameterExpression><![CDATA[$F{podr_id}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="pdate2">
+					<subreportParameterExpression><![CDATA[$P{pdate2}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="yearGen">
+					<subreportParameterExpression><![CDATA[$P{yearGen}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="budgcode">
+					<subreportParameterExpression><![CDATA[$F{shortname}.equals("RZA") ? new String("75000012") :
+$F{shortname}.equals("DTU") ? new String("75000014") :
+$F{shortname}.equals("IZ") ? new String("75000023,75000001") : new String("select d.code from endepartment d where d.parentrefcode = 1002")]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="isnotplan">
+					<subreportParameterExpression><![CDATA[$P{isnotplan}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="departmentName">
+					<subreportParameterExpression><![CDATA[$F{PODR_NAZV}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="formrefcode">
+					<subreportParameterExpression><![CDATA[$P{formrefcode}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[(java.sql.Connection)$P{netConnection}]]></connectionExpression>
+				<subreportExpression><![CDATA[$P{formrefcode}.intValue() == 1 ?
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/RepEnergozbyt/Human_count/Tech/ax_tech_zagruzka.jasper") /*если из планов */
+:
+getClass().getResourceAsStream("/com/ksoe/energynet/reports/RepEnergozbyt/Human_count/Tech/ax_tech_zagruzka_fact.jasper") /* если из фактов */]]></subreportExpression>
+			</subreport>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="WorkedTimeInActs" pageWidth="1200" pageHeight="845" orientation="Landscape" whenNoDataType="NoDataSection" columnWidth="1140" leftMargin="30" rightMargin="30" topMargin="20" bottomMargin="20" scriptletClass="com.ksoe.energynet.reports.common.FINScriptlet" isIgnorePagination="true" >
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="497"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="dateStart" class="java.util.Date">
+		<parameterDescription><![CDATA[Дата начала]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new SimpleDateFormat("dd.MM.yyyyy").parse("01.01.2013")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="dateFinal" class="java.util.Date">
+		<parameterDescription><![CDATA[Дата конца]]></parameterDescription>
+		<defaultValueExpression><![CDATA[new SimpleDateFormat("dd.MM.yyyyy").parse("31.12.2013")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="budgetCode" class="java.lang.Integer">
+		<parameterDescription><![CDATA[Код бюджетодержателя, или -1 если надо выбрать всех]]></parameterDescription>
+	</parameter>
+	<parameter name="tabNumbersCondition" class="java.lang.String">
+		<defaultValueExpression><![CDATA[new String("")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="isBindedAct" class="java.lang.Integer">
+		<defaultValueExpression><![CDATA[new Integer(0)]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[select working_time.tabnumber
+, working_time.name
+, working_time.work_date
+, coalesce(sum(case when is_not_calculated then coalesce(working_time.countfact, 0) else 0 end), 0) as work_time
+, coalesce(sum(case when is_not_calculated then coalesce(working_time.delivery_time, 0) else 0 end), 0) as delivery_time
+, coalesce(sum(case when is_calculated then working_time.worked_time_by_act else 0 end), 0) as worked_time
+, string_agg(distinct case when is_not_calculated then working_time.plan_code::varchar else null end, ',') as working_plan_codes
+, string_agg(working_time.act_numbergen||' від '||to_char(working_time.act_dategen, 'dd.mm.yyyy')||'. '||working_time.act_status_name, chr(10)) as acts
+, coalesce((select name FROM endepartment as budg1 where budg1.code = $P{budgetCode}), 'Невідомо') as budgetname
+from
+(select
+working_time1.tabnumber
+, working_time1.name
+, working_time1.work_date
+, sum(working_time1.countfact) as countfact
+, working_time1.act_code
+, working_time1.act_numbergen
+, working_time1.act_dategen
+, working_time1.act_status_code
+, working_time1.act_status_name
+, case when working_time1.act_code is null or working_time1.act_status_code = 1 then true else false end as is_not_calculated
+, case when working_time1.act_code is not null and working_time1.act_status_code in (3,4) then true else false end as is_calculated
+, coalesce((select sum(plhu1.timeworkfact) from enplan2humen as plhu1 where plhu1.planrefcode = working_time1.plan_code and plhu1.tabnumber = working_time1.tabnumber),0) as worked_time_by_act
+, working_time1.plan_code
+, sum(working_time1.delivery_time) as delivery_time
+from (select
+fo.tabnumber
+, fo.name
+, pw.datestart as work_date
+, coalesce(hu.countfact,0) as countfact
+, ac.code as act_code
+, ac.numbergen as act_numbergen
+, ac.dategen as act_dategen
+, acs.code as act_status_code
+, acs.name as act_status_name
+, coalesce((select sum(di1.deliverytimefact) from endeliverytime as di1 where di1.humenitemrefcode = hu.code),0) as delivery_time
+, pw.code as plan_code
+from
+		enplanwork as pw
+		inner join endepartment as budg on pw.budgetrefcode = budg.code
+		inner join enhumenitem as hu on pw.code = hu.planrefcode
+		inner join finworker as fo on hu.finworkercode = fo.code
+		left join enact2enplanwork as acpw on pw.code = acpw.plancode
+		left join enact as ac on acpw.actrefcode = ac.code
+		left join enactstatus as acs on ac.statusrefcode = acs.code
+where
+        pw.kindcode = 4
+        and pw.datestart >= $P{dateStart} and pw.datefinal <= $P{dateFinal}
+	   and case when $P{budgetCode} > -1 then
+        	exists (select 1 from enplanwork as pw1
+		inner join enhumenitem as hu1 on pw1.code = hu1.planrefcode
+		inner join finworker as fo1 on hu1.finworkercode = fo1.code
+		where fo1.tabnumber = fo.tabnumber and pw1.budgetrefcode = $P{budgetCode}
+		and pw1.datestart >= $P{dateStart} and pw1.datefinal <= $P{dateFinal})
+        else 1=1 end
+
+union all
+
+select
+fo.tabnumber
+, fo.name
+, pw.datestart as work_date
+, coalesce(hu.countworkfact,0) as countfact
+, ac.code as act_code
+, ac.numbergen as act_numbergen
+, ac.dategen as act_dategen
+, acs.code as act_status_code
+, acs.name as act_status_name
+, 0 as delivery_time
+, pw.code as plan_code
+from
+		enplanwork as pw
+		inner join endepartment as budg on pw.budgetrefcode = budg.code
+		inner join entransportitem as hu on pw.code = hu.planrefcode
+		inner join finworker as fo on hu.finworkercode = fo.code
+		left join enact2enplanwork as acpw on pw.code = acpw.plancode
+		left join enact as ac on acpw.actrefcode = ac.code
+		left join enactstatus as acs on ac.statusrefcode = acs.code
+where
+        pw.kindcode = 4
+        /*SUPP-62180 and coalesce(hu.countworkfact,0) > 0*/
+        and pw.datestart >= $P{dateStart} and pw.datefinal <= $P{dateFinal}
+        and case when $P{budgetCode} > -1 then
+        	exists (select 1 from enplanwork as pw1
+		inner join entransportitem as hu1 on pw1.code = hu1.planrefcode
+		inner join finworker as fo1 on hu1.finworkercode = fo1.code
+		where fo1.tabnumber = fo.tabnumber and pw1.budgetrefcode = $P{budgetCode}
+		and pw1.datestart >= $P{dateStart} and pw1.datefinal <= $P{dateFinal})
+        else 1=1 end) as working_time1
+group by
+working_time1.tabnumber
+, working_time1.name
+, working_time1.work_date
+, working_time1.act_code
+, working_time1.act_numbergen
+, working_time1.act_dategen
+, working_time1.act_status_code
+, working_time1.act_status_name
+, working_time1.plan_code) as working_time
+        where 1=1 $P!{tabNumbersCondition}
+group by working_time.tabnumber, working_time.name, working_time.work_date
+        order by working_time.work_date asc]]>
+	</queryString>
+	<field name="tabnumber" class="java.lang.String">
+		<fieldDescription><![CDATA[Табельний номер]]></fieldDescription>
+	</field>
+	<field name="name" class="java.lang.String"/>
+	<field name="work_date" class="java.sql.Date"/>
+	<field name="work_time" class="java.lang.Double"/>
+	<field name="delivery_time" class="java.lang.Double"/>
+	<field name="worked_time" class="java.lang.Double"/>
+	<field name="working_plan_codes" class="java.lang.String"/>
+	<field name="acts" class="java.lang.String"/>
+	<field name="budgetname" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="130" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="false">
+				<reportElement key="textField-18" stretchType="RelativeToTallestObject" x="0" y="0" width="1140" height="130" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="24"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Звіт" +
+"\n по відпрацьованному часу у актах для персоналу" +
+"\n" + "з " + new SimpleDateFormat("dd.MM.yyyy").format($P{dateStart}) + " по " + new SimpleDateFormat("dd.MM.yyyy").format($P{dateFinal}) +
+"\n" + ( $P{budgetCode}.intValue() == -1 ? "по всім бюджетотримачам" : "по бюджетотримачу: " + $F{budgetname} )]]></textFieldExpression>
+			</textField>
+		</band>
+	</title>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="50" splitType="Stretch">
+			<staticText>
+				<reportElement key="staticText-1" x="100" y="0" width="230" height="50" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Найменування]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-1" x="0" y="0" width="100" height="50" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Табельний номер]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-1" x="330" y="0" width="100" height="50" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Робоча дата]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-1" x="530" y="0" width="100" height="50" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Час на доставку у планах (не порахований у актах)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-1" x="630" y="0" width="100" height="50" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Відпрацьований час по актах]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-1" x="990" y="0" width="150" height="50" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Коди планів, де ще не порахований час персоналу в акт]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-1" x="430" y="0" width="100" height="50" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Напрацьований час у планах (не порахований у актах)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-1" x="730" y="0" width="110" height="50" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Норма робочого часу на дату]]></text>
+			</staticText>
+			<staticText>
+				<reportElement key="staticText-1" x="840" y="0" width="150" height="50" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<text><![CDATA[Акти]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="30" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" x="100" y="0" width="230" height="30" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{name}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" pattern="###0" isBlankWhenNull="true">
+				<reportElement key="textField-17" stretchType="RelativeToTallestObject" x="0" y="0" width="100" height="30" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{tabnumber}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" x="330" y="0" width="100" height="30" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[new SimpleDateFormat("dd.MM.yyyy").format($F{work_date})]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" x="530" y="0" width="100" height="30" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{delivery_time}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" x="430" y="0" width="100" height="30" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{work_time}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" x="990" y="0" width="150" height="30" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{working_plan_codes}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" x="630" y="0" width="100" height="30" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{worked_time}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" x="730" y="0" width="110" height="30" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getWorkTimeInMonth($F{work_date}).divide(new BigDecimal(((com.ksoe.energynet.reports.common.FINScriptlet)$P{REPORT_SCRIPTLET}).getCountWorkDay(new SimpleDateFormat("dd.MM.yyyy").format($F{work_date}))), 2, java.math.RoundingMode.HALF_UP)]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement key="textField-1" stretchType="RelativeToTallestObject" x="840" y="0" width="150" height="30" />
+				<box>
+					<topPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement>
+					<font fontName="Times New Roman" size="11"/>
+					<paragraph lineSpacing="1_1_2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{acts}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+	<noData>
+		<band height="168">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="false">
+				<reportElement key="textField-18" stretchType="RelativeToTallestObject" x="0" y="0" width="1140" height="168" />
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Times New Roman" size="24"/>
+				</textElement>
+				<textFieldExpression><![CDATA["Не знайдено даних для звіту по параметрах: "+
+"\n" + "з " + new SimpleDateFormat("dd.MM.yyyy").format($P{dateStart}) + " по " + new SimpleDateFormat("dd.MM.yyyy").format($P{dateFinal}) +
+"\n" + ( $P{budgetCode}.intValue() == -1 ? "по всім бюджетотримачам" : "по бюджетотримачу: " + $P{budgetCode} ) +
+( $P{tabNumbersCondition} != null && $P{tabNumbersCondition}.length() > 0 ? "\n" + " та по працівниках (таб. номери):" + com.ksoe.energynet.util.Tools.findAllMatches($P{tabNumbersCondition}, "\\d{2,}") : "" ) +
+( $P{isBindedAct} == 1 ? "\n" + " і по наряд-завданнях, що прив'язані до чорнових актів" : "" )]]></textFieldExpression>
+			</textField>
+		</band>
+	</noData>
+</jasperReport>

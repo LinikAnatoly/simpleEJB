@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="d_TU_items_byt" pageWidth="1300" pageHeight="100" orientation="Landscape" whenNoDataType="NoDataSection" columnWidth="1300" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" isIgnorePagination="true">
+	<property name="ireport.scriptlethandling" value="0"/>
+	<property name="ireport.encoding" value="UTF-8"/>
+	<property name="ireport.zoom" value="1.0"/>
+	<property name="ireport.x" value="502"/>
+	<property name="ireport.y" value="0"/>
+	<import value="net.sf.jasperreports.engine.*"/>
+	<import value="java.util.*"/>
+	<import value="net.sf.jasperreports.engine.data.*"/>
+	<parameter name="jlcName" class="java.lang.String"/>
+	<parameter name="streetName" class="java.lang.String"/>
+	<parameter name="cityName" class="java.lang.String"/>
+	<parameter name="rencode" class="java.lang.Integer"/>
+	<parameter name="isRealized" class="java.lang.Integer"/>
+	<parameter name="contractNumberServices" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[select  base_q.streetname, base_q.cityname,
+       base_q.linename, string_agg(base_q.postnumber::text,',') as postnumbers,
+       count(base_q.post_code) as postcount,
+       base_q.jlc_code as jlc_codes, base_q.posttype,
+       (select count(code) from ccjointlinecontragents ccc
+       where ccc.code in
+       (select array2items(string_to_array(base_q.jlc_code,','))::double precision))  as jlccount,
+       case  base_q.isRealized when 1 then 'Реализовано'
+       when 0 then 'Не реализовано' end as isRealized
+       ,base_q.contractnumberservices
+ from
+(select
+st.name || ' ' || s.name || '(code:' || s.code || ')' as streetname, ct.name || ' ' || c.name as cityname,
+ f.name as linename,  t.name::text as postnumber, tk.name as posttype,
+ t.code as post_code, coalesce(t2j.isrealized,0) as isRealized,
+ string_agg( distinct jlc.code::text,',') as jlc_code
+ ,coalesce(t2j.contractnumberservices, '') as contractnumberservices
+
+from cctower2jlc t2j ,  ccjointlinecontragents jlc, cctower t, cctowerkind tk,
+ccfeeder f, address a, street s, city c, streettype st, citytype ct
+where t2j.jlcrefcode = jlc.code
+and t2j.towerrefcode = t.code
+and t.kindrefcode = tk.code
+and t.feederrefcode = f.code
+and t.addressrefcode = a.code
+and a.streetcode = s.code
+and s.citycode = c.code
+and s.streettypecode = st.code
+and c.citytypecode = ct.code
+/*
+    $P!{jlcName}
+    $P!{rencode}
+    $P!{cityName}
+    $P!{streetName}
+*/
+and upper(jlc.name) like $P!{jlcName}
+and (c.regioncode = $P{rencode} or $P{rencode} = 0)
+and upper(c.name) like $P!{cityName}
+and upper(s.name) like $P!{streetName}
+and (t2j.isrealized = $P{isRealized} or $P{isRealized} = -1 )
+and (t2j.contractnumberservices = $P{contractNumberServices} or $P{contractNumberServices}  = '-1')
+
+group by st.name || ' ' || s.name || '(code:' || s.code || ')', ct.name || ' ' || c.name,
+ f.name, tk.name ,   t.code, coalesce(t2j.isrealized,0)
+ ,coalesce(t2j.contractnumberservices, '')
+  ) as base_q
+ group by  base_q.streetname, base_q.cityname,
+       base_q.linename, base_q.jlc_code, base_q.posttype,
+        case  base_q.isRealized when 1 then 'Реализовано'
+       when 0 then 'Не реализовано' end
+       ,base_q.contractnumberservices
+
+order by base_q.cityname, base_q.streetname, base_q.linename]]>
+	</queryString>
+	<field name="streetname" class="java.lang.String"/>
+	<field name="cityname" class="java.lang.String"/>
+	<field name="linename" class="java.lang.String"/>
+	<field name="postnumbers" class="java.lang.String"/>
+	<field name="postcount" class="java.lang.Long"/>
+	<field name="jlc_codes" class="java.lang.String"/>
+	<field name="posttype" class="java.lang.String"/>
+	<field name="jlccount" class="java.lang.Long"/>
+	<field name="isrealized" class="java.lang.String"/>
+	<field name="contractnumberservices" class="java.lang.String"/>
+	<variable name="reportPostCount" class="java.lang.Integer" calculation="Sum">
+		<variableExpression><![CDATA[$F{postcount}]]></variableExpression>
+	</variable>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<pageHeader>
+		<band splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="15" splitType="Stretch">
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="395" y="0" width="125" height="15" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" lineSpacing="Single">
+					<font size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{linename}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="0" y="0" width="120" height="15" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" lineSpacing="Single">
+					<font size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{cityname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="120" y="0" width="275" height="15" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" lineSpacing="Single">
+					<font size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{streetname}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="520" y="0" width="195" height="15" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" lineSpacing="Single">
+					<font size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{postnumbers}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="739" y="0" width="50" height="15" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" lineSpacing="Single">
+					<font size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{posttype}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="715" y="0" width="24" height="15" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" lineSpacing="Single">
+					<font size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{postcount}]]></textFieldExpression>
+			</textField>
+			<subreport isUsingCache="true">
+				<reportElement key="subreport-1" positionType="Float" stretchType="RelativeToTallestObject" x="919" y="0" width="281" height="15" isPrintWhenDetailOverflows="true"/>
+				<subreportParameter name="jlccodes">
+					<subreportParameterExpression><![CDATA[$F{jlc_codes}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression class="java.lang.String"><![CDATA[getClass().getResourceAsStream("/com/ksoe/energynet/reports/Services/4Rent/post_report_from_billing/contragents.jasper")]]></subreportExpression>
+			</subreport>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="789" y="0" width="50" height="15" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" lineSpacing="Single">
+					<font size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{jlccount}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="839" y="0" width="80" height="15" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" lineSpacing="Single">
+					<font size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{isrealized}]]></textFieldExpression>
+			</textField>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement stretchType="RelativeToTallestObject" x="1200" y="0" width="100" height="15" isPrintWhenDetailOverflows="true"/>
+				<box>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Left" verticalAlignment="Middle" lineSpacing="Single">
+					<font size="8" pdfFontName="times.ttf" pdfEncoding="Cp1251" isPdfEmbedded="true"/>
+				</textElement>
+				<textFieldExpression class="java.lang.String"><![CDATA[$F{contractnumberservices}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>
