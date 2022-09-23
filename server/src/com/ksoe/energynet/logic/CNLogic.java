@@ -130,15 +130,15 @@ import net.sf.jasperreports.engine.util.JRLoader;
 
 public class CNLogic extends LogicModule{
 
-	// Состояния, при переходе на которые необходимо менять статус пакета на сайте (для подсистемы "Договора про розподіл е/е")
-	/** В работе */
+	//  Состояния, при переходе на которые необходимо менять статус пакета на сайте (для подсистемы "Договора про розподіл е/е")
+	/**  В работе */
 	public static final int[] DST_STATES_ACTIVE = {1102}; //{65, 66, 67, 84, 1011, 1007, 1012, 1015, 1016, 1057, 1058, 1097, 1100};
-	/** Выполнено */
+	/**  Выполнено */
 	public static final int[] DST_STATES_FINISHED = {1111, 1112}; //{1108}; //{1109}; //{48, 57, 1050, 1055};
-	/** Отменено */
+	/**  Отменено */
 	public static final int[] DST_STATES_CANCELED = {1106}; //{1000};
 
-	/** Отмена регистрации услуги (S) в DocFlow */
+	/**  Отмена регистрации услуги (S) в DocFlow */
 	public static final int[] DST_STATES_CANCELED_IN_DOCFLOW = {1104, 1106};
 
 
