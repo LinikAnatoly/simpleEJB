@@ -255,15 +255,15 @@ public class ActLogic extends LogicModule{
 	 *
 	 *
 	 *
-	 * Возвращает есть ли счетчик для акта (только ввод, не демонтаж)
+	 * Р’РѕР·РІСЂР°С‰Р°РµС‚ РµСЃС‚СЊ Р»Рё СЃС‡РµС‚С‡РёРє РґР»СЏ Р°РєС‚Р° (С‚РѕР»СЊРєРѕ РІРІРѕРґ, РЅРµ РґРµРјРѕРЅС‚Р°Р¶)
 	 *
-	 * SUPP-67738 Подправил выборку счетчика - теперь будут выбираться
-	 * и те которые без МОЛ - так как это счетчики абонентов
-	 * и теперь тоже будут формироваться через ОЗ
+	 * SUPP-67738 РџРѕРґРїСЂР°РІРёР» РІС‹Р±РѕСЂРєСѓ СЃС‡РµС‚С‡РёРєР° - С‚РµРїРµСЂСЊ Р±СѓРґСѓС‚ РІС‹Р±РёСЂР°С‚СЊСЃСЏ
+	 * Рё С‚Рµ РєРѕС‚РѕСЂС‹Рµ Р±РµР· РњРћР› - С‚Р°Рє РєР°Рє СЌС‚Рѕ СЃС‡РµС‚С‡РёРєРё Р°Р±РѕРЅРµРЅС‚РѕРІ
+	 * Рё С‚РµРїРµСЂСЊ С‚РѕР¶Рµ Р±СѓРґСѓС‚ С„РѕСЂРјРёСЂРѕРІР°С‚СЊСЃСЏ С‡РµСЂРµР· РћР—
 	 *
-	 * @param actCode код акта {@link ENAct}
-	 * @param isException необходимо ли генерировать исключение
-	 * @return 0 - нет, 1 - есть
+	 * @param actCode РєРѕРґ Р°РєС‚Р° {@link ENAct}
+	 * @param isException РЅРµРѕР±С…РѕРґРёРјРѕ Р»Рё РіРµРЅРµСЂРёСЂРѕРІР°С‚СЊ РёСЃРєР»СЋС‡РµРЅРёРµ
+	 * @return 0 - РЅРµС‚, 1 - РµСЃС‚СЊ 
 	 * @throws PersistenceException
 	 * 
 	 * 
@@ -278,27 +278,27 @@ public class ActLogic extends LogicModule{
 
 	/**
 	 *
-	 * Возвращает есть ли счетчик для акта (ввод и вывод)
+	 * Р’РѕР·РІСЂР°С‰Р°РµС‚ РµСЃС‚СЊ Р»Рё СЃС‡РµС‚С‡РёРє РґР»СЏ Р°РєС‚Р° (РІРІРѕРґ Рё РІС‹РІРѕРґ)
 	 *
-	 * SUPP-67738 Подправил выборку счетчика - теперь будут выбираться
-	 * и те которые без МОЛ - так как это счетчики абонентов
-	 * и теперь тоже будут формироваться через ОЗ
+	 * SUPP-67738 РџРѕРґРїСЂР°РІРёР» РІС‹Р±РѕСЂРєСѓ СЃС‡РµС‚С‡РёРєР° - С‚РµРїРµСЂСЊ Р±СѓРґСѓС‚ РІС‹Р±РёСЂР°С‚СЊСЃСЏ
+	 * Рё С‚Рµ РєРѕС‚РѕСЂС‹Рµ Р±РµР· РњРћР› - С‚Р°Рє РєР°Рє СЌС‚Рѕ СЃС‡РµС‚С‡РёРєРё Р°Р±РѕРЅРµРЅС‚РѕРІ
+	 * Рё С‚РµРїРµСЂСЊ С‚РѕР¶Рµ Р±СѓРґСѓС‚ С„РѕСЂРјРёСЂРѕРІР°С‚СЊСЃСЏ С‡РµСЂРµР· РћР—
 	 *
-	 * @param actCode код акта {@link ENAct}
-	 * @param isException необходимо ли генерировать исключение
-	 * @param isMount {@code true} - есть ли счетчик на ввод, {@code false} - есть ли счетчик на вывод
-	 * , {@code null} - есть ли любой счетчик
-	 * @param doNotCheckProm {@code true} - непроверять счетчики юр потребителей - метод всегда будет возвращать 0, {@code false} - проверить счетчики юр потребителей,
-	 * будет произведена полная проверка и возвращен результат или сгенерирована оошибка
-	 * @return 0 - нет, 1 - есть
+	 * @param actCode РєРѕРґ Р°РєС‚Р° {@link ENAct}
+	 * @param isException РЅРµРѕР±С…РѕРґРёРјРѕ Р»Рё РіРµРЅРµСЂРёСЂРѕРІР°С‚СЊ РёСЃРєР»СЋС‡РµРЅРёРµ
+	 * @param isMount {@code true} - РµСЃС‚СЊ Р»Рё СЃС‡РµС‚С‡РёРє РЅР° РІРІРѕРґ, {@code false} - РµСЃС‚СЊ Р»Рё СЃС‡РµС‚С‡РёРє РЅР° РІС‹РІРѕРґ
+	 * , {@code null} - РµСЃС‚СЊ Р»Рё Р»СЋР±РѕР№ СЃС‡РµС‚С‡РёРє
+	 * @param doNotCheckProm {@code true} - РЅРµРїСЂРѕРІРµСЂСЏС‚СЊ СЃС‡РµС‚С‡РёРєРё СЋСЂ РїРѕС‚СЂРµР±РёС‚РµР»РµР№ - РјРµС‚РѕРґ РІСЃРµРіРґР° Р±СѓРґРµС‚ РІРѕР·РІСЂР°С‰Р°С‚СЊ 0, {@code false} - РїСЂРѕРІРµСЂРёС‚СЊ СЃС‡РµС‚С‡РёРєРё СЋСЂ РїРѕС‚СЂРµР±РёС‚РµР»РµР№,
+	 * Р±СѓРґРµС‚ РїСЂРѕРёР·РІРµРґРµРЅР° РїРѕР»РЅР°СЏ РїСЂРѕРІРµСЂРєР° Рё РІРѕР·РІСЂР°С‰РµРЅ СЂРµР·СѓР»СЊС‚Р°С‚ РёР»Рё СЃРіРµРЅРµСЂРёСЂРѕРІР°РЅР° РѕРѕС€РёР±РєР°
+	 * @return 0 - РЅРµС‚, 1 - РµСЃС‚СЊ
 	 * @throws PersistenceException
 	 */
     public int checkInSCCounterByActCode(int actCode, boolean isException, Boolean isMount, boolean doNotCheckProm) throws PersistenceException
     {
 
     	/**
-		 *  SUPP-65483... 06.09.2017... +++ промовские счетчики привязываются вручную...
-		 *  для ТУ-пром решили не проверять...
+		 *  SUPP-65483... 06.09.2017... +++ РїСЂРѕРјРѕРІСЃРєРёРµ СЃС‡РµС‚С‡РёРєРё РїСЂРёРІСЏР·С‹РІР°СЋС‚СЃСЏ РІСЂСѓС‡РЅСѓСЋ...
+		 *  РґР»СЏ РўРЈ-РїСЂРѕРј СЂРµС€РёР»Рё РЅРµ РїСЂРѕРІРµСЂСЏС‚СЊ...
 		 */
     	ENActDAO actDao = new ENActDAO(connection, userProfile);
     	ENAct act = actDao.getObject(actCode);
@@ -335,7 +335,7 @@ public class ActLogic extends LogicModule{
         int[] cArr = cDAO.getFilteredCodeArray(cFilter, 0, -1, binded);
         if (cArr.length != 0){
             if (isException)
-                throw new EnergyproSystemException("Матеріал з Акту зв'язаний з лічільником ... коригування заборонено ... ");
+                throw new EnergyproSystemException("РњР°С‚РµСЂС–Р°Р» Р· РђРєС‚Сѓ Р·РІ'СЏР·Р°РЅРёР№ Р· Р»С–С‡С–Р»СЊРЅРёРєРѕРј ... РєРѕСЂРёРіСѓРІР°РЅРЅСЏ Р·Р°Р±РѕСЂРѕРЅРµРЅРѕ ... ");
             else
                 return 1;
         }
@@ -344,16 +344,16 @@ public class ActLogic extends LogicModule{
 
     /**
      *
-     * Проводятся ли в акте работы по установке ЗКУ
+     * РџСЂРѕРІРѕРґСЏС‚СЃСЏ Р»Рё РІ Р°РєС‚Рµ СЂР°Р±РѕС‚С‹ РїРѕ СѓСЃС‚Р°РЅРѕРІРєРµ Р—РљРЈ
      *
-     * SUPP-73861 31.07.2018 На момент выполнения задания механизм работает так, что в один акт по установке
-     * ЗКУ должен включатся один план
+     * SUPP-73861 31.07.2018 РќР° РјРѕРјРµРЅС‚ РІС‹РїРѕР»РЅРµРЅРёСЏ Р·Р°РґР°РЅРёСЏ РјРµС…Р°РЅРёР·Рј СЂР°Р±РѕС‚Р°РµС‚ С‚Р°Рє, С‡С‚Рѕ РІ РѕРґРёРЅ Р°РєС‚ РїРѕ СѓСЃС‚Р°РЅРѕРІРєРµ
+     * Р—РљРЈ РґРѕР»Р¶РµРЅ РІРєР»СЋС‡Р°С‚СЃСЏ РѕРґРёРЅ РїР»Р°РЅ
      *
-     * С определенной даты нельзя будет будет добавлять счетчики в планы с типом Установка ЗКУ
-     * (дата будет указана в настройках)
+     * РЎ РѕРїСЂРµРґРµР»РµРЅРЅРѕР№ РґР°С‚С‹ РЅРµР»СЊР·СЏ Р±СѓРґРµС‚ Р±СѓРґРµС‚ РґРѕР±Р°РІР»СЏС‚СЊ СЃС‡РµС‚С‡РёРєРё РІ РїР»Р°РЅС‹ СЃ С‚РёРїРѕРј РЈСЃС‚Р°РЅРѕРІРєР° Р—РљРЈ
+     * (РґР°С‚Р° Р±СѓРґРµС‚ СѓРєР°Р·Р°РЅР° РІ РЅР°СЃС‚СЂРѕР№РєР°С…)
      *
-     * @param act объект акта {@link ENAct}
-     * @return {@code true} - в акте есть планы с подвидом работ Установка ЗКУ, {@code false} - в акте нет планов с типом Установка ЗКУ
+     * @param act РѕР±СЉРµРєС‚ Р°РєС‚Р° {@link ENAct}
+     * @return {@code true} - РІ Р°РєС‚Рµ РµСЃС‚СЊ РїР»Р°РЅС‹ СЃ РїРѕРґРІРёРґРѕРј СЂР°Р±РѕС‚ РЈСЃС‚Р°РЅРѕРІРєР° Р—РљРЈ, {@code false} - РІ Р°РєС‚Рµ РЅРµС‚ РїР»Р°РЅРѕРІ СЃ С‚РёРїРѕРј РЈСЃС‚Р°РЅРѕРІРєР° Р—РљРЈ
      * @throws PersistenceException
      */
     public boolean checkZKUMountingByAct(ENAct act) throws PersistenceException {
@@ -368,7 +368,7 @@ public class ActLogic extends LogicModule{
     	filter.conditionSQL = String.format("%s in (%s)", ENPlanWork.code_QFielld, planCodesStr);
     	int[] planCodes = planDao.getFilteredCodeArray(filter, 0, 1);
 
-    	// Дата объекта которая будет сравниваться с датой в проверке
+    	// Р”Р°С‚Р° РѕР±СЉРµРєС‚Р° РєРѕС‚РѕСЂР°СЏ Р±СѓРґРµС‚ СЃСЂР°РІРЅРёРІР°С‚СЊСЃСЏ СЃ РґР°С‚РѕР№ РІ РїСЂРѕРІРµСЂРєРµ
     	Date dateToCompare = act.dateAct;
 
     	if(planCodes.length == 0) return false;
@@ -377,12 +377,12 @@ public class ActLogic extends LogicModule{
 
     	ENTechConditionsServices techCondServices = techCondServicesDao.getENTechConditionsServicesByPlan(plan);
 
-    	/* SUPP-78547 о просьбе Погребного была подправлена проверка.
-    	 * В случае, если акт через план связан с договором на присоединение,
-    	 * то тогда проверяется дата этого договора, а не акта. */
+    	/* SUPP-78547 Рѕ РїСЂРѕСЃСЊР±Рµ РџРѕРіСЂРµР±РЅРѕРіРѕ Р±С‹Р»Р° РїРѕРґРїСЂР°РІР»РµРЅР° РїСЂРѕРІРµСЂРєР°.
+    	 * Р’ СЃР»СѓС‡Р°Рµ, РµСЃР»Рё Р°РєС‚ С‡РµСЂРµР· РїР»Р°РЅ СЃРІСЏР·Р°РЅ СЃ РґРѕРіРѕРІРѕСЂРѕРј РЅР° РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ,
+    	 * С‚Рѕ С‚РѕРіРґР° РїСЂРѕРІРµСЂСЏРµС‚СЃСЏ РґР°С‚Р° СЌС‚РѕРіРѕ РґРѕРіРѕРІРѕСЂР°, Р° РЅРµ Р°РєС‚Р°. */
     	/*
-    	 * Переделал проверку под дату ТехУсловий, потому что дата договора
-    	 * немного не то пальто
+    	 * РџРµСЂРµРґРµР»Р°Р» РїСЂРѕРІРµСЂРєСѓ РїРѕРґ РґР°С‚Сѓ РўРµС…РЈСЃР»РѕРІРёР№, РїРѕС‚РѕРјСѓ С‡С‚Рѕ РґР°С‚Р° РґРѕРіРѕРІРѕСЂР°
+    	 * РЅРµРјРЅРѕРіРѕ РЅРµ С‚Рѕ РїР°Р»СЊС‚Рѕ
     	 */
     	if(techCondServices != null) {
     		ENContragentDAO cntDAO = new ENContragentDAO(connection, userProfile);
@@ -398,16 +398,16 @@ public class ActLogic extends LogicModule{
     	boolean hasCounter = this.checkInSCCounterByActCode(act.code, false, null, false) > 0;
     	boolean isZkuMount =  planDao.checkENPlanWorkTypes(plan, false, true, ENPlanWorkType.EZ_SETUP_ZKU);
 
-    	// 24.07.2018  Если акт связан со счетчиком тогда работы должны закрываться по старому,
-    	//			   то есть через механизм Ввода счетчиков в эксплуатацию через ЗКУ
-    	// 30.07.2018 Так будет происходить до определенного числа - после которого необходимо
-    	// будет запретить такую работу.
+    	// 24.07.2018  Р•СЃР»Рё Р°РєС‚ СЃРІСЏР·Р°РЅ СЃРѕ СЃС‡РµС‚С‡РёРєРѕРј С‚РѕРіРґР° СЂР°Р±РѕС‚С‹ РґРѕР»Р¶РЅС‹ Р·Р°РєСЂС‹РІР°С‚СЊСЃСЏ РїРѕ СЃС‚Р°СЂРѕРјСѓ,
+    	//			   С‚Рѕ РµСЃС‚СЊ С‡РµСЂРµР· РјРµС…Р°РЅРёР·Рј Р’РІРѕРґР° СЃС‡РµС‚С‡РёРєРѕРІ РІ СЌРєСЃРїР»СѓР°С‚Р°С†РёСЋ С‡РµСЂРµР· Р—РљРЈ
+    	// 30.07.2018 РўР°Рє Р±СѓРґРµС‚ РїСЂРѕРёСЃС…РѕРґРёС‚СЊ РґРѕ РѕРїСЂРµРґРµР»РµРЅРЅРѕРіРѕ С‡РёСЃР»Р° - РїРѕСЃР»Рµ РєРѕС‚РѕСЂРѕРіРѕ РЅРµРѕР±С…РѕРґРёРјРѕ
+    	// Р±СѓРґРµС‚ Р·Р°РїСЂРµС‚РёС‚СЊ С‚Р°РєСѓСЋ СЂР°Р±РѕС‚Сѓ.
     	if(hasCounter) {
     		Date checkDate = settingsLogic.getDateValue(ENSettingsKeysConsts.DATE_MOUNT_ZKU_WITHOUT_COUNTER, act.dateAct);
     		if(isZkuMount && dateToCompare.compareTo(checkDate) >= 0) {
     			ENPlanWorkTypeDAO planTypeDao = new ENPlanWorkTypeDAO(connection, userProfile);
     			ENPlanWorkType planType = planTypeDao.getObject(ENPlanWorkType.EZ_SETUP_ZKU);
-    			throw new SystemException(String.format("Із %s неможливо робити підвид робіт \"%s\" разом із лічильником у плані! Код плану: %d"
+    			throw new SystemException(String.format("Р†Р· %s РЅРµРјРѕР¶Р»РёРІРѕ СЂРѕР±РёС‚Рё РїС–РґРІРёРґ СЂРѕР±С–С‚ \"%s\" СЂР°Р·РѕРј С–Р· Р»С–С‡РёР»СЊРЅРёРєРѕРј Сѓ РїР»Р°РЅС–! РљРѕРґ РїР»Р°РЅСѓ: %d"
     					, Tools.dateFormatDefault.format(checkDate)
     					, planType.name
     					, plan.code));
@@ -427,20 +427,20 @@ public class ActLogic extends LogicModule{
             ServicesLogic soLogic = new ServicesLogic(connection, userProfile);
             ENServicesObject soObj = soLogic.getServicesObjectByElementCode(act.element.code);
 
-            /** SUPP-3844 +++ для присоединений даем проводит промежуточные акты */
+            /** SUPP-3844 +++ РґР»СЏ РїСЂРёСЃРѕРµРґРёРЅРµРЅРёР№ РґР°РµРј РїСЂРѕРІРѕРґРёС‚ РїСЂРѕРјРµР¶СѓС‚РѕС‡РЅС‹Рµ Р°РєС‚С‹ */
             if (soObj.contractTypeRef.code == ENServicesContractType.CONNECTION
                     || soObj.contractStatusRef.code == ENServicesContractStatus.DISCLAIMER_CUSTOMER_SERVICES) {
                 return true;
             }
 
             /**
-             *  SUPP-6949... 10.09.2013 +++ по распоряжению ИНС - расходные акты могут проводить/отменять отдельно!!!
-             *  до тех пор пока бух.статус - черновой....
+             *  SUPP-6949... 10.09.2013 +++ РїРѕ СЂР°СЃРїРѕСЂСЏР¶РµРЅРёСЋ РРќРЎ - СЂР°СЃС…РѕРґРЅС‹Рµ Р°РєС‚С‹ РјРѕРіСѓС‚ РїСЂРѕРІРѕРґРёС‚СЊ/РѕС‚РјРµРЅСЏС‚СЊ РѕС‚РґРµР»СЊРЅРѕ!!!
+             *  РґРѕ С‚РµС… РїРѕСЂ РїРѕРєР° Р±СѓС….СЃС‚Р°С‚СѓСЃ - С‡РµСЂРЅРѕРІРѕР№....
              */
             if (soObj.statusRef.code == ENServicesObjectStatus.CLOSED) {
                 throw new EnergyproSystemException("\n \n" +
-                        "За договором " + soObj.contractNumberServices + " вже передано проводки у \"Фінанси\"!!! \n" +
-                        "Відмініть проведення, а потім акт!!!" );
+                        "Р—Р° РґРѕРіРѕРІРѕСЂРѕРј " + soObj.contractNumberServices + " РІР¶Рµ РїРµСЂРµРґР°РЅРѕ РїСЂРѕРІРѕРґРєРё Сѓ \"Р¤С–РЅР°РЅСЃРё\"!!! \n" +
+                        "Р’С–РґРјС–РЅС–С‚СЊ РїСЂРѕРІРµРґРµРЅРЅСЏ, Р° РїРѕС‚С–Рј Р°РєС‚!!!" );
             }
 
             /*
@@ -449,7 +449,7 @@ public class ActLogic extends LogicModule{
                 if (soObj.contractNumberServices != "")
                 {
                     if (isException)
-                    throw new EnergyproSystemException("Цей документ потрібно проводити (або відміняти) з меню \"Послуги на сторону\" - форма редагування договору, вкладка \"Акти\"!");
+                    throw new EnergyproSystemException("Р¦РµР№ РґРѕРєСѓРјРµРЅС‚ РїРѕС‚СЂС–Р±РЅРѕ РїСЂРѕРІРѕРґРёС‚Рё (Р°Р±Рѕ РІС–РґРјС–РЅСЏС‚Рё) Р· РјРµРЅСЋ \"РџРѕСЃР»СѓРіРё РЅР° СЃС‚РѕСЂРѕРЅСѓ\" - С„РѕСЂРјР° СЂРµРґР°РіСѓРІР°РЅРЅСЏ РґРѕРіРѕРІРѕСЂСѓ, РІРєР»Р°РґРєР° \"РђРєС‚Рё\"!");
                 else
                     return true;
                 }
@@ -466,7 +466,7 @@ public class ActLogic extends LogicModule{
             ENAct act = new ENActDAO(connection, userProfile).getObject(actCode);
 
             /*  06.08.2011
-            *  не пересчитываем перевезення (списание)
+            *  РЅРµ РїРµСЂРµСЃС‡РёС‚С‹РІР°РµРј РїРµСЂРµРІРµР·РµРЅРЅСЏ (СЃРїРёСЃР°РЅРёРµ)
             */
             if (
 //            (act.actTypeRef.code == ENPlanWorkState.TRUCKING)
@@ -482,8 +482,8 @@ public class ActLogic extends LogicModule{
             )
                 return;
 
-            // SUPP-73861 в этом методе осуществиться проверка, что установка ЗКУ
-            // была произведена без привязки к счетчику (должно заработать с определенной даты)
+            // SUPP-73861 РІ СЌС‚РѕРј РјРµС‚РѕРґРµ РѕСЃСѓС‰РµСЃС‚РІРёС‚СЊСЃСЏ РїСЂРѕРІРµСЂРєР°, С‡С‚Рѕ СѓСЃС‚Р°РЅРѕРІРєР° Р—РљРЈ
+            // Р±С‹Р»Р° РїСЂРѕРёР·РІРµРґРµРЅР° Р±РµР· РїСЂРёРІСЏР·РєРё Рє СЃС‡РµС‚С‡РёРєСѓ (РґРѕР»Р¶РЅРѕ Р·Р°СЂР°Р±РѕС‚Р°С‚СЊ СЃ РѕРїСЂРµРґРµР»РµРЅРЅРѕР№ РґР°С‚С‹)
             this.checkZKUMountingByAct(act);
 
             Calendar c = Calendar.getInstance();
@@ -521,10 +521,10 @@ public class ActLogic extends LogicModule{
             fkConnection = getNEWConnection(AuthorizationJNDINames.FINMATERIAL_DATASOURCE);
             ENAct act = new ENActDAO(connection, userProfile).getObject(actCode);
 
-            System.out.println("Start fillActDataAll : act №" + act.numberGen + " ("+ act.code+")");
+            System.out.println("Start fillActDataAll : act в„–" + act.numberGen + " ("+ act.code+")");
 
-            /** 12.07.2012 +++ фонд рабочего определялся по дате проведения акта?!?!?  */
-            /** 19.01.2015 +++ несколько графиков рабочего времени, норма определяется для каждого табельного...  */
+            /** 12.07.2012 +++ С„РѕРЅРґ СЂР°Р±РѕС‡РµРіРѕ РѕРїСЂРµРґРµР»СЏР»СЃСЏ РїРѕ РґР°С‚Рµ РїСЂРѕРІРµРґРµРЅРёСЏ Р°РєС‚Р°?!?!?  */
+            /** 19.01.2015 +++ РЅРµСЃРєРѕР»СЊРєРѕ РіСЂР°С„РёРєРѕРІ СЂР°Р±РѕС‡РµРіРѕ РІСЂРµРјРµРЅРё, РЅРѕСЂРјР° РѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ РґР»СЏ РєР°Р¶РґРѕРіРѕ С‚Р°Р±РµР»СЊРЅРѕРіРѕ...  */
             /*
             BigDecimal[] monthTimes = finLogic.getWorkTime(act.dateAct);
             BigDecimal monthTime = monthTimes[0]; //finLogic.getWorkTimeInMonth(act.dateGen).setScale(2, BigDecimal.ROUND_HALF_UP);
@@ -533,7 +533,7 @@ public class ActLogic extends LogicModule{
             BigDecimal calendarTime = monthTime.divide(monthDay, 2, BigDecimal.ROUND_HALF_UP);
             */
 
-            ///// 12.12.11 Вынесем все от предыдущих расчетов для чистоты эксперимента
+            ///// 12.12.11 Р’С‹РЅРµСЃРµРј РІСЃРµ РѕС‚ РїСЂРµРґС‹РґСѓС‰РёС… СЂР°СЃС‡РµС‚РѕРІ РґР»СЏ С‡РёСЃС‚РѕС‚С‹ СЌРєСЃРїРµСЂРёРјРµРЅС‚Р°
             ENPlan2HumenDAO p2hDAO = new ENPlan2HumenDAO(connection, userProfile);
             ENPlan2HumenFilter p2hFilter = new ENPlan2HumenFilter();
             p2hFilter.conditionSQL = " planrefcode in " +
@@ -547,14 +547,14 @@ public class ActLogic extends LogicModule{
 
             ActCalculator actCalc = new ActCalculator(connection, userProfile);
 
-            ///// 07.09.12 Переехало в ActCalculator.fillActs2 - для рекурсивного апдейта з/п по всем связанным актам
-            // Проапдейтим з/п в самом начале
+            ///// 07.09.12 РџРµСЂРµРµС…Р°Р»Рѕ РІ ActCalculator.fillActs2 - РґР»СЏ СЂРµРєСѓСЂСЃРёРІРЅРѕРіРѕ Р°РїРґРµР№С‚Р° Р·/Рї РїРѕ РІСЃРµРј СЃРІСЏР·Р°РЅРЅС‹Рј Р°РєС‚Р°Рј
+            // РџСЂРѕР°РїРґРµР№С‚РёРј Р·/Рї РІ СЃР°РјРѕРј РЅР°С‡Р°Р»Рµ
             //actCalc.updateSalary(act);
             /////
 
             //// DEBUG!!!
 
-            /** новая ветка расчета акта (EnergyNet vs mDax)  */
+            /** РЅРѕРІР°СЏ РІРµС‚РєР° СЂР°СЃС‡РµС‚Р° Р°РєС‚Р° (EnergyNet vs mDax)  */
             actCalc.calcActs(actCode, isSignatured);
 
 
@@ -590,7 +590,7 @@ public class ActLogic extends LogicModule{
                     fillActData99(new Integer(qq_1.actCode).intValue());
                 }
             */
-            System.out.println("Final fillActDataAll : act №" + act.numberGen + " ("+ act.code+")");
+            System.out.println("Final fillActDataAll : act в„–" + act.numberGen + " ("+ act.code+")");
 
             } catch (Exception e) {
                 throw new SystemException(e.getMessage(), e);
@@ -622,7 +622,7 @@ public class ActLogic extends LogicModule{
             fkConnection = getNEWConnection(AuthorizationJNDINames.FINMATERIAL_DATASOURCE);
             ENAct act = new ENActDAO(connection, userProfile).getObject(actCode);
 
-            System.out.println("Start fillActData : act №" + act.numberGen + " ("+ act.code+")");
+            System.out.println("Start fillActData : act в„–" + act.numberGen + " ("+ act.code+")");
 
             ENAct2HumenDAO a2hDAO = new ENAct2HumenDAO(connection, userProfile);
             ENTransportItemDAO transportDAO = new ENTransportItemDAO(connection, userProfile);
@@ -634,8 +634,8 @@ public class ActLogic extends LogicModule{
             ENHumenItemDAO humenDAO = new ENHumenItemDAO(connection, userProfile);
             ENDeliveryTimeDAO delTimeDAO = new ENDeliveryTimeDAO(connection, userProfile);
 
-            /** 12.07.2012 +++ фонд рабочего определялся по дате проведения акта?!?!?  */
-            /** 19.01.2015 +++ несколько графиков рабочего времени, норма определяется для каждого табельного...  */
+            /** 12.07.2012 +++ С„РѕРЅРґ СЂР°Р±РѕС‡РµРіРѕ РѕРїСЂРµРґРµР»СЏР»СЃСЏ РїРѕ РґР°С‚Рµ РїСЂРѕРІРµРґРµРЅРёСЏ Р°РєС‚Р°?!?!?  */
+            /** 19.01.2015 +++ РЅРµСЃРєРѕР»СЊРєРѕ РіСЂР°С„РёРєРѕРІ СЂР°Р±РѕС‡РµРіРѕ РІСЂРµРјРµРЅРё, РЅРѕСЂРјР° РѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ РґР»СЏ РєР°Р¶РґРѕРіРѕ С‚Р°Р±РµР»СЊРЅРѕРіРѕ...  */
             /*
             BigDecimal[] monthTimes = finLogic.getWorkTime(act.dateAct);
             BigDecimal monthTime = monthTimes[0]; //finLogic.getWorkTimeInMonth(act.dateGen).setScale(2, BigDecimal.ROUND_HALF_UP);
@@ -671,12 +671,12 @@ public class ActLogic extends LogicModule{
             "  and enhumenitem.countfact<>0   " +
             "  and enplanworkitem.countgen <> 0 " +
             "  ) " +
-            // непривязанные нам НЕ НАДО ??? ;)
+            // РЅРµРїСЂРёРІСЏР·Р°РЅРЅС‹Рµ РЅР°Рј РќР• РќРђР”Рћ ??? ;)
             " and enhumenitem.finworkercode is not null "
             ;
 
 
-            /* 08.06.2012 +++ страшные тормоза после перехода на PostgreSQL9 */
+            /* 08.06.2012 +++ СЃС‚СЂР°С€РЅС‹Рµ С‚РѕСЂРјРѕР·Р° РїРѕСЃР»Рµ РїРµСЂРµС…РѕРґР° РЅР° PostgreSQL9 */
 
             ENHumenItemFilter h2Filter = new ENHumenItemFilter();
             h2Filter.conditionSQL = finWorkerConditionHH;
@@ -684,7 +684,7 @@ public class ActLogic extends LogicModule{
             if (h2Arr.length > 0) {
                 for (int j=0; j < h2Arr.length; j++) {
 
-                    // типа обновим ЗП из ФК ...
+                    // С‚РёРїР° РѕР±РЅРѕРІРёРј Р—Рџ РёР· Р¤Рљ ...
                     ENHumenItemFilter hhFilter = new ENHumenItemFilter();
                     hhFilter.conditionSQL = finWorkerConditionHH;
                     hhFilter.code = h2Arr[j];
@@ -692,13 +692,13 @@ public class ActLogic extends LogicModule{
                     ENHumenItemShortList hhList = humenDAO.getScrollableFilteredList(hhFilter, 0, -1);
                     for (int qq=0; qq < hhList.totalCount; qq++){
 
-                        // собирают планы с одного периода в акт другого ...
+                        // СЃРѕР±РёСЂР°СЋС‚ РїР»Р°РЅС‹ СЃ РѕРґРЅРѕРіРѕ РїРµСЂРёРѕРґР° РІ Р°РєС‚ РґСЂСѓРіРѕРіРѕ ...
                         if (
                                 (Tools.getMonth(hhList.get(qq).planRefDateStart) != Tools.getMonth(act.dateGen))
                                 || (Tools.getYear(hhList.get(qq).planRefDateStart) != Tools.getYear(act.dateGen))
                         )
                         {
-                            throw new EnergyproSystemException("Рік та місяць акту і плану повинні співпадати ...");
+                            throw new EnergyproSystemException("Р С–Рє С‚Р° РјС–СЃСЏС†СЊ Р°РєС‚Сѓ С– РїР»Р°РЅСѓ РїРѕРІРёРЅРЅС– СЃРїС–РІРїР°РґР°С‚Рё ...");
                         }
 
                         if (hhList.get(qq).finWorkerTabNumber != null) {
@@ -734,7 +734,7 @@ public class ActLogic extends LogicModule{
 
 
 
-            // ЗП водителей !!! хитро из ТРАНСПОРТА ;) .. а не Хуменов ;)
+            // Р—Рџ РІРѕРґРёС‚РµР»РµР№ !!! С…РёС‚СЂРѕ РёР· РўР РђРќРЎРџРћР РўРђ ;) .. Р° РЅРµ РҐСѓРјРµРЅРѕРІ ;)
             finWorkerConditionHH = " entransportitem.finworkercode in ( " +
             " Select " +
             " fw.code " +
@@ -748,7 +748,7 @@ public class ActLogic extends LogicModule{
             "  ) " ;
 
 
-            /* 08.06.2012 +++ страшные тормоза после перехода на PostgreSQL9 */
+            /* 08.06.2012 +++ СЃС‚СЂР°С€РЅС‹Рµ С‚РѕСЂРјРѕР·Р° РїРѕСЃР»Рµ РїРµСЂРµС…РѕРґР° РЅР° PostgreSQL9 */
 
             ENTransportItemFilter tr2Filter = new ENTransportItemFilter();
             tr2Filter.conditionSQL = finWorkerConditionHH;
@@ -756,7 +756,7 @@ public class ActLogic extends LogicModule{
             if (tr2Arr.length > 0) {
                 for (int j=0; j < tr2Arr.length; j++) {
 
-                    // типа обновим ЗП из ФК ...
+                    // С‚РёРїР° РѕР±РЅРѕРІРёРј Р—Рџ РёР· Р¤Рљ ...
                     ENTransportItemFilter trFilter1 = new ENTransportItemFilter();
                     trFilter1.conditionSQL = finWorkerConditionHH;
                     trFilter1.code = tr2Arr[j];
@@ -764,13 +764,13 @@ public class ActLogic extends LogicModule{
                     ENTransportItemShortList trList1 = transportDAO.getScrollableFilteredList(trFilter1, 0, -1);
                     for (int qq=0; qq < trList1.totalCount; qq++){
 
-                        // собирают планы с одного периода в акт другого ...
+                        // СЃРѕР±РёСЂР°СЋС‚ РїР»Р°РЅС‹ СЃ РѕРґРЅРѕРіРѕ РїРµСЂРёРѕРґР° РІ Р°РєС‚ РґСЂСѓРіРѕРіРѕ ...
                         if (
                                 (Tools.getMonth(trList1.get(qq).planRefDateStart) != Tools.getMonth(act.dateGen))
                                 || (Tools.getYear(trList1.get(qq).planRefDateStart) != Tools.getYear(act.dateGen))
                         )
                         {
-                            throw new EnergyproSystemException("Рік та місяць акту і плану повинні співпадати ...");
+                            throw new EnergyproSystemException("Р С–Рє С‚Р° РјС–СЃСЏС†СЊ Р°РєС‚Сѓ С– РїР»Р°РЅСѓ РїРѕРІРёРЅРЅС– СЃРїС–РІРїР°РґР°С‚Рё ...");
                         }
 
                         if (trList1.get(qq).finWorkerTabNumber != null) {
@@ -800,7 +800,7 @@ public class ActLogic extends LogicModule{
             }
 
 
-            System.out.println("##Elmonters fillActData : act №" + act.numberGen + " ("+ act.code+")");
+            System.out.println("##Elmonters fillActData : act в„–" + act.numberGen + " ("+ act.code+")");
 
             int order = 1;
             ENAct2Humen a2h = null;
@@ -810,12 +810,12 @@ public class ActLogic extends LogicModule{
             a2hFilter.humenKindRef.code = ENHumenItemKind.ELTEH;
             int[] a2hArr = a2hDAO.getFilteredCodeArray(a2hFilter, null, null, 0, -1, null);
 
-            // электромонтеры ...
+            // СЌР»РµРєС‚СЂРѕРјРѕРЅС‚РµСЂС‹ ...
 
             FINWorkerShortList finWorkerList = fwDAO.getGroupedListByTabNumber2(null, finWorkerCondition, "FINWORKER.NAME", 0, -1, null);
             for (int i=0; i<finWorkerList.totalCount; i++) {
 
-                /** 19.01.2015 +++ несколько графиков рабочего времени, норма определяется для каждого табельного...  */
+                /** 19.01.2015 +++ РЅРµСЃРєРѕР»СЊРєРѕ РіСЂР°С„РёРєРѕРІ СЂР°Р±РѕС‡РµРіРѕ РІСЂРµРјРµРЅРё, РЅРѕСЂРјР° РѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ РґР»СЏ РєР°Р¶РґРѕРіРѕ С‚Р°Р±РµР»СЊРЅРѕРіРѕ...  */
                 BigDecimal[] monthTimes = finLogic.getWorkTime(act.dateAct, finWorkerList.get(i).tabNumber);
                 BigDecimal monthTime = monthTimes[0]; //finLogic.getWorkTimeInMonth(act.dateGen).setScale(2, BigDecimal.ROUND_HALF_UP);
                 BigDecimal monthDay = monthTimes[1];
@@ -839,7 +839,7 @@ public class ActLogic extends LogicModule{
                 "  and finworker.tabnumber = '" + finWorkerList.get(i).tabNumber +  "'" +
                 "  and finworker.issentassignment = " + finWorkerList.get(i).isSentAssignment +
                 //"  and finworker.pricegen = " + finWorkerList.get(i).priceGen +
-                /// 27.05.11 Нужно, чтобы фильтрануть водителей по списку должностей
+                /// 27.05.11 РќСѓР¶РЅРѕ, С‡С‚РѕР±С‹ С„РёР»СЊС‚СЂР°РЅСѓС‚СЊ РІРѕРґРёС‚РµР»РµР№ РїРѕ СЃРїРёСЃРєСѓ РґРѕР»Р¶РЅРѕСЃС‚РµР№
                 "  and finworker.positioncode = " + finWorkerList.get(i).positionCode +
                 ///
                 ")";
@@ -876,7 +876,7 @@ public class ActLogic extends LogicModule{
                     workerWorkTimeOnly = workerWorkTimeOnly.add(humenList.get(j).countFact.setScale(2, BigDecimal.ROUND_HALF_UP)).setScale(2, BigDecimal.ROUND_HALF_UP);
                     workerWorkTime = workerWorkTime.add(humenList.get(j).countFact.setScale(2, BigDecimal.ROUND_HALF_UP)).setScale(2, BigDecimal.ROUND_HALF_UP);
 
-                    // добавим время доставки ...
+                    // РґРѕР±Р°РІРёРј РІСЂРµРјСЏ РґРѕСЃС‚Р°РІРєРё ...
                     ENDeliveryTimeFilter delTimeFilter = new ENDeliveryTimeFilter();
                     delTimeFilter.humenItemRef.code = humenList.get(j).code;
                     ENDeliveryTimeShortList delTimeList = delTimeDAO.getScrollableFilteredList(delTimeFilter, 0, -1);
@@ -896,18 +896,18 @@ public class ActLogic extends LogicModule{
 
                     month2Time = finLogic.getWorkTimeTwoPreviousMonth(act.dateGen).setScale(2, BigDecimal.ROUND_HALF_UP);
                     if ( month2Time.abs().doubleValue() < 0.1 ){
-                        throw new EnergyproSystemException("Кількість робочих годин у місяці = 0 !!! ... ");
+                        throw new EnergyproSystemException("РљС–Р»СЊРєС–СЃС‚СЊ СЂРѕР±РѕС‡РёС… РіРѕРґРёРЅ Сѓ РјС–СЃСЏС†С– = 0 !!! ... ");
                     }
 
-                    System.out.println("getMiddlePayTwoPreviousMonth  act №" + act.numberGen + " ("+ act.code+"): " + finWorkerList.get(i).tabNumber);
+                    System.out.println("getMiddlePayTwoPreviousMonth  act в„–" + act.numberGen + " ("+ act.code+"): " + finWorkerList.get(i).tabNumber);
 
                     month2Pays = finLogic.getMiddlePayTwoPreviousMonth(act.dateGen, new Integer(finWorkerList.get(i).tabNumber).toString() );
-                    // только устроился - его в командировку ...
+                    // С‚РѕР»СЊРєРѕ СѓСЃС‚СЂРѕРёР»СЃСЏ - РµРіРѕ РІ РєРѕРјР°РЅРґРёСЂРѕРІРєСѓ ...
                     if (month2Pays == null){
 
                         a2h.timeMonth = monthTime;
                         if ( monthTime.abs().doubleValue() < 0.1 ){
-                            throw new EnergyproSystemException("Кількість робочих годин у місяці = 0 !!! ... ");
+                            throw new EnergyproSystemException("РљС–Р»СЊРєС–СЃС‚СЊ СЂРѕР±РѕС‡РёС… РіРѕРґРёРЅ Сѓ РјС–СЃСЏС†С– = 0 !!! ... ");
                         }
                         a2h.salaryHours = a2h.salary.setScale(2,java.math.BigDecimal.ROUND_HALF_UP).divide(monthTime,2,java.math.BigDecimal.ROUND_HALF_UP).setScale(2,java.math.BigDecimal.ROUND_HALF_UP).setScale(2,java.math.BigDecimal.ROUND_HALF_UP);
 
@@ -928,26 +928,26 @@ public class ActLogic extends LogicModule{
                     //a2h.salary = a2h.salary;
                     a2h.timeMonth = monthTime;
                     if ( monthTime.abs().doubleValue() < 0.1 ){
-                        throw new EnergyproSystemException("Кількість робочих годин у місяці = 0 !!! ... ");
+                        throw new EnergyproSystemException("РљС–Р»СЊРєС–СЃС‚СЊ СЂРѕР±РѕС‡РёС… РіРѕРґРёРЅ Сѓ РјС–СЃСЏС†С– = 0 !!! ... ");
                     }
                     a2h.salaryHours = a2h.salary.setScale(2,java.math.BigDecimal.ROUND_HALF_UP).divide(monthTime,2,java.math.BigDecimal.ROUND_HALF_UP).setScale(2,java.math.BigDecimal.ROUND_HALF_UP).setScale(2,java.math.BigDecimal.ROUND_HALF_UP);
                 }
 
                 a2h.timeObjectWork = workerWorkTimeOnly;
                 a2h.timeDelivery = workerDeliveryTime;
-                a2h.timeWork = workerWorkTime.setScale(2, BigDecimal.ROUND_HALF_UP); // пока потестим ... workerWorkTimeOnly.add(workerDeliveryTime).setScale(2, BigDecimal.ROUND_HALF_UP);
+                a2h.timeWork = workerWorkTime.setScale(2, BigDecimal.ROUND_HALF_UP); // РїРѕРєР° РїРѕС‚РµСЃС‚РёРј ... workerWorkTimeOnly.add(workerDeliveryTime).setScale(2, BigDecimal.ROUND_HALF_UP);
                 a2h.timeWorkFact = a2h.timeWork;
                 a2h.paysWork = a2h.salaryHours.multiply(a2h.timeWork.setScale(2,java.math.BigDecimal.ROUND_HALF_UP)).setScale(2,java.math.BigDecimal.ROUND_HALF_UP);
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                // 27.05.11 Определяем, совместитель ли этот эл. монтер, по коду доджности (если он по должности водитель)
+                // 27.05.11 РћРїСЂРµРґРµР»СЏРµРј, СЃРѕРІРјРµСЃС‚РёС‚РµР»СЊ Р»Рё СЌС‚РѕС‚ СЌР». РјРѕРЅС‚РµСЂ, РїРѕ РєРѕРґСѓ РґРѕРґР¶РЅРѕСЃС‚Рё (РµСЃР»Рё РѕРЅ РїРѕ РґРѕР»Р¶РЅРѕСЃС‚Рё РІРѕРґРёС‚РµР»СЊ)
                 for (int d = 0; d < ENConsts.DRIVERS_POSITIONS.length; d++)
                 {
                     if (finWorkerList.get(i).positionCode == ENConsts.DRIVERS_POSITIONS[d])
                     {
-                        // типа совместитель .. накинем 5%
+                        // С‚РёРїР° СЃРѕРІРјРµСЃС‚РёС‚РµР»СЊ .. РЅР°РєРёРЅРµРј 5%
                         if (a2h.salary != null){
-                            //throw new EnergyproSystemException("У сумісника з таб№ "+ a2h.tabNumber +" не знайден оклад");
+                            //throw new EnergyproSystemException("РЈ СЃСѓРјС–СЃРЅРёРєР° Р· С‚Р°Р±в„– "+ a2h.tabNumber +" РЅРµ Р·РЅР°Р№РґРµРЅ РѕРєР»Р°Рґ");
                             a2h.salary = ( a2h.salary.multiply(new BigDecimal(0.05)).setScale(2, BigDecimal.ROUND_HALF_UP));
                         }
 
@@ -960,9 +960,9 @@ public class ActLogic extends LogicModule{
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                 if (a2h.tabNumber.equals("12979"))
                 {
-                    // типа совместитель .. накинем 5%
+                    // С‚РёРїР° СЃРѕРІРјРµСЃС‚РёС‚РµР»СЊ .. РЅР°РєРёРЅРµРј 5%
                     if (a2h.salary != null){
-                        //throw new EnergyproSystemException("У сумісника з таб№ "+ a2h.tabNumber +" не знайден оклад");
+                        //throw new EnergyproSystemException("РЈ СЃСѓРјС–СЃРЅРёРєР° Р· С‚Р°Р±в„– "+ a2h.tabNumber +" РЅРµ Р·РЅР°Р№РґРµРЅ РѕРєР»Р°Рґ");
                         a2h.salary = (a2h.salary.multiply(new BigDecimal(0.05)).setScale(2, BigDecimal.ROUND_HALF_UP));
                     }
 
@@ -970,12 +970,12 @@ public class ActLogic extends LogicModule{
                     a2h.paysWork = (a2h.paysWork.multiply(new BigDecimal(0.05)).setScale(2, BigDecimal.ROUND_HALF_UP));
                 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                // сварщик СПС ;)
+                // СЃРІР°СЂС‰РёРє РЎРџРЎ ;)
                 if (a2h.tabNumber.equals("13029"))
                 {
-                    // типа совместитель .. накинем 30%
+                    // С‚РёРїР° СЃРѕРІРјРµСЃС‚РёС‚РµР»СЊ .. РЅР°РєРёРЅРµРј 30%
                     if (a2h.salary != null){
-                        //throw new EnergyproSystemException("У сумісника з таб№ "+ a2h.tabNumber +" не знайден оклад");
+                        //throw new EnergyproSystemException("РЈ СЃСѓРјС–СЃРЅРёРєР° Р· С‚Р°Р±в„– "+ a2h.tabNumber +" РЅРµ Р·РЅР°Р№РґРµРЅ РѕРєР»Р°Рґ");
                         a2h.salary = (a2h.salary.multiply(new BigDecimal(0.3)).setScale(2, BigDecimal.ROUND_HALF_UP));
                     }
 
@@ -992,19 +992,19 @@ public class ActLogic extends LogicModule{
                     a2hDAO.save(a2h);
                 }
 
-            } // конец электромонтеры
+            } // РєРѕРЅРµС† СЌР»РµРєС‚СЂРѕРјРѕРЅС‚РµСЂС‹
 
 
-            // удлаим то что осталось от предыдущих строк акта
+            // СѓРґР»Р°РёРј С‚Рѕ С‡С‚Рѕ РѕСЃС‚Р°Р»РѕСЃСЊ РѕС‚ РїСЂРµРґС‹РґСѓС‰РёС… СЃС‚СЂРѕРє Р°РєС‚Р°
             if ( finWorkerList.totalCount < a2hArr.length){
                 for (int i= finWorkerList.totalCount; i < a2hArr.length ; i++){
                     a2hDAO.remove(a2hArr[i]);
                 }
             }
 
-            System.out.println("##Drivers fillActData : act №" + act.numberGen + " ("+ act.code+")");
+            System.out.println("##Drivers fillActData : act в„–" + act.numberGen + " ("+ act.code+")");
 
-            // ЗП водителей ...
+            // Р—Рџ РІРѕРґРёС‚РµР»РµР№ ...
             TransportLogic transportLogic = new TransportLogic(connection, userProfile);
             PlanWorkLogic planLogic = new PlanWorkLogic(connection, userProfile);
 
@@ -1031,7 +1031,7 @@ public class ActLogic extends LogicModule{
 
 
 
-            // водители ....
+            // РІРѕРґРёС‚РµР»Рё ....
             finWorkerList = fwDAO.getGroupedListByTabNumber2(null, finWorkerCondition, "FINWORKER.NAME", 0, -1, null);
 
             String addCondition = "";
@@ -1052,7 +1052,7 @@ public class ActLogic extends LogicModule{
 
             for (int i=0; i<finWorkerList.totalCount; i++){
 
-                /** 19.01.2015 +++ несколько графиков рабочего времени, норма определяется для каждого табельного...  */
+                /** 19.01.2015 +++ РЅРµСЃРєРѕР»СЊРєРѕ РіСЂР°С„РёРєРѕРІ СЂР°Р±РѕС‡РµРіРѕ РІСЂРµРјРµРЅРё, РЅРѕСЂРјР° РѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ РґР»СЏ РєР°Р¶РґРѕРіРѕ С‚Р°Р±РµР»СЊРЅРѕРіРѕ...  */
                 BigDecimal[] monthTimes = finLogic.getWorkTime(act.dateAct, finWorkerList.get(i).tabNumber);
                 BigDecimal monthTime = monthTimes[0]; //finLogic.getWorkTimeInMonth(act.dateGen).setScale(2, BigDecimal.ROUND_HALF_UP);
                 BigDecimal monthDay = monthTimes[1];
@@ -1078,7 +1078,7 @@ public class ActLogic extends LogicModule{
                     " and fw.tabnumber = " + finWorkerList.get(i).tabNumber +
                     " and fw.issentassignment = " + finWorkerList.get(i).isSentAssignment +
                     //"  and fw.pricegen = " + finWorkerList.get(i).priceGen +
-                    /// 27.05.11 Нужно, чтобы фильтрануть водителей по списку должностей
+                    /// 27.05.11 РќСѓР¶РЅРѕ, С‡С‚РѕР±С‹ С„РёР»СЊС‚СЂР°РЅСѓС‚СЊ РІРѕРґРёС‚РµР»РµР№ РїРѕ СЃРїРёСЃРєСѓ РґРѕР»Р¶РЅРѕСЃС‚РµР№
                     " and fw.positioncode = " + finWorkerList.get(i).positionCode +
                     ///
                     " ) " ;
@@ -1112,27 +1112,27 @@ public class ActLogic extends LogicModule{
                     }
                     //a2h.fio = transportList.get(j).finWorkerName + " " + transportList.get(j).finWorkerPositionName;
 
-                    // время работы у Водилы для всех транспортов .. кроме бригадного АВТО
+                    // РІСЂРµРјСЏ СЂР°Р±РѕС‚С‹ Сѓ Р’РѕРґРёР»С‹ РґР»СЏ РІСЃРµС… С‚СЂР°РЅСЃРїРѕСЂС‚РѕРІ .. РєСЂРѕРјРµ Р±СЂРёРіР°РґРЅРѕРіРѕ РђР’РўРћ
                     if (transportList.get(j).tktransportTypeCode != TKTransportType.BRIGADE)
                     {
                         workerWorkTime = workerWorkTime.add(transportList.get(j).countWorkFact).setScale(2, BigDecimal.ROUND_HALF_UP);
                         workerWorkTimeOnly = workerWorkTimeOnly.add(transportList.get(j).countWorkFact).setScale(2, BigDecimal.ROUND_HALF_UP);
                     }
 
-                    // планы для времени доставки ТОЛЬКо бригадный авто с раастояниями ..
+                    // РїР»Р°РЅС‹ РґР»СЏ РІСЂРµРјРµРЅРё РґРѕСЃС‚Р°РІРєРё РўРћР›Р¬РљРѕ Р±СЂРёРіР°РґРЅС‹Р№ Р°РІС‚Рѕ СЃ СЂР°Р°СЃС‚РѕСЏРЅРёСЏРјРё ..
                     if ((transportList.get(j).tktransportTypeCode == TKTransportType.BRIGADE)
-                        // берем все ... может быть совместная доставка - и  расст. 0 ....
+                        // Р±РµСЂРµРј РІСЃРµ ... РјРѕР¶РµС‚ Р±С‹С‚СЊ СЃРѕРІРјРµСЃС‚РЅР°СЏ РґРѕСЃС‚Р°РІРєР° - Рё  СЂР°СЃСЃС‚. 0 ....
                         //&& (transportList.get(j).distance.doubleValue() > 0 )
                     )
                     {
                         trPlanCodes = trPlanCodes + ", " + transportList.get(j).planRefCode;
                     }
 
-                    // добавим время доставки ...
-                    // пошти бредок .. можна оптимизировать !!!
-                    // АС 01.06.2011 дооптимизировались ;))) :(
+                    // РґРѕР±Р°РІРёРј РІСЂРµРјСЏ РґРѕСЃС‚Р°РІРєРё ...
+                    // РїРѕС€С‚Рё Р±СЂРµРґРѕРє .. РјРѕР¶РЅР° РѕРїС‚РёРјРёР·РёСЂРѕРІР°С‚СЊ !!!
+                    // РђРЎ 01.06.2011 РґРѕРѕРїС‚РёРјРёР·РёСЂРѕРІР°Р»РёСЃСЊ ;))) :(
 
-                    BigDecimal[] distArr = transportLogic.getDistancesByTransport(transportList.get(j).code, false); // для Водил считаем ВСЕ расстояния ...
+                    BigDecimal[] distArr = transportLogic.getDistancesByTransport(transportList.get(j).code, false); // РґР»СЏ Р’РѕРґРёР» СЃС‡РёС‚Р°РµРј Р’РЎР• СЂР°СЃСЃС‚РѕСЏРЅРёСЏ ...
                     if ( distArr != null){
                         BigDecimal delTime = transportLogic.calcTimeByDistaces(distArr[0], distArr[1], distArr[2], planLogic.isWinterMonth( transportList.get(j).planRefDateStart), transportLogic.isTraktor(transportList.get(j).code)).setScale(2, BigDecimal.ROUND_HALF_UP);
                         workerWorkTime = workerWorkTime.add(delTime).setScale(2, BigDecimal.ROUND_HALF_UP);
@@ -1140,7 +1140,7 @@ public class ActLogic extends LogicModule{
 
                 }
 
-                /* см выше .. дооптимизировались
+                /* СЃРј РІС‹С€Рµ .. РґРѕРѕРїС‚РёРјРёР·РёСЂРѕРІР°Р»РёСЃСЊ
                 //if (addCondition.length() > 0){
                 if ( ! trPlanCodes.equals(""+Integer.MIN_VALUE)){
                     ENDeliveryTimePlanDAO dpDAO = new ENDeliveryTimePlanDAO(connection, userProfile);
@@ -1178,7 +1178,7 @@ public class ActLogic extends LogicModule{
                 a2h.paysWork = a2h.salaryHours.multiply(a2h.timeWork.setScale(2,java.math.BigDecimal.ROUND_HALF_UP)).setScale(2,java.math.BigDecimal.ROUND_HALF_UP);
 
                 ///////////////
-                // 29.04.11 Хитрый совместитель с табельным 12240
+                // 29.04.11 РҐРёС‚СЂС‹Р№ СЃРѕРІРјРµСЃС‚РёС‚РµР»СЊ СЃ С‚Р°Р±РµР»СЊРЅС‹Рј 12240
                 if (
                         (a2h.tabNumber.equals("12240"))
                         ||(a2h.tabNumber.equals("274"))
@@ -1187,9 +1187,9 @@ public class ActLogic extends LogicModule{
                         ||(a2h.tabNumber.equals("10735") )
                 )
                 {
-                    // типа совместитель ... накинем 15% (водителю!!!)
+                    // С‚РёРїР° СЃРѕРІРјРµСЃС‚РёС‚РµР»СЊ ... РЅР°РєРёРЅРµРј 15% (РІРѕРґРёС‚РµР»СЋ!!!)
                     if (a2h.salary != null){
-                        //throw new EnergyproSystemException("У сумісника з таб№ " + a2h.tabNumber + " не знайден оклад");
+                        //throw new EnergyproSystemException("РЈ СЃСѓРјС–СЃРЅРёРєР° Р· С‚Р°Р±в„– " + a2h.tabNumber + " РЅРµ Р·РЅР°Р№РґРµРЅ РѕРєР»Р°Рґ");
                         a2h.salary = (a2h.salary.multiply(new BigDecimal(0.15)).setScale(2, BigDecimal.ROUND_HALF_UP));
                     }
 
@@ -1206,10 +1206,10 @@ public class ActLogic extends LogicModule{
                     a2hDAO.save(a2h);
                 }
 
-                // проверим есть ли водитель в электромонтерах ..
+                // РїСЂРѕРІРµСЂРёРј РµСЃС‚СЊ Р»Рё РІРѕРґРёС‚РµР»СЊ РІ СЌР»РµРєС‚СЂРѕРјРѕРЅС‚РµСЂР°С… ..
 
-                /* 27.05.11 Определяем, совместитель ли этот эл. монтер, по коду доджности (если он по должности водитель) - см. выше
-                // 29.04.11 Хитрый совместитель с табельным 12240 - ему процент посчитали выше
+                /* 27.05.11 РћРїСЂРµРґРµР»СЏРµРј, СЃРѕРІРјРµСЃС‚РёС‚РµР»СЊ Р»Рё СЌС‚РѕС‚ СЌР». РјРѕРЅС‚РµСЂ, РїРѕ РєРѕРґСѓ РґРѕРґР¶РЅРѕСЃС‚Рё (РµСЃР»Рё РѕРЅ РїРѕ РґРѕР»Р¶РЅРѕСЃС‚Рё РІРѕРґРёС‚РµР»СЊ) - СЃРј. РІС‹С€Рµ
+                // 29.04.11 РҐРёС‚СЂС‹Р№ СЃРѕРІРјРµСЃС‚РёС‚РµР»СЊ СЃ С‚Р°Р±РµР»СЊРЅС‹Рј 12240 - РµРјСѓ РїСЂРѕС†РµРЅС‚ РїРѕСЃС‡РёС‚Р°Р»Рё РІС‹С€Рµ
                 if (
                         (! a2h.tabNumber.equals("12240"))
                         &&(! a2h.tabNumber.equals("274"))
@@ -1224,9 +1224,9 @@ public class ActLogic extends LogicModule{
                     int[] a2hArr_ = a2hDAO.getFilteredCodeArray(a2hFilter, null, null, 0, -1, null);
                     for (int ii=0; ii < a2hArr_.length; ii++){
                         ENAct2Humen a2h_ = a2hDAO.getObject(a2hArr_[ii]);
-                        // типа совместитель .. накинем 5%
+                        // С‚РёРїР° СЃРѕРІРјРµСЃС‚РёС‚РµР»СЊ .. РЅР°РєРёРЅРµРј 5%
                         if (a2h_.salary != null){
-                            //throw new EnergyproSystemException("У сумісника з таб№ "+ a2h.tabNumber +" не знайден оклад");
+                            //throw new EnergyproSystemException("РЈ СЃСѓРјС–СЃРЅРёРєР° Р· С‚Р°Р±в„– "+ a2h.tabNumber +" РЅРµ Р·РЅР°Р№РґРµРЅ РѕРєР»Р°Рґ");
                             a2h_.salary = ( a2h_.salary.multiply(new BigDecimal(0.05)).setScale(2, BigDecimal.ROUND_HALF_UP));
                         }
 
@@ -1238,7 +1238,7 @@ public class ActLogic extends LogicModule{
                 */
 
                 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                // 30.05.11 Проверим, есть ли водитель в электромонтерах - нужно, чтобы ему 2 раза не считалось время проезда
+                // 30.05.11 РџСЂРѕРІРµСЂРёРј, РµСЃС‚СЊ Р»Рё РІРѕРґРёС‚РµР»СЊ РІ СЌР»РµРєС‚СЂРѕРјРѕРЅС‚РµСЂР°С… - РЅСѓР¶РЅРѕ, С‡С‚РѕР±С‹ РµРјСѓ 2 СЂР°Р·Р° РЅРµ СЃС‡РёС‚Р°Р»РѕСЃСЊ РІСЂРµРјСЏ РїСЂРѕРµР·РґР°
                 a2hFilter = new ENAct2HumenFilter();
                 a2hFilter.actRef.code = actCode;
                 a2hFilter.humenKindRef.code = ENHumenItemKind.ELTEH;
@@ -1247,7 +1247,7 @@ public class ActLogic extends LogicModule{
                 for (int ii=0; ii < a2hArr_.length; ii++)
                 {
                     ENAct2Humen a2h_ = a2hDAO.getObject(a2hArr_[ii]);
-                    // Отнимаем время доставки у эл. монтера с таким же табельным, как и у текущего водителя (т.е. у водителя-совместителя)
+                    // РћС‚РЅРёРјР°РµРј РІСЂРµРјСЏ РґРѕСЃС‚Р°РІРєРё Сѓ СЌР». РјРѕРЅС‚РµСЂР° СЃ С‚Р°РєРёРј Р¶Рµ С‚Р°Р±РµР»СЊРЅС‹Рј, РєР°Рє Рё Сѓ С‚РµРєСѓС‰РµРіРѕ РІРѕРґРёС‚РµР»СЏ (С‚.Рµ. Сѓ РІРѕРґРёС‚РµР»СЏ-СЃРѕРІРјРµСЃС‚РёС‚РµР»СЏ)
                     a2h_.timeWork = a2h_.timeWork.subtract(a2h.timeDelivery).setScale(2, BigDecimal.ROUND_HALF_UP);
                     a2h_.timeWorkFact = a2h_.timeWork;
                     a2h_.paysWork = a2h_.salaryHours.multiply(a2h_.timeWork.setScale(2,java.math.BigDecimal.ROUND_HALF_UP)).setScale(2,java.math.BigDecimal.ROUND_HALF_UP);
@@ -1255,10 +1255,10 @@ public class ActLogic extends LogicModule{
                 }
                 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-            } // конец             // водители ....
+            } // РєРѕРЅРµС†             // РІРѕРґРёС‚РµР»Рё ....
 
 
-            // удалим то что осталось от предыдущих строк акта
+            // СѓРґР°Р»РёРј С‚Рѕ С‡С‚Рѕ РѕСЃС‚Р°Р»РѕСЃСЊ РѕС‚ РїСЂРµРґС‹РґСѓС‰РёС… СЃС‚СЂРѕРє Р°РєС‚Р°
             if ( finWorkerList.totalCount < a2hArr.length){
                 for (int i = finWorkerList.totalCount; i < a2hArr.length ; i++){
                     a2hDAO.remove(a2hArr[i]);
@@ -1268,7 +1268,7 @@ public class ActLogic extends LogicModule{
             String prevTabNumber = "";
             //BigDecimal calendarTime = monthTime.divide(monthDay, 2, BigDecimal.ROUND_HALF_UP);
 
-            // пересчет времени на планах ....
+            // РїРµСЂРµСЃС‡РµС‚ РІСЂРµРјРµРЅРё РЅР° РїР»Р°РЅР°С… ....
             /*
             ENAct2HumenFilter a3Filter = new ENAct2HumenFilter();
             a3Filter.actRef.code = act.code;
@@ -1285,8 +1285,8 @@ public class ActLogic extends LogicModule{
 
 
             /////////////////////////////////
-            // проверим часы ....
-            // начиная с ИЮНЯ 2011
+            // РїСЂРѕРІРµСЂРёРј С‡Р°СЃС‹ ....
+            // РЅР°С‡РёРЅР°СЏ СЃ РР®РќРЇ 2011
             Calendar c = Calendar.getInstance();
             c.setTime(act.dateGen);
 
@@ -1307,7 +1307,7 @@ public class ActLogic extends LogicModule{
                 boolean isRemoveElTech = false;
                 for (int a2=0; a2 < a2List.totalCount; a2++){
 
-                    /** 19.01.2015 +++ несколько графиков рабочего времени, норма определяется для каждого табельного...  */
+                    /** 19.01.2015 +++ РЅРµСЃРєРѕР»СЊРєРѕ РіСЂР°С„РёРєРѕРІ СЂР°Р±РѕС‡РµРіРѕ РІСЂРµРјРµРЅРё, РЅРѕСЂРјР° РѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ РґР»СЏ РєР°Р¶РґРѕРіРѕ С‚Р°Р±РµР»СЊРЅРѕРіРѕ...  */
                     BigDecimal[] monthTimes = finLogic.getWorkTime(act.dateAct, a2List.get(a2).tabNumber);
                     BigDecimal monthTime = monthTimes[0]; //finLogic.getWorkTimeInMonth(act.dateGen).setScale(2, BigDecimal.ROUND_HALF_UP);
                     BigDecimal monthDay = monthTimes[1];
@@ -1360,7 +1360,7 @@ public class ActLogic extends LogicModule{
             ////////////////////////////////
 
 
-            // транспортные расходы
+            // С‚СЂР°РЅСЃРїРѕСЂС‚РЅС‹Рµ СЂР°СЃС…РѕРґС‹
             ENAct2TransportFilter a2tFilter = new ENAct2TransportFilter();
             ENAct2TransportDAO a2tDAO = new ENAct2TransportDAO(connection, userProfile);
             a2tFilter.actRef.code = act.code;
@@ -1377,14 +1377,14 @@ public class ActLogic extends LogicModule{
                 " ena2.actrefcode = " + act.code +
                 " and ent.planrefcode = ena2.plancode " +
                 //" and ent.finworkercode = fw.code " +
-                // У ЦППшников не считалась амортизация механизмов, потому что они не привязывают на них реальных людей
+                // РЈ Р¦РџРџС€РЅРёРєРѕРІ РЅРµ СЃС‡РёС‚Р°Р»Р°СЃСЊ Р°РјРѕСЂС‚РёР·Р°С†РёСЏ РјРµС…Р°РЅРёР·РјРѕРІ, РїРѕС‚РѕРјСѓ С‡С‚Рѕ РѕРЅРё РЅРµ РїСЂРёРІСЏР·С‹РІР°СЋС‚ РЅР° РЅРёС… СЂРµР°Р»СЊРЅС‹С… Р»СЋРґРµР№
                 //" and (ent.finworkercode = fw.code or (ent.finworkercode is null and ent.tktransporttypecode = " + TKTransportType.MECHANIZM + ")) " +
                 " and ent.planitemrefcode = pwi.code " +
                 " and pwi.countgen > 0  " +
                 " and coalesce(ent.transportrealcode, -1) <> -1 " +
                 " ) " ;
 
-            /// Для того что бы брался только транспорт со статусом в работе. Откидываем сторонний транспорт
+            /// Р”Р»СЏ С‚РѕРіРѕ С‡С‚Рѕ Р±С‹ Р±СЂР°Р»СЃСЏ С‚РѕР»СЊРєРѕ С‚СЂР°РЅСЃРїРѕСЂС‚ СЃРѕ СЃС‚Р°С‚СѓСЃРѕРј РІ СЂР°Р±РѕС‚Рµ. РћС‚РєРёРґС‹РІР°РµРј СЃС‚РѕСЂРѕРЅРЅРёР№ С‚СЂР°РЅСЃРїРѕСЂС‚
             trFilter.transportstatus.code = TKTransportStatus.TKTRANSPORTSTATUS_WORK;  ///
             ///
 
@@ -1407,7 +1407,7 @@ public class ActLogic extends LogicModule{
                     " ena2.actrefcode = " + act.code +
                     " and ent.planrefcode = ena2.plancode " +
                     //" and ent.finworkercode = fw.code " +
-                    // У ЦППшников не считалась амортизация механизмов, потому что они не привязывают на них реальных людей
+                    // РЈ Р¦РџРџС€РЅРёРєРѕРІ РЅРµ СЃС‡РёС‚Р°Р»Р°СЃСЊ Р°РјРѕСЂС‚РёР·Р°С†РёСЏ РјРµС…Р°РЅРёР·РјРѕРІ, РїРѕС‚РѕРјСѓ С‡С‚Рѕ РѕРЅРё РЅРµ РїСЂРёРІСЏР·С‹РІР°СЋС‚ РЅР° РЅРёС… СЂРµР°Р»СЊРЅС‹С… Р»СЋРґРµР№
                     //" and (ent.finworkercode = fw.code or (ent.finworkercode is null and ent.tktransporttypecode = " + TKTransportType.MECHANIZM + ")) " +
                     " and ent.planitemrefcode = pwi.code " +
                     " and pwi.countgen > 0  " +
@@ -1430,19 +1430,19 @@ public class ActLogic extends LogicModule{
                 a2t.name = trList.get(i).name + " " + trList.get(i).gosNumber;
                 BigDecimal gsm = new BigDecimal(0);
                 for (int j=0; j < transportList.totalCount; j++){
-                    // как то ЭТО не правильно !!!!
-                    // по идее в нормативах для Бригадных авто время СПЕЦИАЛЬНО для износа !!!
+                    // РєР°Рє С‚Рѕ Р­РўРћ РЅРµ РїСЂР°РІРёР»СЊРЅРѕ !!!!
+                    // РїРѕ РёРґРµРµ РІ РЅРѕСЂРјР°С‚РёРІР°С… РґР»СЏ Р‘СЂРёРіР°РґРЅС‹С… Р°РІС‚Рѕ РІСЂРµРјСЏ РЎРџР•Р¦РРђР›Р¬РќРћ РґР»СЏ РёР·РЅРѕСЃР° !!!
                     if (transportList.get(j).tktransportTypeCode != TKTransportType.BRIGADE )
                     {
                         workerWorkTime = workerWorkTime.add(transportList.get(j).countWorkFact)    ;
                     }
-                    // добавим время проезда ...
+                    // РґРѕР±Р°РІРёРј РІСЂРµРјСЏ РїСЂРѕРµР·РґР° ...
                     BigDecimal[] distArr = transportLogic.getDistancesByTransport(transportList.get(j).code, false);
                     if ( distArr != null){
                         BigDecimal delTime = transportLogic.calcTimeByDistaces(distArr[0], distArr[1], distArr[2], planLogic.isWinterMonth( transportList.get(j).planRefDateStart), transportLogic.isTraktor(transportList.get(j).code)).setScale(2, BigDecimal.ROUND_HALF_UP);
                         workerWorkTime = workerWorkTime.add(delTime).setScale(2, BigDecimal.ROUND_HALF_UP);
                     }
-                    // кол-во ГСМ
+                    // РєРѕР»-РІРѕ Р“РЎРњ
                     FINMaterialsDAO fDAO = new FINMaterialsDAO(connection, userProfile);
                     FINMaterialsFilter fFilter = new FINMaterialsFilter();
                     fFilter.statusRef.code = FINMaterialsStatus.GOOD;
@@ -1477,7 +1477,7 @@ public class ActLogic extends LogicModule{
                 {
                     a2t.paysWork = new BigDecimal(0.01);
                 }
-                // если затраты меньше 0,01 то необходимо присвоить 0,01
+                // РµСЃР»Рё Р·Р°С‚СЂР°С‚С‹ РјРµРЅСЊС€Рµ 0,01 С‚Рѕ РЅРµРѕР±С…РѕРґРёРјРѕ РїСЂРёСЃРІРѕРёС‚СЊ 0,01
                 //a2t.paysWork = (a2t.depreciationHours.multiply(workerWorkTime)).setScale(2, java.math.BigDecimal.ROUND_HALF_UP);
                 //
                 }
@@ -1490,14 +1490,14 @@ public class ActLogic extends LogicModule{
 
 
             }
-            // удалим то что осталось от предыдущих строк акта
+            // СѓРґР°Р»РёРј С‚Рѕ С‡С‚Рѕ РѕСЃС‚Р°Р»РѕСЃСЊ РѕС‚ РїСЂРµРґС‹РґСѓС‰РёС… СЃС‚СЂРѕРє Р°РєС‚Р°
             if ( trList.totalCount < a2tArr.length){
                 for (int i = trList.totalCount; i < a2tArr.length ; i++){
                     a2tDAO.remove(a2tArr[i]);
                 }
             }
 
-            System.out.println("Final fillActData : act №" + act.numberGen + " ("+ act.code+")");
+            System.out.println("Final fillActData : act в„–" + act.numberGen + " ("+ act.code+")");
 
             } catch (Exception e) {
                 throw new EnergyproSystemException(e);
@@ -1578,27 +1578,27 @@ public class ActLogic extends LogicModule{
         for (int j=0; j < transportList.totalCount; j++){
 
 
-            // время работы у Водилы для всех транспортов .. кроме бригадного АВТО
+            // РІСЂРµРјСЏ СЂР°Р±РѕС‚С‹ Сѓ Р’РѕРґРёР»С‹ РґР»СЏ РІСЃРµС… С‚СЂР°РЅСЃРїРѕСЂС‚РѕРІ .. РєСЂРѕРјРµ Р±СЂРёРіР°РґРЅРѕРіРѕ РђР’РўРћ
             if (transportList.get(j).tktransportTypeCode != TKTransportType.BRIGADE)
             {
                 workerWorkTime = workerWorkTime.add(transportList.get(j).countWorkFact).setScale(2, BigDecimal.ROUND_HALF_UP);
                 workerWorkTimeOnly = workerWorkTimeOnly.add(transportList.get(j).countWorkFact).setScale(2, BigDecimal.ROUND_HALF_UP);
             }
 
-            // планы для времени доставки ТОЛЬКо бригадный авто с раастояниями ..
+            // РїР»Р°РЅС‹ РґР»СЏ РІСЂРµРјРµРЅРё РґРѕСЃС‚Р°РІРєРё РўРћР›Р¬РљРѕ Р±СЂРёРіР°РґРЅС‹Р№ Р°РІС‚Рѕ СЃ СЂР°Р°СЃС‚РѕСЏРЅРёСЏРјРё ..
             if ((transportList.get(j).tktransportTypeCode == TKTransportType.BRIGADE)
-                // берем все ... может быть совместная доставка - и  расст. 0 ....
+                // Р±РµСЂРµРј РІСЃРµ ... РјРѕР¶РµС‚ Р±С‹С‚СЊ СЃРѕРІРјРµСЃС‚РЅР°СЏ РґРѕСЃС‚Р°РІРєР° - Рё  СЂР°СЃСЃС‚. 0 ....
                 //&& (transportList.get(j).distance.doubleValue() > 0 )
             )
             {
                 trPlanCodes = trPlanCodes + ", " + transportList.get(j).planRefCode;
             }
 
-            // добавим время доставки ...
-            // пошти бредок .. можна оптимизировать !!!
-            // АС 01.06.2011 дооптимизировались ;))) :(
+            // РґРѕР±Р°РІРёРј РІСЂРµРјСЏ РґРѕСЃС‚Р°РІРєРё ...
+            // РїРѕС€С‚Рё Р±СЂРµРґРѕРє .. РјРѕР¶РЅР° РѕРїС‚РёРјРёР·РёСЂРѕРІР°С‚СЊ !!!
+            // РђРЎ 01.06.2011 РґРѕРѕРїС‚РёРјРёР·РёСЂРѕРІР°Р»РёСЃСЊ ;))) :(
 
-            BigDecimal[] distArr = transportLogic.getDistancesByTransport(transportList.get(j).code, false); // для Водил считаем ВСЕ расстояния ...
+            BigDecimal[] distArr = transportLogic.getDistancesByTransport(transportList.get(j).code, false); // РґР»СЏ Р’РѕРґРёР» СЃС‡РёС‚Р°РµРј Р’РЎР• СЂР°СЃСЃС‚РѕСЏРЅРёСЏ ...
             if ( distArr != null){
                 BigDecimal delTime = transportLogic.calcTimeByDistaces(distArr[0], distArr[1], distArr[2], planLogic.isWinterMonth( planDate ), transportLogic.isTraktor(transportList.get(j).code)).setScale(2, BigDecimal.ROUND_HALF_UP);
                 workerWorkTime = workerWorkTime.add(delTime).setScale(2, BigDecimal.ROUND_HALF_UP);
@@ -1606,7 +1606,7 @@ public class ActLogic extends LogicModule{
 
         }
 
-        /* см выше .. дооптимизировались
+        /* СЃРј РІС‹С€Рµ .. РґРѕРѕРїС‚РёРјРёР·РёСЂРѕРІР°Р»РёСЃСЊ
         //if (addCondition.length() > 0){
         if ( ! trPlanCodes.equals(""+Integer.MIN_VALUE)){
             ENDeliveryTimePlanDAO dpDAO = new ENDeliveryTimePlanDAO(connection, userProfile);
@@ -1630,7 +1630,7 @@ public class ActLogic extends LogicModule{
     {
 
         if (planCode == Integer.MIN_VALUE){
-            throw new EnergyproSystemException("код плана пустой для проверки наличия плана в Акте ...");
+            throw new EnergyproSystemException("РєРѕРґ РїР»Р°РЅР° РїСѓСЃС‚РѕР№ РґР»СЏ РїСЂРѕРІРµСЂРєРё РЅР°Р»РёС‡РёСЏ РїР»Р°РЅР° РІ РђРєС‚Рµ ...");
         }
 
         ENAct out = new ENAct();
@@ -1657,7 +1657,7 @@ public class ActLogic extends LogicModule{
 
         if ( out.statusRef.code == ENActStatus.CANCELED){
             if (isGenException){
-                throw new EnergyproSystemException("Акт отмененный !!!");
+                throw new EnergyproSystemException("РђРєС‚ РѕС‚РјРµРЅРµРЅРЅС‹Р№ !!!");
             }
             else
                 return null;
@@ -1693,13 +1693,13 @@ public class ActLogic extends LogicModule{
         }
         */
 
-        // проверить статусы и т.д.
+        // РїСЂРѕРІРµСЂРёС‚СЊ СЃС‚Р°С‚СѓСЃС‹ Рё С‚.Рґ.
         if ((act.statusRef.code == ENActStatus.CANCELED) || (act.statusRef.code == ENActStatus.CLOSED)){
             throw new EnergyproBusinessException("Act canceled, code=" + act.code);
         }
 
         /*
-        * act.actTypeRef присваиваеться ПЛАНУ в момен сохранеиня привязки !!!
+        * act.actTypeRef РїСЂРёСЃРІР°РёРІР°РµС‚СЊСЃСЏ РџР›РђРќРЈ РІ РјРѕРјРµРЅ СЃРѕС…СЂР°РЅРµРёРЅСЏ РїСЂРёРІСЏР·РєРё !!!
         *
         if (act.actTypeRef.code != plan.stateRef.code ) {
             throw new EnergyproBusinessException("Act state("+act.actTypeRef.code+") and planstate("+plan.stateRef.code+") not equals" + actCode);
@@ -1759,17 +1759,17 @@ public class ActLogic extends LogicModule{
                 throw new DatasourceConnectException(dataSourceName, e);
             } catch (SQLException e) {
                 //System.out.print("error");
-                throw new DatasourceConnectException("Нет связи с Фин.Коллекцией ... перевод месяца или еще что то ...", e);
+                throw new DatasourceConnectException("РќРµС‚ СЃРІСЏР·Рё СЃ Р¤РёРЅ.РљРѕР»Р»РµРєС†РёРµР№ ... РїРµСЂРµРІРѕРґ РјРµСЃСЏС†Р° РёР»Рё РµС‰Рµ С‡С‚Рѕ С‚Рѕ ...", e);
             }
         }
 
         /**
-         * 	Проверяет, что в акт входит хотя бы одно задание-факт сделанное
-         *  с плана на производство, сгенерированного автоматом при проставке
-         *  материалу статуса "Власне виробництво"
+         * 	РџСЂРѕРІРµСЂСЏРµС‚, С‡С‚Рѕ РІ Р°РєС‚ РІС…РѕРґРёС‚ С…РѕС‚СЏ Р±С‹ РѕРґРЅРѕ Р·Р°РґР°РЅРёРµ-С„Р°РєС‚ СЃРґРµР»Р°РЅРЅРѕРµ
+         *  СЃ РїР»Р°РЅР° РЅР° РїСЂРѕРёР·РІРѕРґСЃС‚РІРѕ, СЃРіРµРЅРµСЂРёСЂРѕРІР°РЅРЅРѕРіРѕ Р°РІС‚РѕРјР°С‚РѕРј РїСЂРё РїСЂРѕСЃС‚Р°РІРєРµ
+         *  РјР°С‚РµСЂРёР°Р»Сѓ СЃС‚Р°С‚СѓСЃР° "Р’Р»Р°СЃРЅРµ РІРёСЂРѕР±РЅРёС†С‚РІРѕ"
          *
-         * @param actCode код акта
-         * @return true - если есть задание-факт из автоматического месячного плана, false - если нет
+         * @param actCode РєРѕРґ Р°РєС‚Р°
+         * @return true - РµСЃР»Рё РµСЃС‚СЊ Р·Р°РґР°РЅРёРµ-С„Р°РєС‚ РёР· Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРѕРіРѕ РјРµСЃСЏС‡РЅРѕРіРѕ РїР»Р°РЅР°, false - РµСЃР»Рё РЅРµС‚
          * @throws PersistenceException
          */
         public boolean checkActProductionHasAutomaticPlan(int actCode) throws PersistenceException {
@@ -1802,10 +1802,10 @@ public class ActLogic extends LogicModule{
 
         /**
          *
-         * Функция для подписания акта, а также перерасчета связанных с ним актов
+         * Р¤СѓРЅРєС†РёСЏ РґР»СЏ РїРѕРґРїРёСЃР°РЅРёСЏ Р°РєС‚Р°, Р° С‚Р°РєР¶Рµ РїРµСЂРµСЂР°СЃС‡РµС‚Р° СЃРІСЏР·Р°РЅРЅС‹С… СЃ РЅРёРј Р°РєС‚РѕРІ
          *
-         * @param actCode код акта
-         * @param isCalcAct нужен ли перерасчет акта и связанных
+         * @param actCode РєРѕРґ Р°РєС‚Р°
+         * @param isCalcAct РЅСѓР¶РµРЅ Р»Рё РїРµСЂРµСЂР°СЃС‡РµС‚ Р°РєС‚Р° Рё СЃРІСЏР·Р°РЅРЅС‹С…
          * @throws PersistenceException
          */
         public void signatured(int actCode, boolean isCalcAct) throws PersistenceException
@@ -1828,7 +1828,7 @@ public class ActLogic extends LogicModule{
 			
             ENAct act = dao.getObject(actCode);
             if (act.statusRef.code != ENActStatus.GOOD){
-                throw new EnergyproSystemException("В статус На підписанни переводяться тільки ЧЕРНОВІ акти ...", userProfile);
+                throw new EnergyproSystemException("Р’ СЃС‚Р°С‚СѓСЃ РќР° РїС–РґРїРёСЃР°РЅРЅРё РїРµСЂРµРІРѕРґСЏС‚СЊСЃСЏ С‚С–Р»СЊРєРё Р§Р•Р РќРћР’Р† Р°РєС‚Рё ...", userProfile);
             }
 
             if(this.checkZKUMountingByAct(act)) {
@@ -1846,7 +1846,7 @@ public class ActLogic extends LogicModule{
             	}
             }
 
-            /** SUPP-12236... 13.02.2014 +++ расчет фактических затрат по акту для услуг на сторону */
+            /** SUPP-12236... 13.02.2014 +++ СЂР°СЃС‡РµС‚ С„Р°РєС‚РёС‡РµСЃРєРёС… Р·Р°С‚СЂР°С‚ РїРѕ Р°РєС‚Сѓ РґР»СЏ СѓСЃР»СѓРі РЅР° СЃС‚РѕСЂРѕРЅСѓ */
             boolean recalcServicesFact = false;
             ServicesLogic soLogic = new ServicesLogic(connection, userProfile);
 
@@ -1856,13 +1856,13 @@ public class ActLogic extends LogicModule{
 
                 if (sObj.calcTypeRef.code == ENServicesObjectCalcType.BY_FACT) {
                     recalcServicesFact = true;
-                    // Вызываем расчет фактических затрат...
+                    // Р’С‹Р·С‹РІР°РµРј СЂР°СЃС‡РµС‚ С„Р°РєС‚РёС‡РµСЃРєРёС… Р·Р°С‚СЂР°С‚...
                     soLogic.recalcServicesOnlyFactCalcByAct(act.code);
                 }
             }
 
 
-            /** NET-4429... +++ проверка даты акта с датами нарядов */
+            /** NET-4429... +++ РїСЂРѕРІРµСЂРєР° РґР°С‚С‹ Р°РєС‚Р° СЃ РґР°С‚Р°РјРё РЅР°СЂСЏРґРѕРІ */
             if (act.element.typeRef.code == ENElementType.SERVICES_OBJECT) {
 
             	boolean allowed = false;
@@ -1883,12 +1883,12 @@ public class ActLogic extends LogicModule{
 
             	if (!allowed) {
             		throw new SystemException("\n\n NET-4429..."
-            				+ "\n Дата акту не повинна бути відмінною від дати останнього наряду!!!");
+            				+ "\n Р”Р°С‚Р° Р°РєС‚Сѓ РЅРµ РїРѕРІРёРЅРЅР° Р±СѓС‚Рё РІС–РґРјС–РЅРЅРѕСЋ РІС–Рґ РґР°С‚Рё РѕСЃС‚Р°РЅРЅСЊРѕРіРѕ РЅР°СЂСЏРґСѓ!!!");
             	}
             }
 
-            // Проверим при подписании, чтобы на акте был привязан корректный МОЛ для МНМА
-            // (сейчас проверяется аж на проведении)
+            // РџСЂРѕРІРµСЂРёРј РїСЂРё РїРѕРґРїРёСЃР°РЅРёРё, С‡С‚РѕР±С‹ РЅР° Р°РєС‚Рµ Р±С‹Р» РїСЂРёРІСЏР·Р°РЅ РєРѕСЂСЂРµРєС‚РЅС‹Р№ РњРћР› РґР»СЏ РњРќРњРђ
+            // (СЃРµР№С‡Р°СЃ РїСЂРѕРІРµСЂСЏРµС‚СЃСЏ Р°Р¶ РЅР° РїСЂРѕРІРµРґРµРЅРёРё)
             if (act.element.typeRef.code == ENElementType.EQUIPMENT_OBJECTS ||
             	act.element.typeRef.code == ENElementType.EQUIPMENT_REPAIR_OBJECTS  ||
             	act.element.typeRef.code == ENElementType.SDTU ||
@@ -1903,7 +1903,7 @@ public class ActLogic extends LogicModule{
             	String invNumber = elLogic.getElementInvNumber(act.element.code);
 
             	if (invNumber.length() > 6) {
-	        		// выберем шпз и подразделение по табельному
+	        		// РІС‹Р±РµСЂРµРј С€РїР· Рё РїРѕРґСЂР°Р·РґРµР»РµРЅРёРµ РїРѕ С‚Р°Р±РµР»СЊРЅРѕРјСѓ
 	        		getBalansWithMainCeh(act, fConn);
             	}
             }
@@ -1947,20 +1947,20 @@ public class ActLogic extends LogicModule{
 
 				if (!isServices) {
 
-					// 28.05.15 NET-4453 Рассчитаем отчисления c з/п
+					// 28.05.15 NET-4453 Р Р°СЃСЃС‡РёС‚Р°РµРј РѕС‚С‡РёСЃР»РµРЅРёСЏ c Р·/Рї
 					calculateSalaryCharges(actCode);
 
 				}
 
 
-				/** SUPP-97236... 13.01.2021... все условия внутри проверки... */
+				/** SUPP-97236... 13.01.2021... РІСЃРµ СѓСЃР»РѕРІРёСЏ РІРЅСѓС‚СЂРё РїСЂРѕРІРµСЂРєРё... */
                 soLogic.validateProfitability(sObj);
 
 
                 /*
-                 * Для изготовления проверяется если план создан автоматом,
-                 * и есть связка с материалами, под которые изготовляются
-                 * то автоматически создаются расходные ордера
+                 * Р”Р»СЏ РёР·РіРѕС‚РѕРІР»РµРЅРёСЏ РїСЂРѕРІРµСЂСЏРµС‚СЃСЏ РµСЃР»Рё РїР»Р°РЅ СЃРѕР·РґР°РЅ Р°РІС‚РѕРјР°С‚РѕРј,
+                 * Рё РµСЃС‚СЊ СЃРІСЏР·РєР° СЃ РјР°С‚РµСЂРёР°Р»Р°РјРё, РїРѕРґ РєРѕС‚РѕСЂС‹Рµ РёР·РіРѕС‚РѕРІР»СЏСЋС‚СЃСЏ
+                 * С‚Рѕ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё СЃРѕР·РґР°СЋС‚СЃСЏ СЂР°СЃС…РѕРґРЅС‹Рµ РѕСЂРґРµСЂР°
                  */
                 if(act.actTypeRef.code == ENPlanWorkState.PRODUCTION) {
                 	if(this.checkActProductionHasAutomaticPlan(act.code)) {
@@ -1973,8 +1973,8 @@ public class ActLogic extends LogicModule{
                 dao.save(act);
             }
 
-            ///20.10.2017  проверка на отчисления в акте
-            ////           если есть сумма з/п по человеку а нет отчислений то не давать переводить на подписание
+            ///20.10.2017  РїСЂРѕРІРµСЂРєР° РЅР° РѕС‚С‡РёСЃР»РµРЅРёСЏ РІ Р°РєС‚Рµ
+            ////           РµСЃР»Рё РµСЃС‚СЊ СЃСѓРјРјР° Р·/Рї РїРѕ С‡РµР»РѕРІРµРєСѓ Р° РЅРµС‚ РѕС‚С‡РёСЃР»РµРЅРёР№ С‚Рѕ РЅРµ РґР°РІР°С‚СЊ РїРµСЂРµРІРѕРґРёС‚СЊ РЅР° РїРѕРґРїРёСЃР°РЅРёРµ
                ENAct2HumenFilter ah2Fil = new ENAct2HumenFilter();
                // ah2Fil.actRef.code = act.code;
                ah2Fil.conditionSQL = " actrefcode = " + act.code + " and paysworkbonus > 0 and coalesce(chargesum, 0) = 0";
@@ -1985,7 +1985,7 @@ public class ActLogic extends LogicModule{
 
                if (ah2Arr.length > 0 )
                {
-            	  // кроме работ на сторону и доробки по договорам подряда
+            	  // РєСЂРѕРјРµ СЂР°Р±РѕС‚ РЅР° СЃС‚РѕСЂРѕРЅСѓ Рё РґРѕСЂРѕР±РєРё РїРѕ РґРѕРіРѕРІРѕСЂР°Рј РїРѕРґСЂСЏРґР°
             	  if ((act.actTypeRef.code != ENPlanWorkState.WORK_IN_OUT)
             	       && (act.actTypeRef.code != ENPlanWorkState.REFINEMENT_BY_CONTRACT) 
             	       && (act.actTypeRef.code != ENPlanWorkState.TMC_TRANSFER)){
@@ -1999,12 +1999,12 @@ public class ActLogic extends LogicModule{
 	               		  pwState = pwSList.get(0).name;
 	               	   }
 
-	               	   throw new EnergyproSystemException("\n\n В Акті( ун.н= " + act.code +"), Тип акта = " + pwState + ", Користувач = " +userProfile.userName  + "  по робітникам немає відрахувань ... перерахуйте ЗП ... (Друк Акту)");
+	               	   throw new EnergyproSystemException("\n\n Р’ РђРєС‚С–( СѓРЅ.РЅ= " + act.code +"), РўРёРї Р°РєС‚Р° = " + pwState + ", РљРѕСЂРёСЃС‚СѓРІР°С‡ = " +userProfile.userName  + "  РїРѕ СЂРѕР±С–С‚РЅРёРєР°Рј РЅРµРјР°С” РІС–РґСЂР°С…СѓРІР°РЅСЊ ... РїРµСЂРµСЂР°С…СѓР№С‚Рµ Р—Рџ ... (Р”СЂСѓРє РђРєС‚Сѓ)");
             	  }
 
                }
                
-            // определение шаблона проводок по услугам на сторону  
+            // РѕРїСЂРµРґРµР»РµРЅРёРµ С€Р°Р±Р»РѕРЅР° РїСЂРѕРІРѕРґРѕРє РїРѕ СѓСЃР»СѓРіР°Рј РЅР° СЃС‚РѕСЂРѕРЅСѓ  
    			if (act.element.typeRef.code == ENElementType.SERVICES_OBJECT 
    				|| act.actTypeRef.code == ENPlanWorkState.DESIGNING
    				|| act.element.typeRef.code == ENElementType.OPERATIVE_OBJECT ) {
@@ -2018,10 +2018,10 @@ public class ActLogic extends LogicModule{
             ENAct act = dao.getObject(actCode);
             if (act.statusRef.code != ENActStatus.SIGNATURE) {
                 throw new EnergyproSystemException(
-                        "В статус Черновий переводяться тільки акти На підписанні...", userProfile);
+                        "Р’ СЃС‚Р°С‚СѓСЃ Р§РµСЂРЅРѕРІРёР№ РїРµСЂРµРІРѕРґСЏС‚СЊСЃСЏ С‚С–Р»СЊРєРё Р°РєС‚Рё РќР° РїС–РґРїРёСЃР°РЅРЅС–...", userProfile);
             }
 
-            /** 24.04.2013 +++ проверка на предмет ОЗ */
+            /** 24.04.2013 +++ РїСЂРѕРІРµСЂРєР° РЅР° РїСЂРµРґРјРµС‚ РћР— */
             ENReconstrModernOZ2ENactDAO oz2actDao = new ENReconstrModernOZ2ENactDAO(connection, userProfile);
             ENReconstrModernOZ2ENactFilter oz2actFilter = new ENReconstrModernOZ2ENactFilter();
             oz2actFilter.actRef.code = actCode;
@@ -2032,7 +2032,7 @@ public class ActLogic extends LogicModule{
                 ENReconstrModernOZ oz = ozDao.getObject(oz2act.ENReconstrModernOZRef.code);
                 throw new EnergyproSystemException("\n" +
                         "\n SUPP-3191..." +
-                        "\n Цей Акт додано до ОЗ на реконструкцію/модернізацію Основних засобів №=" + oz.numbergen);
+                        "\n Р¦РµР№ РђРєС‚ РґРѕРґР°РЅРѕ РґРѕ РћР— РЅР° СЂРµРєРѕРЅСЃС‚СЂСѓРєС†С–СЋ/РјРѕРґРµСЂРЅС–Р·Р°С†С–СЋ РћСЃРЅРѕРІРЅРёС… Р·Р°СЃРѕР±С–РІ в„–=" + oz.numbergen);
             }
 
             deleteAct2Humen(actCode);
@@ -2047,7 +2047,7 @@ public class ActLogic extends LogicModule{
 
             ENAct act = dao.getObject(actCode);
             if (act.statusRef.code != ENActStatus.SIGNATURE){
-                throw new EnergyproSystemException("В статус Черновий переводяться тільки акти На підписанні...", userProfile);
+                throw new EnergyproSystemException("Р’ СЃС‚Р°С‚СѓСЃ Р§РµСЂРЅРѕРІРёР№ РїРµСЂРµРІРѕРґСЏС‚СЊСЃСЏ С‚С–Р»СЊРєРё Р°РєС‚Рё РќР° РїС–РґРїРёСЃР°РЅРЅС–...", userProfile);
             }
 
             if(this.checkZKUMountingByAct(act)) {
@@ -2055,8 +2055,8 @@ public class ActLogic extends LogicModule{
             }
 
             /*
-            *  16.02.2012 +++ для Услуг со стороны,
-            *  только с формы Акта выполненных работ и услуг вместе с проводкой
+            *  16.02.2012 +++ РґР»СЏ РЈСЃР»СѓРі СЃРѕ СЃС‚РѕСЂРѕРЅС‹,
+            *  С‚РѕР»СЊРєРѕ СЃ С„РѕСЂРјС‹ РђРєС‚Р° РІС‹РїРѕР»РЅРµРЅРЅС‹С… СЂР°Р±РѕС‚ Рё СѓСЃР»СѓРі РІРјРµСЃС‚Рµ СЃ РїСЂРѕРІРѕРґРєРѕР№
             */
 
             boolean isServices = false;
@@ -2075,13 +2075,13 @@ public class ActLogic extends LogicModule{
 
             if (isServices) {
                 throw new EnergyproSystemException(
-                        "Цей документ потрібно проводити (або відміняти) з меню " +
-                        " \"Рух матеріалів\" - \"Ордера\" - \"Акти виконаних робіт та послуг\" "  +
-                        " \"Відмінити складання\"!");
+                        "Р¦РµР№ РґРѕРєСѓРјРµРЅС‚ РїРѕС‚СЂС–Р±РЅРѕ РїСЂРѕРІРѕРґРёС‚Рё (Р°Р±Рѕ РІС–РґРјС–РЅСЏС‚Рё) Р· РјРµРЅСЋ " +
+                        " \"Р СѓС… РјР°С‚РµСЂС–Р°Р»С–РІ\" - \"РћСЂРґРµСЂР°\" - \"РђРєС‚Рё РІРёРєРѕРЅР°РЅРёС… СЂРѕР±С–С‚ С‚Р° РїРѕСЃР»СѓРі\" "  +
+                        " \"Р’С–РґРјС–РЅРёС‚Рё СЃРєР»Р°РґР°РЅРЅСЏ\"!");
             }
 
-            // NET-2139 Не дадим отменить статус На подписании для расходных актов которые в ствязке с доходными актами по приеднанню дог проектирование и реализация
-            /* 05.11.2013 SUPP-6949 Т.к. расходные акты теперь можно проводить отдельно от доходных, проверку убираем
+            // NET-2139 РќРµ РґР°РґРёРј РѕС‚РјРµРЅРёС‚СЊ СЃС‚Р°С‚СѓСЃ РќР° РїРѕРґРїРёСЃР°РЅРёРё РґР»СЏ СЂР°СЃС…РѕРґРЅС‹С… Р°РєС‚РѕРІ РєРѕС‚РѕСЂС‹Рµ РІ СЃС‚РІСЏР·РєРµ СЃ РґРѕС…РѕРґРЅС‹РјРё Р°РєС‚Р°РјРё РїРѕ РїСЂРёРµРґРЅР°РЅРЅСЋ РґРѕРі РїСЂРѕРµРєС‚РёСЂРѕРІР°РЅРёРµ Рё СЂРµР°Р»РёР·Р°С†РёСЏ
+            /* 05.11.2013 SUPP-6949 Рў.Рє. СЂР°СЃС…РѕРґРЅС‹Рµ Р°РєС‚С‹ С‚РµРїРµСЂСЊ РјРѕР¶РЅРѕ РїСЂРѕРІРѕРґРёС‚СЊ РѕС‚РґРµР»СЊРЅРѕ РѕС‚ РґРѕС…РѕРґРЅС‹С…, РїСЂРѕРІРµСЂРєСѓ СѓР±РёСЂР°РµРј
             ENActInTechCond2ENActDAO actInc2ActDAO = new ENActInTechCond2ENActDAO(connection, userProfile);
             ENActInTechCond2ENAct actInc2ActObj = null;
             ENActIncomeTechConditions actIncObj = null;
@@ -2092,11 +2092,11 @@ public class ActLogic extends LogicModule{
             if (actInc2Act.length > 0) {
                 actInc2ActObj = actInc2ActDAO.getObject(actInc2Act[0]);
                 actIncObj = actIncDAO.getObject(actInc2ActObj.actIncomeRef.code);
-                throw new EnergyproSystemException(" Неможливо відмінити підписання !!! Цей акт зв`язаний з прибутковим актом №  " + actIncObj.numbergen + " від " + new SimpleDateFormat("dd.MM.yyyy").format(actIncObj.dategen).toString()  );
+                throw new EnergyproSystemException(" РќРµРјРѕР¶Р»РёРІРѕ РІС–РґРјС–РЅРёС‚Рё РїС–РґРїРёСЃР°РЅРЅСЏ !!! Р¦РµР№ Р°РєС‚ Р·РІ`СЏР·Р°РЅРёР№ Р· РїСЂРёР±СѓС‚РєРѕРІРёРј Р°РєС‚РѕРј в„–  " + actIncObj.numbergen + " РІС–Рґ " + new SimpleDateFormat("dd.MM.yyyy").format(actIncObj.dategen).toString()  );
             }
             */
 
-            /** 24.04.2013 +++ проверка на предмет ОЗ */
+            /** 24.04.2013 +++ РїСЂРѕРІРµСЂРєР° РЅР° РїСЂРµРґРјРµС‚ РћР— */
             ENReconstrModernOZ2ENactDAO oz2actDao = new ENReconstrModernOZ2ENactDAO(connection, userProfile);
             ENReconstrModernOZ2ENactFilter oz2actFilter = new ENReconstrModernOZ2ENactFilter();
             oz2actFilter.actRef.code = actCode;
@@ -2107,7 +2107,7 @@ public class ActLogic extends LogicModule{
                 ENReconstrModernOZ oz = ozDao.getObject(oz2act.ENReconstrModernOZRef.code);
                 throw new EnergyproSystemException("\n" +
                         "\n SUPP-3191..." +
-                        "\n Цей Акт додано до ОЗ на реконструкцію/модернізацію Основних засобів №=" + oz.numbergen);
+                        "\n Р¦РµР№ РђРєС‚ РґРѕРґР°РЅРѕ РґРѕ РћР— РЅР° СЂРµРєРѕРЅСЃС‚СЂСѓРєС†С–СЋ/РјРѕРґРµСЂРЅС–Р·Р°С†С–СЋ РћСЃРЅРѕРІРЅРёС… Р·Р°СЃРѕР±С–РІ в„–=" + oz.numbergen);
             }
 
             ////////// 14.05.13 NET-4235
@@ -2122,13 +2122,13 @@ public class ActLogic extends LogicModule{
                     if (! soObj.contractNumberServices.equals(""))
                     {
                         if (soObj.contractStatusRef.code == ENServicesContractStatus.COMPLETED
-                        		&& /*SUPP-89496 Присоединения не проверяются т.к.
-                        		 у них работы выполнены ставится автоматом при
-                        		 подписании акта*/soObj.contractTypeRef.code != ENServicesContractType.CONNECTION)
+                        		&& /*SUPP-89496 РџСЂРёСЃРѕРµРґРёРЅРµРЅРёСЏ РЅРµ РїСЂРѕРІРµСЂСЏСЋС‚СЃСЏ С‚.Рє.
+                        		 Сѓ РЅРёС… СЂР°Р±РѕС‚С‹ РІС‹РїРѕР»РЅРµРЅС‹ СЃС‚Р°РІРёС‚СЃСЏ Р°РІС‚РѕРјР°С‚РѕРј РїСЂРё
+                        		 РїРѕРґРїРёСЃР°РЅРёРё Р°РєС‚Р°*/soObj.contractTypeRef.code != ENServicesContractType.CONNECTION)
                         {
-                            throw new EnergyproSystemException("\n\nNET-4235 Договір з послуг на сторону (№ " + soObj.contractNumberServices + "), " +
-                                    "з яким зв'язаний цей акт, знаходиться в статусі \"Роботи виконані\"!\n" +
-                                    "Відміняти підписання акту заборонено!");
+                            throw new EnergyproSystemException("\n\nNET-4235 Р”РѕРіРѕРІС–СЂ Р· РїРѕСЃР»СѓРі РЅР° СЃС‚РѕСЂРѕРЅСѓ (в„– " + soObj.contractNumberServices + "), " +
+                                    "Р· СЏРєРёРј Р·РІ'СЏР·Р°РЅРёР№ С†РµР№ Р°РєС‚, Р·РЅР°С…РѕРґРёС‚СЊСЃСЏ РІ СЃС‚Р°С‚СѓСЃС– \"Р РѕР±РѕС‚Рё РІРёРєРѕРЅР°РЅС–\"!\n" +
+                                    "Р’С–РґРјС–РЅСЏС‚Рё РїС–РґРїРёСЃР°РЅРЅСЏ Р°РєС‚Сѓ Р·Р°Р±РѕСЂРѕРЅРµРЅРѕ!");
                         }
                     }
                 }
@@ -2136,7 +2136,7 @@ public class ActLogic extends LogicModule{
             //////////
 
 
-            // вынесем ... пусть пересчитывают ... ;))
+            // РІС‹РЅРµСЃРµРј ... РїСѓСЃС‚СЊ РїРµСЂРµСЃС‡РёС‚С‹РІР°СЋС‚ ... ;))
             //ENAct2HumenDAO a2hDAO = new ENAct2HumenDAO(connection, userProfile);
             //a2hDAO.removeHumensByActCode(actCode);
             deleteAct2Humen(actCode);
@@ -2151,7 +2151,7 @@ public class ActLogic extends LogicModule{
             */
 
             /*
-             * Удаление приходных ордеров по акту на производство (если есть)
+             * РЈРґР°Р»РµРЅРёРµ РїСЂРёС…РѕРґРЅС‹С… РѕСЂРґРµСЂРѕРІ РїРѕ Р°РєС‚Сѓ РЅР° РїСЂРѕРёР·РІРѕРґСЃС‚РІРѕ (РµСЃР»Рё РµСЃС‚СЊ)
              */
             if(act.actTypeRef.code == ENPlanWorkState.PRODUCTION) {
             	if(finLogic.checkActOrRQFKOrderForProductionLink(act.code, true)) {
@@ -2167,7 +2167,7 @@ public class ActLogic extends LogicModule{
         {
             ENEstimateItemDAO estDAO = new ENEstimateItemDAO(connection, userProfile);
             ENEstimateItemFilter estFilter = new ENEstimateItemFilter();
-            // вытянем те естимейты которые непосредственно на том плане ФАКТ которые списываем
+            // РІС‹С‚СЏРЅРµРј С‚Рµ РµСЃС‚РёРјРµР№С‚С‹ РєРѕС‚РѕСЂС‹Рµ РЅРµРїРѕСЃСЂРµРґСЃС‚РІРµРЅРЅРѕ РЅР° С‚РѕРј РїР»Р°РЅРµ Р¤РђРљРў РєРѕС‚РѕСЂС‹Рµ СЃРїРёСЃС‹РІР°РµРј
             estFilter.planRef.code = planCode;
             estFilter.kindRef.code = ENEstimateItemKind.MATERIALS;
             ENEstimateItemShortList estList = estDAO.getScrollableFilteredList(estFilter,0,-1);
@@ -2178,7 +2178,7 @@ public class ActLogic extends LogicModule{
             }
 
             estFilter = new ENEstimateItemFilter();
-            // вытянем те естимейты которые непосредственно на том плане ФАКТ которые списываем
+            // РІС‹С‚СЏРЅРµРј С‚Рµ РµСЃС‚РёРјРµР№С‚С‹ РєРѕС‚РѕСЂС‹Рµ РЅРµРїРѕСЃСЂРµРґСЃС‚РІРµРЅРЅРѕ РЅР° С‚РѕРј РїР»Р°РЅРµ Р¤РђРљРў РєРѕС‚РѕСЂС‹Рµ СЃРїРёСЃС‹РІР°РµРј
             estFilter.conditionSQL = " ENESTIMATEITEM.CODE in " +
             " ( Select e2e.estimateiteminrefcode from enestimateitem2nstmttm e2e , enestimateitem e , enplanwork p " +
             "  where e2e.estimateitemoutrefcode = e.code  " +
@@ -2203,7 +2203,7 @@ public class ActLogic extends LogicModule{
         {
             ENEstimateItemDAO estDAO = new ENEstimateItemDAO(connection, userProfile);
             ENEstimateItemFilter estFilter = new ENEstimateItemFilter();
-            // вытянем те естимейты которые непосредственно на том плане ФАКТ которые списываем
+            // РІС‹С‚СЏРЅРµРј С‚Рµ РµСЃС‚РёРјРµР№С‚С‹ РєРѕС‚РѕСЂС‹Рµ РЅРµРїРѕСЃСЂРµРґСЃС‚РІРµРЅРЅРѕ РЅР° С‚РѕРј РїР»Р°РЅРµ Р¤РђРљРў РєРѕС‚РѕСЂС‹Рµ СЃРїРёСЃС‹РІР°РµРј
             estFilter.planRef.code = planCode;
             estFilter.kindRef.code = ENEstimateItemKind.MATERIALS;
             ENEstimateItemShortList estList = estDAO.getScrollableFilteredList(estFilter,0,-1);
@@ -2214,7 +2214,7 @@ public class ActLogic extends LogicModule{
             }
 
             estFilter = new ENEstimateItemFilter();
-            // вытянем те естимейты с которых списываем
+            // РІС‹С‚СЏРЅРµРј С‚Рµ РµСЃС‚РёРјРµР№С‚С‹ СЃ РєРѕС‚РѕСЂС‹С… СЃРїРёСЃС‹РІР°РµРј
             estFilter.conditionSQL = " ENESTIMATEITEM.CODE in " +
             " ( Select e2e.estimateiteminrefcode from enestimateitem2nstmttm e2e , enestimateitem e , enplanwork p " +
             "  where e2e.estimateitemoutrefcode = e.code  " +
@@ -2226,12 +2226,12 @@ public class ActLogic extends LogicModule{
             ENEstimateItemShortList estList2 = estDAO.getScrollableFilteredList(estFilter,0,-1);
             for (int i=0; i < estList2.totalCount; i++){
 
-                // выбрать все кол-ва списаного материала со старой строки естимейта которые провелись другими актами ()
+                // РІС‹Р±СЂР°С‚СЊ РІСЃРµ РєРѕР»-РІР° СЃРїРёСЃР°РЅРѕРіРѕ РјР°С‚РµСЂРёР°Р»Р° СЃРѕ СЃС‚Р°СЂРѕР№ СЃС‚СЂРѕРєРё РµСЃС‚РёРјРµР№С‚Р° РєРѕС‚РѕСЂС‹Рµ РїСЂРѕРІРµР»РёСЃСЊ РґСЂСѓРіРёРјРё Р°РєС‚Р°РјРё ()
                 EstimateLogic estlogic = new EstimateLogic(connection, userProfile);
-                BigDecimal countOtherAct = estlogic.getSumCountE2EByEnEstimateINForWriteOff(estList2.get(i).code  ); // кол-во списываемого материала с других проведенных актов
-            //    BigDecimal countCurrAct = estlogic.getSumCountE2EByEnEstimateINForWriteOffCurrAct(estList2.get(i).code , actCode ); // кол-во списываемого материала с текущего акта
+                BigDecimal countOtherAct = estlogic.getSumCountE2EByEnEstimateINForWriteOff(estList2.get(i).code  ); // РєРѕР»-РІРѕ СЃРїРёСЃС‹РІР°РµРјРѕРіРѕ РјР°С‚РµСЂРёР°Р»Р° СЃ РґСЂСѓРіРёС… РїСЂРѕРІРµРґРµРЅРЅС‹С… Р°РєС‚РѕРІ
+            //    BigDecimal countCurrAct = estlogic.getSumCountE2EByEnEstimateINForWriteOffCurrAct(estList2.get(i).code , actCode ); // РєРѕР»-РІРѕ СЃРїРёСЃС‹РІР°РµРјРѕРіРѕ РјР°С‚РµСЂРёР°Р»Р° СЃ С‚РµРєСѓС‰РµРіРѕ Р°РєС‚Р°
                 BigDecimal count = countOtherAct; //.add(countCurrAct);
-                // если списываем количество такое же как на мес естимейте тогда ставим статус естимейта как списано иначе висит как введенный в эксплуатацию.
+                // РµСЃР»Рё СЃРїРёСЃС‹РІР°РµРј РєРѕР»РёС‡РµСЃС‚РІРѕ С‚Р°РєРѕРµ Р¶Рµ РєР°Рє РЅР° РјРµСЃ РµСЃС‚РёРјРµР№С‚Рµ С‚РѕРіРґР° СЃС‚Р°РІРёРј СЃС‚Р°С‚СѓСЃ РµСЃС‚РёРјРµР№С‚Р° РєР°Рє СЃРїРёСЃР°РЅРѕ РёРЅР°С‡Рµ РІРёСЃРёС‚ РєР°Рє РІРІРµРґРµРЅРЅС‹Р№ РІ СЌРєСЃРїР»СѓР°С‚Р°С†РёСЋ.
                 if (count.doubleValue() == estList2.get(i).countFact.doubleValue() ) {
 
                 ENEstimateItem est2 = estDAO.getObject(estList2.get(i).code);
@@ -2244,7 +2244,7 @@ public class ActLogic extends LogicModule{
 
         }
 
-        /*возврат суммы по работам для актов "Акт виконаних робіт договорів підряду"*/
+        /*РІРѕР·РІСЂР°С‚ СЃСѓРјРјС‹ РїРѕ СЂР°Р±РѕС‚Р°Рј РґР»СЏ Р°РєС‚РѕРІ "РђРєС‚ РІРёРєРѕРЅР°РЅРёС… СЂРѕР±С–С‚ РґРѕРіРѕРІРѕСЂС–РІ РїС–РґСЂСЏРґСѓ"*/
         public BigDecimal getSumByWorkForActReceptTransmisMaterials(int codeAct) {
             BigDecimal result = new BigDecimal(0);
             PreparedStatement statement = null;
@@ -2265,7 +2265,7 @@ public class ActLogic extends LogicModule{
             "     , eni.costgen as costgen \n" +
             "     , round(cast((coalesce(eni.countgen, 0) * coalesce(eni.costgen,0)) as decimal), 2) as cost \n" +
             "     from  enact2enplanwork ena2 , enplanworkitem eni , tktechcard tk , tkmeasurement tkm, \n" +
-            " /*Подсчитывание коэффициента загрузки персонала*/ \n" +
+            " /*РџРѕРґСЃС‡РёС‚С‹РІР°РЅРёРµ РєРѕСЌС„С„РёС†РёРµРЅС‚Р° Р·Р°РіСЂСѓР·РєРё РїРµСЂСЃРѕРЅР°Р»Р°*/ \n" +
             "     (select \n" +
             "         pi.planrefcode, acpw.actrefcode, pi.kartarefcode, coalesce((case \n" +
             "                 when min(ko.koef) = 0 \n" +
@@ -2283,7 +2283,7 @@ public class ActLogic extends LogicModule{
             "     group by \n" +
             "         pi.kartarefcode, \n" +
             "         pi.planrefcode, \n" +
-            "         acpw.actrefcode) as coeff /* Конец подсчета коэффициента загрузки персонала*/ \n" +
+            "         acpw.actrefcode) as coeff /* РљРѕРЅРµС† РїРѕРґСЃС‡РµС‚Р° РєРѕСЌС„С„РёС†РёРµРЅС‚Р° Р·Р°РіСЂСѓР·РєРё РїРµСЂСЃРѕРЅР°Р»Р°*/ \n" +
             " where ena2.actrefcode = " + codeAct +
             "   and ena2.plancode = eni.planrefcode \n" +
             "   and eni.kartarefcode = tk.code \n" +
@@ -2325,7 +2325,7 @@ public class ActLogic extends LogicModule{
             }
         }
 
-    /** выборка времени + доставка  если не по всем техкартам плана **/
+    /** РІС‹Р±РѕСЂРєР° РІСЂРµРјРµРЅРё + РґРѕСЃС‚Р°РІРєР°  РµСЃР»Рё РЅРµ РїРѕ РІСЃРµРј С‚РµС…РєР°СЂС‚Р°Рј РїР»Р°РЅР° **/
         public BigDecimal getTimeGen4DriverByPositionAndSalarySomeTechCard(String tabNumber, int planCode, Date planDate, int positionCode, BigDecimal salary , String TechCardCodes ) throws PersistenceException
         {
 
@@ -2344,25 +2344,25 @@ public class ActLogic extends LogicModule{
             for (int j=0; j < transportList.totalCount; j++){
 
 
-                // время работы у Водилы для всех транспортов .. кроме бригадного АВТО
+                // РІСЂРµРјСЏ СЂР°Р±РѕС‚С‹ Сѓ Р’РѕРґРёР»С‹ РґР»СЏ РІСЃРµС… С‚СЂР°РЅСЃРїРѕСЂС‚РѕРІ .. РєСЂРѕРјРµ Р±СЂРёРіР°РґРЅРѕРіРѕ РђР’РўРћ
                 if (transportList.get(j).tktransportTypeCode != TKTransportType.BRIGADE)
                 {
                     workerWorkTime = workerWorkTime.add(transportList.get(j).countWorkFact).setScale(2, BigDecimal.ROUND_HALF_UP);
                     workerWorkTimeOnly = workerWorkTimeOnly.add(transportList.get(j).countWorkFact).setScale(2, BigDecimal.ROUND_HALF_UP);
                 }
 
-                // планы для времени доставки ТОЛЬКо бригадный авто с раастояниями ..
+                // РїР»Р°РЅС‹ РґР»СЏ РІСЂРµРјРµРЅРё РґРѕСЃС‚Р°РІРєРё РўРћР›Р¬РљРѕ Р±СЂРёРіР°РґРЅС‹Р№ Р°РІС‚Рѕ СЃ СЂР°Р°СЃС‚РѕСЏРЅРёСЏРјРё ..
                 if ((transportList.get(j).tktransportTypeCode == TKTransportType.BRIGADE)
                 )
                 {
                     trPlanCodes = trPlanCodes + ", " + transportList.get(j).planRefCode;
                 }
 
-                // добавим время доставки ...
-                // пошти бредок .. можна оптимизировать !!!
-                // АС 01.06.2011 дооптимизировались ;))) :(
+                // РґРѕР±Р°РІРёРј РІСЂРµРјСЏ РґРѕСЃС‚Р°РІРєРё ...
+                // РїРѕС€С‚Рё Р±СЂРµРґРѕРє .. РјРѕР¶РЅР° РѕРїС‚РёРјРёР·РёСЂРѕРІР°С‚СЊ !!!
+                // РђРЎ 01.06.2011 РґРѕРѕРїС‚РёРјРёР·РёСЂРѕРІР°Р»РёСЃСЊ ;))) :(
 
-                BigDecimal[] distArr = transportLogic.getDistancesByTransport(transportList.get(j).code, false); // для Водил считаем ВСЕ расстояния ...
+                BigDecimal[] distArr = transportLogic.getDistancesByTransport(transportList.get(j).code, false); // РґР»СЏ Р’РѕРґРёР» СЃС‡РёС‚Р°РµРј Р’РЎР• СЂР°СЃСЃС‚РѕСЏРЅРёСЏ ...
                 if ( distArr != null){
                     BigDecimal delTime = transportLogic.calcTimeByDistaces(distArr[0], distArr[1], distArr[2], planLogic.isWinterMonth( planDate ), transportLogic.isTraktor(transportList.get(j).code)).setScale(2, BigDecimal.ROUND_HALF_UP);
                     workerWorkTime = workerWorkTime.add(delTime).setScale(2, BigDecimal.ROUND_HALF_UP);
@@ -2383,9 +2383,9 @@ public class ActLogic extends LogicModule{
     }
 
     /**
-     * Расчет отчислений с з/п для акта выполненных работ
+     * Р Р°СЃС‡РµС‚ РѕС‚С‡РёСЃР»РµРЅРёР№ СЃ Р·/Рї РґР»СЏ Р°РєС‚Р° РІС‹РїРѕР»РЅРµРЅРЅС‹С… СЂР°Р±РѕС‚
      *
-     * @param actCode - код акта
+     * @param actCode - РєРѕРґ Р°РєС‚Р°
      */
     //public void calculateSalaryCharges(ENAct act)
     public void calculateSalaryCharges(int actCode)
@@ -2393,14 +2393,14 @@ public class ActLogic extends LogicModule{
     	/*
     	if (act == null)
     	{
-    		throw new SystemException("\n\nNET-4453 Не заданий акт!");
+    		throw new SystemException("\n\nNET-4453 РќРµ Р·Р°РґР°РЅРёР№ Р°РєС‚!");
     	}
     	*/
 
 
     	if (actCode == Integer.MIN_VALUE)
     	{
-    		throw new SystemException("\n\nNET-4453 Не заданий код акту!");
+    		throw new SystemException("\n\nNET-4453 РќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ Р°РєС‚Сѓ!");
     	}
 
         Connection fkConnection = null;
@@ -2417,10 +2417,10 @@ public class ActLogic extends LogicModule{
 					&& (act.actTypeRef.code != ENPlanWorkState.TMC_TRANSFER)
 					&& (act.actTypeRef.code != ENPlanWorkState.TRUCKING)
 					&& (act.actTypeRef.code != ENPlanWorkState.REFINEMENT_BY_CONTRACT)
-					&& (act.actTypeRef.code != ENPlanWorkState.WRITINGS_OS) // NET-4383 списание основного без расчета персонала
-					&& (act.element.code != ENConsts.ENELEMENT_METROLOGY_OBJECT_WRITEOFF) // NET-4561 списание пломб
+					&& (act.actTypeRef.code != ENPlanWorkState.WRITINGS_OS) // NET-4383 СЃРїРёСЃР°РЅРёРµ РѕСЃРЅРѕРІРЅРѕРіРѕ Р±РµР· СЂР°СЃС‡РµС‚Р° РїРµСЂСЃРѕРЅР°Р»Р°
+					&& (act.element.code != ENConsts.ENELEMENT_METROLOGY_OBJECT_WRITEOFF) // NET-4561 СЃРїРёСЃР°РЅРёРµ РїР»РѕРјР±
 			) {
-				// чтобы не было актов БЕЗ ЛЮДЕЙ ;))
+				// С‡С‚РѕР±С‹ РЅРµ Р±С‹Р»Рѕ Р°РєС‚РѕРІ Р‘Р•Р— Р›Р®Р”Р•Р™ ;))
 				ENAct2HumenFilter a2hFilter = new ENAct2HumenFilter();
 				a2hFilter.actRef.code = act.code;
 				int[] a2hArr = a2hDAO.getFilteredCodeArray(a2hFilter, null, null, 0, -1, null);
@@ -2428,12 +2428,12 @@ public class ActLogic extends LogicModule{
 				if (a2hArr.length == 0) {
 					System.out.println("ActCode = " + act.code);
 					throw new EnergyproSystemException("\n\n"
-							+ "В Акті немає Робітників ... перерахуйте ЗП ... (Друк Акту)...  № акту = " + act.numberGen + " системный код = " + act.code);
+							+ "Р’ РђРєС‚С– РЅРµРјР°С” Р РѕР±С–С‚РЅРёРєС–РІ ... РїРµСЂРµСЂР°С…СѓР№С‚Рµ Р—Рџ ... (Р”СЂСѓРє РђРєС‚Сѓ)...  в„– Р°РєС‚Сѓ = " + act.numberGen + " СЃРёСЃС‚РµРјРЅС‹Р№ РєРѕРґ = " + act.code);
 				}
 
     	    	if (a2hList.totalCount == 0)
     	    	{
-    	    		throw new SystemException("\n\nNET-4453 Для акту не знайдено даних для розрахунку відрахувань з з/п! Код акту: " + actCode);
+    	    		throw new SystemException("\n\nNET-4453 Р”Р»СЏ Р°РєС‚Сѓ РЅРµ Р·РЅР°Р№РґРµРЅРѕ РґР°РЅРёС… РґР»СЏ СЂРѕР·СЂР°С…СѓРЅРєСѓ РІС–РґСЂР°С…СѓРІР°РЅСЊ Р· Р·/Рї! РљРѕРґ Р°РєС‚Сѓ: " + actCode);
     	    	}
 
     	    	fkConnection = getNEWConnection(AuthorizationJNDINames.FINMATERIAL_DATASOURCE);
@@ -2468,14 +2468,14 @@ public class ActLogic extends LogicModule{
     	    		String cehId = a2hObj.cehId;
 
     	    		for (int i = 0; i < a2hList.totalCount; i++) {
-    	    			if (tabNumbers.get(t).equals(a2hList.get(i).tabNumber) ) { // (испр. ошибку) без этого условия в связке апдейтились все строки, хотя балансовый код брался для конкретного табельного
+    	    			if (tabNumbers.get(t).equals(a2hList.get(i).tabNumber) ) { // (РёСЃРїСЂ. РѕС€РёР±РєСѓ) Р±РµР· СЌС‚РѕРіРѕ СѓСЃР»РѕРІРёСЏ РІ СЃРІСЏР·РєРµ Р°РїРґРµР№С‚РёР»РёСЃСЊ РІСЃРµ СЃС‚СЂРѕРєРё, С…РѕС‚СЏ Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РєРѕРґ Р±СЂР°Р»СЃСЏ РґР»СЏ РєРѕРЅРєСЂРµС‚РЅРѕРіРѕ С‚Р°Р±РµР»СЊРЅРѕРіРѕ
 
     	    				ENAct2Humen a2h = a2hDAO.getObjectNOSEGR(a2hList.get(i).code);
 
     			    		a2h.chargePercent = a2hList.get(i).chargePercent;
     			    		a2h.chargeRef.code = a2hList.get(i).chargeRefCode;
     			    		if (a2hList.get(i).chargePercent == null ){
-    			    			System.out.print(" ошибка  actCode = " +  actCode );
+    			    			System.out.print(" РѕС€РёР±РєР°  actCode = " +  actCode );
     			    		}
     			    		a2h.chargeSum = (a2hList.get(i).paysWork.multiply(a2hList.get(i).chargePercent)).divide(new BigDecimal(100), 10/*??*/, java.math.BigDecimal.ROUND_HALF_UP);
 
@@ -2514,9 +2514,9 @@ public class ActLogic extends LogicModule{
     }
 
     /**
-     * Расчет отчислений с з/п для акта выполненных работ по услугам на сторону (в разрезе работ)
+     * Р Р°СЃС‡РµС‚ РѕС‚С‡РёСЃР»РµРЅРёР№ СЃ Р·/Рї РґР»СЏ Р°РєС‚Р° РІС‹РїРѕР»РЅРµРЅРЅС‹С… СЂР°Р±РѕС‚ РїРѕ СѓСЃР»СѓРіР°Рј РЅР° СЃС‚РѕСЂРѕРЅСѓ (РІ СЂР°Р·СЂРµР·Рµ СЂР°Р±РѕС‚)
      *
-     * @param actCode - код акта
+     * @param actCode - РєРѕРґ Р°РєС‚Р°
      */
     //public void calculateSalaryChargesForServices(ENAct act)
     public void calculateSalaryChargesForServices(int actCode)
@@ -2524,13 +2524,13 @@ public class ActLogic extends LogicModule{
     	/*
     	if (act == null)
     	{
-    		throw new SystemException("\n\nNET-4453 Не заданий акт!");
+    		throw new SystemException("\n\nNET-4453 РќРµ Р·Р°РґР°РЅРёР№ Р°РєС‚!");
     	}
     	*/
 
     	if (actCode == Integer.MIN_VALUE)
     	{
-    		throw new SystemException("\n\nNET-4453 Не заданий код акту!");
+    		throw new SystemException("\n\nNET-4453 РќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ Р°РєС‚Сѓ!");
     	}
 
         Connection fkConnection = null;
@@ -2545,7 +2545,7 @@ public class ActLogic extends LogicModule{
 
 	    	if (pi2hList.totalCount == 0)
 	    	{
-	    		throw new SystemException("\n\nNET-4453 Для акту з послуг на сторону не знайдено даних для розрахунку відрахувань з з/п! Код акту: " + actCode);
+	    		throw new SystemException("\n\nNET-4453 Р”Р»СЏ Р°РєС‚Сѓ Р· РїРѕСЃР»СѓРі РЅР° СЃС‚РѕСЂРѕРЅСѓ РЅРµ Р·РЅР°Р№РґРµРЅРѕ РґР°РЅРёС… РґР»СЏ СЂРѕР·СЂР°С…СѓРЅРєСѓ РІС–РґСЂР°С…СѓРІР°РЅСЊ Р· Р·/Рї! РљРѕРґ Р°РєС‚Сѓ: " + actCode);
 	    	}
 
 	    	fkConnection = getNEWConnection(AuthorizationJNDINames.FINMATERIAL_DATASOURCE);
@@ -2581,7 +2581,7 @@ public class ActLogic extends LogicModule{
 	    		for (int i = 0; i < pi2hList.totalCount; i++) {
 	    			ENPlanWorkItem2Humen pi2h = pi2hDAO.getObject(pi2hList.get(i).code);
 
-	    			if (tabNumbers.get(t).equals(pi2hList.get(i).tabNumber) ) { // (испр. ошибку) без этого условия в связке апдейтились все строки, хотя балансовый код брался для конкретного табельного
+	    			if (tabNumbers.get(t).equals(pi2hList.get(i).tabNumber) ) { // (РёСЃРїСЂ. РѕС€РёР±РєСѓ) Р±РµР· СЌС‚РѕРіРѕ СѓСЃР»РѕРІРёСЏ РІ СЃРІСЏР·РєРµ Р°РїРґРµР№С‚РёР»РёСЃСЊ РІСЃРµ СЃС‚СЂРѕРєРё, С…РѕС‚СЏ Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РєРѕРґ Р±СЂР°Р»СЃСЏ РґР»СЏ РєРѕРЅРєСЂРµС‚РЅРѕРіРѕ С‚Р°Р±РµР»СЊРЅРѕРіРѕ
 
 		    			pi2h.chargePercent = pi2hList.get(i).chargePercent;
 			    		pi2h.chargeRef.code = pi2hList.get(i).chargeRefCode;
@@ -2593,7 +2593,7 @@ public class ActLogic extends LogicModule{
 			    				.add(pi2hList.get(i).paysWorkSurcharge)
 			    				.add(pi2hList.get(i).paysWorkPremium)
 			    				.add(pi2hList.get(i).paysWorkAdditional)).multiply(pi2hList.get(i).chargePercent)).divide(new BigDecimal(100), 10/*??*/, java.math.BigDecimal.ROUND_HALF_UP);
-			    		// сумма отчислний без водителей и доставки
+			    		// СЃСѓРјРјР° РѕС‚С‡РёСЃР»РЅРёР№ Р±РµР· РІРѕРґРёС‚РµР»РµР№ Рё РґРѕСЃС‚Р°РІРєРё
 			    		pi2h.chargeSumWithoutDeliv = new BigDecimal(0);
 			    		if (pi2h.humenKindRef.code == ENHumenItemKind.ELTEH){
 			    			pi2h.chargeSumWithoutDeliv = ((pi2hList.get(i).paysWorkBonusWithoutDeliv
@@ -2627,14 +2627,14 @@ public class ActLogic extends LogicModule{
 
     /**
      *
-     * Возвращает сумму материалов в акте
+     * Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ РјР°С‚РµСЂРёР°Р»РѕРІ РІ Р°РєС‚Рµ
      *
-     * @param act акт {@link ENAct} для которого считается сумма
-     * @param accountsBU - если {@code true} - только счета БУ, если {@code false} - все счета, кроме БУ
-     * , если {@code null} - все счета без разницы
-     * @param accountingTypeCodes коды типов учета материалов {@link com.ksoe.techcard.valueobject.TKAccountingType}
-     * для которых подсчитывается сумма или {@code null} если для всех
-     * @return сумма материалов по акту
+     * @param act Р°РєС‚ {@link ENAct} РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ СЃС‡РёС‚Р°РµС‚СЃСЏ СЃСѓРјРјР°
+     * @param accountsBU - РµСЃР»Рё {@code true} - С‚РѕР»СЊРєРѕ СЃС‡РµС‚Р° Р‘РЈ, РµСЃР»Рё {@code false} - РІСЃРµ СЃС‡РµС‚Р°, РєСЂРѕРјРµ Р‘РЈ
+     * , РµСЃР»Рё {@code null} - РІСЃРµ СЃС‡РµС‚Р° Р±РµР· СЂР°Р·РЅРёС†С‹
+     * @param accountingTypeCodes РєРѕРґС‹ С‚РёРїРѕРІ СѓС‡РµС‚Р° РјР°С‚РµСЂРёР°Р»РѕРІ {@link com.ksoe.techcard.valueobject.TKAccountingType}
+     * РґР»СЏ РєРѕС‚РѕСЂС‹С… РїРѕРґСЃС‡РёС‚С‹РІР°РµС‚СЃСЏ СЃСѓРјРјР° РёР»Рё {@code null} РµСЃР»Рё РґР»СЏ РІСЃРµС…
+     * @return СЃСѓРјРјР° РјР°С‚РµСЂРёР°Р»РѕРІ РїРѕ Р°РєС‚Сѓ
      * @throws PersistenceException
      * @throws DatasourceConnectException
      */
@@ -2703,7 +2703,7 @@ public class ActLogic extends LogicModule{
         			if(accountsBU != null) {
         				String accountToCheck = item.bal_sch;
         				if(accountToCheck == null || accountToCheck.trim().length() == 0) {
-        					throw new SystemException("Помилка у балансовому рахунку матеріала");
+        					throw new SystemException("РџРѕРјРёР»РєР° Сѓ Р±Р°Р»Р°РЅСЃРѕРІРѕРјСѓ СЂР°С…СѓРЅРєСѓ РјР°С‚РµСЂС–Р°Р»Р°");
         				}
         				if(accountsBU && !accountsBUList.contains(accountToCheck)) {
         					continue;
@@ -2732,7 +2732,7 @@ public class ActLogic extends LogicModule{
         			if(accountsBU != null) {
         				String accountToCheck = item.account;
         				if(accountToCheck == null || accountToCheck.trim().length() == 0) {
-        					throw new SystemException("Помилка у балансовому рахунку матеріала");
+        					throw new SystemException("РџРѕРјРёР»РєР° Сѓ Р±Р°Р»Р°РЅСЃРѕРІРѕРјСѓ СЂР°С…СѓРЅРєСѓ РјР°С‚РµСЂС–Р°Р»Р°");
         				}
         				if(accountsBU && !accountsBUList.contains(accountToCheck)) {
         					continue;
@@ -2757,7 +2757,7 @@ public class ActLogic extends LogicModule{
         			if(accountsBU != null) {
         				String accountToCheck = item.account;
         				if(accountToCheck == null || accountToCheck.trim().length() == 0) {
-        					throw new SystemException("Помилка у балансовому рахунку матеріала");
+        					throw new SystemException("РџРѕРјРёР»РєР° Сѓ Р±Р°Р»Р°РЅСЃРѕРІРѕРјСѓ СЂР°С…СѓРЅРєСѓ РјР°С‚РµСЂС–Р°Р»Р°");
         				}
         				if(accountsBU && !accountsBUList.contains(accountToCheck)) {
         					continue;
@@ -2782,7 +2782,7 @@ public class ActLogic extends LogicModule{
     	}
     }
 
-    /*возврат суммы акта по коду*/
+    /*РІРѕР·РІСЂР°С‚ СЃСѓРјРјС‹ Р°РєС‚Р° РїРѕ РєРѕРґСѓ*/
     public BigDecimal getSumByActCode(int codeAct) {
         BigDecimal result = new BigDecimal(0);
         PreparedStatement statement = null;
@@ -2835,7 +2835,7 @@ public class ActLogic extends LogicModule{
 	        {
 	        	if (isException)
 	        	{
-	        		throw new EnergyproSystemException("\n\nNET-4543 У Вас немає прав на цю операцію (переведення матеріалів до втор.сировини)!");
+	        		throw new EnergyproSystemException("\n\nNET-4543 РЈ Р’Р°СЃ РЅРµРјР°С” РїСЂР°РІ РЅР° С†СЋ РѕРїРµСЂР°С†С–СЋ (РїРµСЂРµРІРµРґРµРЅРЅСЏ РјР°С‚РµСЂС–Р°Р»С–РІ РґРѕ РІС‚РѕСЂ.СЃРёСЂРѕРІРёРЅРё)!");
 	        	}
 	        	else
 	        	{
@@ -2848,9 +2848,9 @@ public class ActLogic extends LogicModule{
     }
 
     /**
-     * возвращает сумму Зарплата грн.  по акту услуг на сторону для формирования проводок
+     * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р—Р°СЂРїР»Р°С‚Р° РіСЂРЅ.  РїРѕ Р°РєС‚Сѓ СѓСЃР»СѓРі РЅР° СЃС‚РѕСЂРѕРЅСѓ РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє
      *
-     * @param isWithDelivery -- суммі из акта с учетом доставки и зп водителей
+     * @param isWithDelivery -- СЃСѓРјРјС– РёР· Р°РєС‚Р° СЃ СѓС‡РµС‚РѕРј РґРѕСЃС‚Р°РІРєРё Рё Р·Рї РІРѕРґРёС‚РµР»РµР№
      * */
         public FKTrans2AXTransItemShortList getDataForProvsSalaryByActServicesRed(int actCode , int tkcalckind , boolean isWithDelivery)  throws PersistenceException
         {
@@ -2931,7 +2931,7 @@ public class ActLogic extends LogicModule{
 
 
         /**
-         * возвращает сумму Зарплата грн.  по акту услуг на сторону для формирования проводок
+         * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р—Р°СЂРїР»Р°С‚Р° РіСЂРЅ.  РїРѕ Р°РєС‚Сѓ СѓСЃР»СѓРі РЅР° СЃС‚РѕСЂРѕРЅСѓ РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє
          * */
             public FKTrans2AXTransItemShortList getDataForProvsSalaryByActServices(int actCode , int tkcalckind , boolean isWithDelivery )  throws PersistenceException
             {
@@ -3024,7 +3024,7 @@ public class ActLogic extends LogicModule{
 
 
             /**
-             * возвращает сумму ЕСВ грн.  по акту услуг на сторону для формирования проводок
+             * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р•РЎР’ РіСЂРЅ.  РїРѕ Р°РєС‚Сѓ СѓСЃР»СѓРі РЅР° СЃС‚РѕСЂРѕРЅСѓ РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє
              * */
                 public FKTrans2AXTransItemShortList getDataForProvsESVByActServicesRed(int actCode , int tkcalckind, boolean isWithDelivery )  throws PersistenceException
                 {
@@ -3063,7 +3063,7 @@ public class ActLogic extends LogicModule{
             		"                      , salaryhours \n" +
             		"                      , sum(timework) as timework \n" +
             		"                      , (sum(payswork))::numeric(15,2)  as payswork \n" +
-            		"                      , sum(paysWorkBonusWithoutDelivery)::numeric(15,2) as paysWorkBonusWithoutDelivery /* зп персонала без проезда и без водителей */ \n" +
+            		"                      , sum(paysWorkBonusWithoutDelivery)::numeric(15,2) as paysWorkBonusWithoutDelivery /* Р·Рї РїРµСЂСЃРѕРЅР°Р»Р° Р±РµР· РїСЂРѕРµР·РґР° Рё Р±РµР· РІРѕРґРёС‚РµР»РµР№ */ \n" +
             		"                      , cast(sum(paysworkAdditional) as numeric(15,2)) as paysworkAdditional \n" +
             		"                      , case when replacecounterkindcode = 2 and isnopay = 1 then 0 else \n" +
             		"                          cast(sum(generalexpenses) as numeric(15,2)) end as generalexpenses \n" +
@@ -3074,7 +3074,7 @@ public class ActLogic extends LogicModule{
             		"                      , bonusdditional \n" +
             		"                      , humenkindrefcode \n" +
             		"                      , sum(CHARGESUM)::numeric(15,2) as  CHARGESUM \n" +
-            		"                      , sum(CHARGESUMWITHOUTDELIV)::numeric(15,2) as CHARGESUMWITHOUTDELIV /*Єдиний внесок на загальнообов'язкове державне соціальне страхування персоналу*/ \n" +
+            		"                      , sum(CHARGESUMWITHOUTDELIV)::numeric(15,2) as CHARGESUMWITHOUTDELIV /*Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ РїРµСЂСЃРѕРЅР°Р»Сѓ*/ \n" +
             		"                      , coalesce((select * from getENconnectionKindByActCode(actrefcode) ),'') as isPriconnection \n" +
             		"                      , sum(timeDelivery) as timeDelivery \n" +
             		"                      , cehid \n" +
@@ -3178,8 +3178,8 @@ public class ActLogic extends LogicModule{
             	}
                 
 /**
- * возвращает сумму ЕСВ грн.  по акту услуг на сторону  -- шаблон  Договори на відшкодування з постачальниками е/е 
- * @param isRed - для проводок минусом суммы разбиваются по балансовому сотрудника 
+ * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р•РЎР’ РіСЂРЅ.  РїРѕ Р°РєС‚Сѓ СѓСЃР»СѓРі РЅР° СЃС‚РѕСЂРѕРЅСѓ  -- С€Р°Р±Р»РѕРЅ  Р”РѕРіРѕРІРѕСЂРё РЅР° РІС–РґС€РєРѕРґСѓРІР°РЅРЅСЏ Р· РїРѕСЃС‚Р°С‡Р°Р»СЊРЅРёРєР°РјРё Рµ/Рµ 
+ * @param isRed - РґР»СЏ РїСЂРѕРІРѕРґРѕРє РјРёРЅСѓСЃРѕРј СЃСѓРјРјС‹ СЂР°Р·Р±РёРІР°СЋС‚СЃСЏ РїРѕ Р±Р°Р»Р°РЅСЃРѕРІРѕРјСѓ СЃРѕС‚СЂСѓРґРЅРёРєР° 
  * 
  * */
     public FKTrans2AXTransItemShortList getDataForProvsESVByActServicesSupplierContract
@@ -3207,7 +3207,7 @@ public class ActLogic extends LogicModule{
                 				"  , salaryhours \n" +
                 				"  , sum(timework) as timework \n" +
                 				"  , (sum(payswork))::numeric(15,2)  as payswork \n" +
-                				"  , sum(paysWorkBonusWithoutDelivery)::numeric(15,2) as paysWorkBonusWithoutDelivery /* зп персонала без проезда и без водителей */ \n" +
+                				"  , sum(paysWorkBonusWithoutDelivery)::numeric(15,2) as paysWorkBonusWithoutDelivery /* Р·Рї РїРµСЂСЃРѕРЅР°Р»Р° Р±РµР· РїСЂРѕРµР·РґР° Рё Р±РµР· РІРѕРґРёС‚РµР»РµР№ */ \n" +
                 				"  , cast(sum(paysworkAdditional) as numeric(15,2)) as paysworkAdditional \n" +
                 				"  , case when replacecounterkindcode = 2 and isnopay = 1 then 0 else \n" +
                 				"      cast(sum(generalexpenses) as numeric(15,2)) end as generalexpenses \n" +
@@ -3218,7 +3218,7 @@ public class ActLogic extends LogicModule{
                 				"  , bonusdditional \n" +
                 				"  , humenkindrefcode \n" +
                 				"  , sum(CHARGESUM)::numeric(15,2) as  CHARGESUM \n" +
-                				"  , sum(CHARGESUMWITHOUTDELIV)::numeric(15,2) as CHARGESUMWITHOUTDELIV/*Єдиний внесок на загальнообов'язкове державне соціальне страхування персоналу*/ \n" +
+                				"  , sum(CHARGESUMWITHOUTDELIV)::numeric(15,2) as CHARGESUMWITHOUTDELIV/*Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ РїРµСЂСЃРѕРЅР°Р»Сѓ*/ \n" +
                 				"  , coalesce((select * from getENconnectionKindByActCode(actrefcode) ),'') as isPriconnection \n" +
                 				"  , sum(timeDelivery) as timeDelivery \n" +
                 				"  , cehid \n" +
@@ -3272,7 +3272,7 @@ public class ActLogic extends LogicModule{
                 				"  , replacecounterkindcode \n" +
                 				"  , isnopay \n" +
                 				"  , bonus \n" +
-                				"  , bonusdditional /*доп ЗП сумарно*/ \n" +
+                				"  , bonusdditional /*РґРѕРї Р—Рџ СЃСѓРјР°СЂРЅРѕ*/ \n" +
                 				"  , balans \n" +
                 				"  , cehid \n" +
                 				"  order by tabnumber \n" +
@@ -3324,7 +3324,7 @@ public class ActLogic extends LogicModule{
                 	}                
 
                 /**
-                 * возвращает сумму Загальновиробничі витрати грн.  по акту услуг на сторону для формирования проводок
+                 * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё РіСЂРЅ.  РїРѕ Р°РєС‚Сѓ СѓСЃР»СѓРі РЅР° СЃС‚РѕСЂРѕРЅСѓ РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє
                  * */
                     public FKTrans2AXTransItemShortList getDataForProvsTotalExpencByActServices(int actCode , int tkcalckind
                     		, boolean isWithDelivery)  throws PersistenceException
@@ -3337,8 +3337,8 @@ public class ActLogic extends LogicModule{
                 		PreparedStatement statement = null;
                 		ResultSet  set = null;
 
-            			/* 14.01.2020 SUPP-88628 Неправильно берется сумма общепроизводственных затрат для метода расчета новый с учетом
-            			 * материалов и транпорта
+            			/* 14.01.2020 SUPP-88628 РќРµРїСЂР°РІРёР»СЊРЅРѕ Р±РµСЂРµС‚СЃСЏ СЃСѓРјРјР° РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… Р·Р°С‚СЂР°С‚ РґР»СЏ РјРµС‚РѕРґР° СЂР°СЃС‡РµС‚Р° РЅРѕРІС‹Р№ СЃ СѓС‡РµС‚РѕРј
+            			 * РјР°С‚РµСЂРёР°Р»РѕРІ Рё С‚СЂР°РЅРїРѕСЂС‚Р°
 
             			*/
 
@@ -3354,7 +3354,7 @@ public class ActLogic extends LogicModule{
             				selectSum = "paysworkbonusWithAdditional";
             				break;
             			default:
-            				throw new SystemException(String.format("Невідомий тип розрахунку калькуляції - %d", tkcalckind));
+            				throw new SystemException(String.format("РќРµРІС–РґРѕРјРёР№ С‚РёРї СЂРѕР·СЂР°С…СѓРЅРєСѓ РєР°Р»СЊРєСѓР»СЏС†С–С— - %d", tkcalckind));
             			}
 
 	selectStr = /*new String( tkcalckind == TKCalcKind.OLD ? " select ( sum(p2h.paysworkbonus)::numeric(15,2) * calc_info.productionexpenssprcnt / 100 )::numeric(15,2) as payswork  \n"
@@ -3376,7 +3376,7 @@ public class ActLogic extends LogicModule{
 
 
 
-			// SUPP-83425 копейки Загальновиробничі витрати по ЗП услуги на сторону
+			// SUPP-83425 РєРѕРїРµР№РєРё Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё РїРѕ Р—Рџ СѓСЃР»СѓРіРё РЅР° СЃС‚РѕСЂРѕРЅСѓ
 " select ( sum(paysworkbonusExpence)  )::numeric(15,2)  from ( \n" +
 			" select (sum(" + selectSum + ")::numeric(15,2)  * productionexpenssprcnt / 100)::numeric(15,2) as paysworkbonusExpence \n"	+
 				 " , productionexpenssprcnt \n" +
@@ -3458,7 +3458,7 @@ public class ActLogic extends LogicModule{
 
 
                     /**
-                     * возвращает сумму Загальновиробничі витрати грн.  по акту для формирования проводок
+                     * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё РіСЂРЅ.  РїРѕ Р°РєС‚Сѓ РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє
                      * */
          public FKTrans2AXTransItemShortList getDataForProvsTotalExpencByAct(int actCode  )  throws PersistenceException
                         {
@@ -3518,7 +3518,7 @@ public class ActLogic extends LogicModule{
                     	}
 
                 /**
-                 * возвращает сумму ЕСВ грн.  по акту услуг на сторону для формирования проводок
+                 * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р•РЎР’ РіСЂРЅ.  РїРѕ Р°РєС‚Сѓ СѓСЃР»СѓРі РЅР° СЃС‚РѕСЂРѕРЅСѓ РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє
                  * */
                     public FKTrans2AXTransItemShortList getDataForProvsESVByActServices(int actCode , int tkcalckind  , boolean isWithDelivery  )  throws PersistenceException
                     {
@@ -3558,7 +3558,7 @@ public class ActLogic extends LogicModule{
                         		"                      , salaryhours \n" +
                         		"                      , sum(timework) as timework \n" +
                         		"                      , (sum(payswork))::numeric(15,2)  as payswork \n" +
-                        		"                      , sum(paysWorkBonusWithoutDelivery)::numeric(15,2) as paysWorkBonusWithoutDelivery /* зп персонала без проезда и без водителей */ \n" +
+                        		"                      , sum(paysWorkBonusWithoutDelivery)::numeric(15,2) as paysWorkBonusWithoutDelivery /* Р·Рї РїРµСЂСЃРѕРЅР°Р»Р° Р±РµР· РїСЂРѕРµР·РґР° Рё Р±РµР· РІРѕРґРёС‚РµР»РµР№ */ \n" +
                         		"                      , cast(sum(paysworkAdditional) as numeric(15,2)) as paysworkAdditional \n" +
                         		"                      , case when replacecounterkindcode = 2 and isnopay = 1 then 0 else \n" +
                         		"                          cast(sum(generalexpenses) as numeric(15,2)) end as generalexpenses \n" +
@@ -3569,7 +3569,7 @@ public class ActLogic extends LogicModule{
                         		"                      , bonusdditional \n" +
                         		"                      , humenkindrefcode \n" +
                         		"                      , sum(CHARGESUM)::numeric(15,2) as  CHARGESUM \n" +
-                        		"                      , sum(CHARGESUMWITHOUTDELIV)::numeric(15,2) as CHARGESUMWITHOUTDELIV /*Єдиний внесок на загальнообов'язкове державне соціальне страхування персоналу*/ \n" +
+                        		"                      , sum(CHARGESUMWITHOUTDELIV)::numeric(15,2) as CHARGESUMWITHOUTDELIV /*Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ РїРµСЂСЃРѕРЅР°Р»Сѓ*/ \n" +
                         		"                      , coalesce((select * from getENconnectionKindByActCode(actrefcode) ),'') as isPriconnection \n" +
                         		"                      , sum(timeDelivery) as timeDelivery \n" +
                         		"                      , cehid \n" +
@@ -3672,7 +3672,7 @@ public class ActLogic extends LogicModule{
 
 
                     /**
-                     * возвращает сумму ЕСВ грн.  по акту  для формирования проводок
+                     * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р•РЎР’ РіСЂРЅ.  РїРѕ Р°РєС‚Сѓ  РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє
                      * */
                         public FKTrans2AXTransItemShortList getDataForProvsESVByAct(int actCode   )  throws PersistenceException
                         {
@@ -3732,7 +3732,7 @@ public class ActLogic extends LogicModule{
                     	}
 
                     /**
-                     * возвращает сумму ЕСВ грн.  по акту  для формирования проводок
+                     * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р•РЎР’ РіСЂРЅ.  РїРѕ Р°РєС‚Сѓ  РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє
                      * */
                         public FKTrans2AXTransItemShortList getDataForProvsESVByActRed(int actCode)  throws PersistenceException
                         {
@@ -3798,7 +3798,7 @@ public class ActLogic extends LogicModule{
     }
     
 /**
- * возвращает сумму Зарплата грн.  по акту для формирования проводок
+ * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р—Р°СЂРїР»Р°С‚Р° РіСЂРЅ.  РїРѕ Р°РєС‚Сѓ РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє
  * */
     public FKTrans2AXTransItemShortList getDataForProvsSalaryByAct(int actCode, boolean groupByPlans)  throws PersistenceException {
     	FKTrans2AXTransItemShortList result = new FKTrans2AXTransItemShortList();
@@ -3881,7 +3881,7 @@ public class ActLogic extends LogicModule{
 	}
 
     /**
-     * возвращает сумму Зарплата грн.  по ОЗ для формирования проводок
+     * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р—Р°СЂРїР»Р°С‚Р° РіСЂРЅ.  РїРѕ РћР— РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє
      * */
         public FKTrans2AXTransItemShortList getDataForProvsSalaryByOZ(int ozCode , int iszku , int scUsageInputItemKind )  throws PersistenceException
         {
@@ -3903,8 +3903,8 @@ public class ActLogic extends LogicModule{
     				    " 		group by a2h.cehid ";
     		}
     		if(iszku==1 && scUsageInputItemKind != 4 && scUsageInputItemKind != 5 ){
-    			/*как выбирается брал с акта  '201109/ActZKU/NormalAct/Act21';
-    		 	*  там клеются водители и только с планов с типом 112 -  ЕЗ - Замена счетчика в составе ЗКУ */
+    			/*РєР°Рє РІС‹Р±РёСЂР°РµС‚СЃСЏ Р±СЂР°Р» СЃ Р°РєС‚Р°  '201109/ActZKU/NormalAct/Act21';
+    		 	*  С‚Р°Рј РєР»РµСЋС‚СЃСЏ РІРѕРґРёС‚РµР»Рё Рё С‚РѕР»СЊРєРѕ СЃ РїР»Р°РЅРѕРІ СЃ С‚РёРїРѕРј 112 -  Р•Р— - Р—Р°РјРµРЅР° СЃС‡РµС‚С‡РёРєР° РІ СЃРѕСЃС‚Р°РІРµ Р—РљРЈ */
     			selectStr =  " select coalesce(sum(payswork),0)::numeric(15,2) as payswork , cehid from (  " +
         				" select a2h.payworkcou as payswork, a2h.cehid  " +
         				" from enact2humen a2h " +
@@ -3913,7 +3913,7 @@ public class ActLogic extends LogicModule{
         				 	" and oz.code = oz2act.usageinputitemozrefcod" +
         				 	" ) " +
         				 	//SUPP-106909" and a2h.payworkcou>0  " +
-        				 	" and a2h.humenkindrefcode = 1 " +  // задваивались работники в проводках
+        				 	" and a2h.humenkindrefcode = 1 " +  // Р·Р°РґРІР°РёРІР°Р»РёСЃСЊ СЂР°Р±РѕС‚РЅРёРєРё РІ РїСЂРѕРІРѕРґРєР°С…
         				 " union all " +
         				 " select a2h.paysworkbonus as payswork, a2h.cehid 	" +
         				 " from enact2humen a2h , enact2enplanwork ap , enplanwork p " +
@@ -3929,20 +3929,20 @@ public class ActLogic extends LogicModule{
         				 " ) as dat1 " +
         				 " group by dat1.cehid  " ;
     		}
-    		// по примеру репорта reportName := '201109/ActZKU/Act21';
+    		// РїРѕ РїСЂРёРјРµСЂСѓ СЂРµРїРѕСЂС‚Р° reportName := '201109/ActZKU/Act21';
     		if(scUsageInputItemKind == 4 ){
     			selectStr ="  select sum(payswork)::numeric(15,2) as payswork , cehid  , korPodr from \n" +
     					"  ( \n" +
     					"  select  case when en2h.paysworkbonus-coalesce(en2h.payworkcou,0) = 0 then en2h.paysworkbonus else en2h.paysworkbonus-coalesce(en2h.payworkcou,0) end as payswork  , en2h.cehid \n" +
-    					"   /* определение подразделения ЗКУ */ \n" +
+    					"   /* РѕРїСЂРµРґРµР»РµРЅРёРµ РїРѕРґСЂР°Р·РґРµР»РµРЅРёСЏ Р—РљРЈ */ \n" +
     					"    , ( select /*string_agg(sc.code::text ,',')*/ coalesce(sc.podrcodezku,'') From \n" +
     					"              sccounter sc , \n" +
     					"              enestimateitem eni , \n" +
     					"              enplanwork enp , \n" +
     					"              enelement el \n" +
-    					"          where sc.statusrefcode = 2 /*в Акті (ОЗ-1 і інш.)*/ \n" +
+    					"          where sc.statusrefcode = 2 /*РІ РђРєС‚С– (РћР—-1 С– С–РЅС€.)*/ \n" +
     					"            and sc.estimateitemrefcode = eni.code \n" +
-    					"            and eni.accountingtyperefcode = 2 /*Счетчики */ \n" +
+    					"            and eni.accountingtyperefcode = 2 /*РЎС‡РµС‚С‡РёРєРё */ \n" +
     					"            and enp.code = eni.planrefcode \n" +
     					"            and enp.elementrefcode = el.code \n" +
     					"            and enp.code = ap.plancode \n" +
@@ -3965,7 +3965,7 @@ public class ActLogic extends LogicModule{
     					"                            and sc.statusrefcode = 2  \n" +
     					"                            and sc.code = sci2scc.sccounterrefcode \n" +
     					"                            and sc.estimateitemrefcode = eni.code \n" +
-    					"                            and eni.accountingtyperefcode = 2 /*Счетчики */ \n" +
+    					"                            and eni.accountingtyperefcode = 2 /*РЎС‡РµС‚С‡РёРєРё */ \n" +
     					"                            and enp.code = eni.planrefcode \n" +
     					"                            and enp.elementrefcode = el.code \n" +
     					"                            and md.workordercode=wp.workordercode \n" +
@@ -3975,15 +3975,15 @@ public class ActLogic extends LogicModule{
     					"         \n" +
     					"  union all \n" +
     					"  Select en2h.paysworkbonus as payswork, en2h.cehid  \n" +
-    					"   /* определение подразделения ЗКУ */ \n" +
+    					"   /* РѕРїСЂРµРґРµР»РµРЅРёРµ РїРѕРґСЂР°Р·РґРµР»РµРЅРёСЏ Р—РљРЈ */ \n" +
     					"    , ( select /*string_agg(sc.code::text ,',')*/ coalesce(sc.podrcodezku,'') From \n" +
     					"              sccounter sc , \n" +
     					"              enestimateitem eni , \n" +
     					"              enplanwork enp , \n" +
     					"              enelement el \n" +
-    					"          where sc.statusrefcode = 2 /*в Акті (ОЗ-1 і інш.)*/ \n" +
+    					"          where sc.statusrefcode = 2 /*РІ РђРєС‚С– (РћР—-1 С– С–РЅС€.)*/ \n" +
     					"            and sc.estimateitemrefcode = eni.code \n" +
-    					"            and eni.accountingtyperefcode = 2 /*Счетчики */ \n" +
+    					"            and eni.accountingtyperefcode = 2 /*РЎС‡РµС‚С‡РёРєРё */ \n" +
     					"            and enp.code = eni.planrefcode \n" +
     					"            and enp.elementrefcode = el.code \n" +
     					"            and enp.code = ap.plancode \n" +
@@ -4005,7 +4005,7 @@ public class ActLogic extends LogicModule{
     					"                            and sc.statusrefcode = 2  \n" +
     					"                            and sc.code = sci2scc.sccounterrefcode \n" +
     					"                            and sc.estimateitemrefcode = eni.code \n" +
-    					"                            and eni.accountingtyperefcode = 2 /*Счетчики */ \n" +
+    					"                            and eni.accountingtyperefcode = 2 /*РЎС‡РµС‚С‡РёРєРё */ \n" +
     					"                            and enp.code = eni.planrefcode \n" +
     					"                            and enp.elementrefcode = el.code \n" +
     					"                            and md.workordercode=wp.workordercode \n" +
@@ -4019,7 +4019,7 @@ public class ActLogic extends LogicModule{
 
 
     		if(selectStr.length()== 0 ){
-    			throw new EnergyproSystemException(" Не знайдено шаблон для проводок !!! ");
+    			throw new EnergyproSystemException(" РќРµ Р·РЅР°Р№РґРµРЅРѕ С€Р°Р±Р»РѕРЅ РґР»СЏ РїСЂРѕРІРѕРґРѕРє !!! ");
     		}
     		try {
 
@@ -4038,7 +4038,7 @@ public class ActLogic extends LogicModule{
     					anObject.korCeh = set.getString(3);
     				}
 
-    				/*SUPP-97119 В лист для проводок по зарплате не берем проводки с суммой равной 0*/
+    				/*SUPP-97119 Р’ Р»РёСЃС‚ РґР»СЏ РїСЂРѕРІРѕРґРѕРє РїРѕ Р·Р°СЂРїР»Р°С‚Рµ РЅРµ Р±РµСЂРµРј РїСЂРѕРІРѕРґРєРё СЃ СЃСѓРјРјРѕР№ СЂР°РІРЅРѕР№ 0*/
     				if(!(anObject.amountCur == null || anObject.amountCur.compareTo(BigDecimal.ZERO) == 0)) {
         				result.list.add(anObject);
     				}
@@ -4068,7 +4068,7 @@ public class ActLogic extends LogicModule{
         	return this.getDataForProvsSalaryByActRed(actCode, false);
         }
     /**
-     * возвращает сумму Зарплата грн.  по акту для формирования проводок   c групировкой по балнсовому коду работников
+     * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р—Р°СЂРїР»Р°С‚Р° РіСЂРЅ.  РїРѕ Р°РєС‚Сѓ РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє   c РіСЂСѓРїРёСЂРѕРІРєРѕР№ РїРѕ Р±Р°Р»РЅСЃРѕРІРѕРјСѓ РєРѕРґСѓ СЂР°Р±РѕС‚РЅРёРєРѕРІ
      * */
         public FKTrans2AXTransItemShortList getDataForProvsSalaryByActRed(int actCode, boolean groupByPlans)  throws PersistenceException
         {
@@ -4153,7 +4153,7 @@ public class ActLogic extends LogicModule{
     	}
 
         /**
-         * возвращает сумму Зарплата грн.  по ОЗ для формирования проводок   c групировкой по балнсовому коду работников
+         * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р—Р°СЂРїР»Р°С‚Р° РіСЂРЅ.  РїРѕ РћР— РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє   c РіСЂСѓРїРёСЂРѕРІРєРѕР№ РїРѕ Р±Р°Р»РЅСЃРѕРІРѕРјСѓ РєРѕРґСѓ СЂР°Р±РѕС‚РЅРёРєРѕРІ
          * */
             public FKTrans2AXTransItemShortList getDataForProvsSalaryByOZRed(int ozCode , int iszku , int scUsageInputItemKind )  throws PersistenceException
             {
@@ -4174,8 +4174,8 @@ public class ActLogic extends LogicModule{
         		}
 
         		if(iszku==1){
-        			/*как выбирается брал с акта
-            		 * там клеются водители и только с планов с типом 112 -  ЕЗ - Замена счетчика в составе ЗКУ */
+        			/*РєР°Рє РІС‹Р±РёСЂР°РµС‚СЃСЏ Р±СЂР°Р» СЃ Р°РєС‚Р°
+            		 * С‚Р°Рј РєР»РµСЋС‚СЃСЏ РІРѕРґРёС‚РµР»Рё Рё С‚РѕР»СЊРєРѕ СЃ РїР»Р°РЅРѕРІ СЃ С‚РёРїРѕРј 112 -  Р•Р— - Р—Р°РјРµРЅР° СЃС‡РµС‚С‡РёРєР° РІ СЃРѕСЃС‚Р°РІРµ Р—РљРЈ */
             		    		selectStr =  " select sum(payswork)::numeric(15,2) as payswork , balans , cehid from (  " +
             		    				" select a2h.payworkcou as payswork , a2h.cehid , a2h.balans  " +
             		    				" from enact2humen a2h " +
@@ -4184,7 +4184,7 @@ public class ActLogic extends LogicModule{
             		    				 	" and oz.code = oz2act.usageinputitemozrefcod" +
             		    				 	" ) " +
             		    				 	//SUPP-106909" and a2h.payworkcou>0 " +
-            		    				 	" and a2h.humenkindrefcode = 1 " +  // задваивались работники в проводках
+            		    				 	" and a2h.humenkindrefcode = 1 " +  // Р·Р°РґРІР°РёРІР°Р»РёСЃСЊ СЂР°Р±РѕС‚РЅРёРєРё РІ РїСЂРѕРІРѕРґРєР°С…
             		    				 " union all " +
             		    				 " select a2h.paysworkbonus as payswork , a2h.cehid  , a2h.balans	" +
             		    				  " from enact2humen a2h , enact2enplanwork ap , enplanwork p " +
@@ -4201,7 +4201,7 @@ public class ActLogic extends LogicModule{
             		    				  " group by dat1.balans ,  dat1.cehid  " ;
         		}
 
-        		// по примеру репорта reportName := '201109/ActZKU/Act21';
+        		// РїРѕ РїСЂРёРјРµСЂСѓ СЂРµРїРѕСЂС‚Р° reportName := '201109/ActZKU/Act21';
         		if(scUsageInputItemKind == 4 ){
         			selectStr = "   \n" +
         					"  select sum(payswork)::numeric(15,2) as payswork , balans , cehid from \n" +
@@ -4223,7 +4223,7 @@ public class ActLogic extends LogicModule{
         					"                            and sc.statusrefcode = 2  \n" +
         					"                            and sc.code = sci2scc.sccounterrefcode \n" +
         					"                            and sc.estimateitemrefcode = eni.code \n" +
-        					"                            and eni.accountingtyperefcode = 2 /*Счетчики */ \n" +
+        					"                            and eni.accountingtyperefcode = 2 /*РЎС‡РµС‚С‡РёРєРё */ \n" +
         					"                            and enp.code = eni.planrefcode \n" +
         					"                            and enp.elementrefcode = el.code \n" +
         					"                            and md.workordercode=wp.workordercode \n" +
@@ -4248,7 +4248,7 @@ public class ActLogic extends LogicModule{
         					"                            and sc.statusrefcode = 2  \n" +
         					"                            and sc.code = sci2scc.sccounterrefcode \n" +
         					"                            and sc.estimateitemrefcode = eni.code \n" +
-        					"                            and eni.accountingtyperefcode = 2 /*Счетчики */ \n" +
+        					"                            and eni.accountingtyperefcode = 2 /*РЎС‡РµС‚С‡РёРєРё */ \n" +
         					"                            and enp.code = eni.planrefcode \n" +
         					"                            and enp.elementrefcode = el.code \n" +
         					"                            and md.workordercode=wp.workordercode \n" +
@@ -4273,7 +4273,7 @@ public class ActLogic extends LogicModule{
         				anObject.balans = set.getString(2);
         				anObject.balCeh = set.getString(3);
 
-        				/*SUPP-97119 В лист для проводок по зарплате не берем проводки с суммой равной 0*/
+        				/*SUPP-97119 Р’ Р»РёСЃС‚ РґР»СЏ РїСЂРѕРІРѕРґРѕРє РїРѕ Р·Р°СЂРїР»Р°С‚Рµ РЅРµ Р±РµСЂРµРј РїСЂРѕРІРѕРґРєРё СЃ СЃСѓРјРјРѕР№ СЂР°РІРЅРѕР№ 0*/
         				if(anObject.amountCur == null || anObject.amountCur.compareTo(BigDecimal.ZERO) != 0) {
         					result.list.add(anObject);
         				}
@@ -4298,15 +4298,15 @@ public class ActLogic extends LogicModule{
                 }
         	}
             
-       public FKTrans2AXTransItemShortList getDataForBlackProvsСhargesumByAct(int actCode) throws PersistenceException {
-    	   return this.getDataForBlackProvsСhargesumByAct(actCode, false);
+       public FKTrans2AXTransItemShortList getDataForBlackProvsРЎhargesumByAct(int actCode) throws PersistenceException {
+    	   return this.getDataForBlackProvsРЎhargesumByAct(actCode, false);
        }
 
     /**
-     * возвращает сумму отчислений соц страх  по акту сгрупированную по ЦЕХУ и поввиду работника - инвалид /не инвалид  для формирования проводок черным
+     * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ РѕС‚С‡РёСЃР»РµРЅРёР№ СЃРѕС† СЃС‚СЂР°С…  РїРѕ Р°РєС‚Сѓ СЃРіСЂСѓРїРёСЂРѕРІР°РЅРЅСѓСЋ РїРѕ Р¦Р•РҐРЈ Рё РїРѕРІРІРёРґСѓ СЂР°Р±РѕС‚РЅРёРєР° - РёРЅРІР°Р»РёРґ /РЅРµ РёРЅРІР°Р»РёРґ  РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє С‡РµСЂРЅС‹Рј
      *
      * */
-        public FKTrans2AXTransItemShortList getDataForBlackProvsСhargesumByAct(int actCode, boolean groupByPlans)  throws PersistenceException
+        public FKTrans2AXTransItemShortList getDataForBlackProvsРЎhargesumByAct(int actCode, boolean groupByPlans)  throws PersistenceException
         {
         	FKTrans2AXTransItemShortList result = new FKTrans2AXTransItemShortList();
     		FKTrans2AXTransItemShort anObject;
@@ -4400,10 +4400,10 @@ public class ActLogic extends LogicModule{
 
 
         /**
-         * возвращает сумму отчислений соц страх  по ОЗ сгрупированную по ЦЕХУ и по виду работника - инвалид /не инвалид  для формирования проводок черным
+         * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ РѕС‚С‡РёСЃР»РµРЅРёР№ СЃРѕС† СЃС‚СЂР°С…  РїРѕ РћР— СЃРіСЂСѓРїРёСЂРѕРІР°РЅРЅСѓСЋ РїРѕ Р¦Р•РҐРЈ Рё РїРѕ РІРёРґСѓ СЂР°Р±РѕС‚РЅРёРєР° - РёРЅРІР°Р»РёРґ /РЅРµ РёРЅРІР°Р»РёРґ  РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє С‡РµСЂРЅС‹Рј
          *
          * */
-            public FKTrans2AXTransItemShortList getDataForBlackProvsСhargesumByOZ(int ozCode , int iszku , int scUsageInputItemKind )  throws PersistenceException
+            public FKTrans2AXTransItemShortList getDataForBlackProvsРЎhargesumByOZ(int ozCode , int iszku , int scUsageInputItemKind )  throws PersistenceException
             {
             	FKTrans2AXTransItemShortList result = new FKTrans2AXTransItemShortList();
         		FKTrans2AXTransItemShort anObject;
@@ -4430,9 +4430,9 @@ public class ActLogic extends LogicModule{
     				" and oz.code = oz2act.usageinputitemozrefcod " +
     				" )  " +
     				//SUPP-106909" and a2h.payworkcou>0  " +
-    				" and a2h.humenkindrefcode = 1 " +  // задваивались работники в проводках
+    				" and a2h.humenkindrefcode = 1 " +  // Р·Р°РґРІР°РёРІР°Р»РёСЃСЊ СЂР°Р±РѕС‚РЅРёРєРё РІ РїСЂРѕРІРѕРґРєР°С…
     				" union all " +
-    				" select /*a2h.chargesum::numeric(15,2)*/ (((a2h.paysworkbonus/* в отчете не отнимается -coalesce(a2h.payworkcou,0)*/)*a2h.chargepercent)/100)::numeric(15,2) as chargesum , a2h.cehid , a2h.chargerefcode " +
+    				" select /*a2h.chargesum::numeric(15,2)*/ (((a2h.paysworkbonus/* РІ РѕС‚С‡РµС‚Рµ РЅРµ РѕС‚РЅРёРјР°РµС‚СЃСЏ -coalesce(a2h.payworkcou,0)*/)*a2h.chargepercent)/100)::numeric(15,2) as chargesum , a2h.cehid , a2h.chargerefcode " +
     				" from enact2humen a2h , enact2enplanwork ap , enplanwork p  " +
     				" where a2h.actrefcode = ap.actrefcode  " +
     				" and ap.plancode = p.code  " +
@@ -4448,20 +4448,20 @@ public class ActLogic extends LogicModule{
         		}
 
 
-        		// по примеру репорта reportName := '201109/ActZKU/Act21';
+        		// РїРѕ РїСЂРёРјРµСЂСѓ СЂРµРїРѕСЂС‚Р° reportName := '201109/ActZKU/Act21';
         		if(scUsageInputItemKind == 4 ){
         			selectStr = "  select sum(chargesum) as chargesum , cehid ,  chargerefcode  , korPodr  from \n" +
         					"  (  \n" +
         					"  select ((( case when en2h.paysworkbonus-coalesce(en2h.payworkcou,0) = 0 then en2h.paysworkbonus else en2h.paysworkbonus-coalesce(en2h.payworkcou,0) end )*en2h.chargepercent)/100)::numeric(15,2) as chargesum , en2h.cehid  ,  en2h.chargerefcode  \n" +
-        					"   /* определение подразделения ЗКУ */ \n" +
+        					"   /* РѕРїСЂРµРґРµР»РµРЅРёРµ РїРѕРґСЂР°Р·РґРµР»РµРЅРёСЏ Р—РљРЈ */ \n" +
         					"    , ( select /*string_agg(sc.code::text ,',')*/ coalesce(sc.podrcodezku,'') From \n" +
         					"              sccounter sc , \n" +
         					"              enestimateitem eni , \n" +
         					"              enplanwork enp , \n" +
         					"              enelement el \n" +
-        					"          where sc.statusrefcode = 2 /*в Акті (ОЗ-1 і інш.)*/ \n" +
+        					"          where sc.statusrefcode = 2 /*РІ РђРєС‚С– (РћР—-1 С– С–РЅС€.)*/ \n" +
         					"            and sc.estimateitemrefcode = eni.code \n" +
-        					"            and eni.accountingtyperefcode = 2 /*Счетчики */ \n" +
+        					"            and eni.accountingtyperefcode = 2 /*РЎС‡РµС‚С‡РёРєРё */ \n" +
         					"            and enp.code = eni.planrefcode \n" +
         					"            and enp.elementrefcode = el.code \n" +
         					"            and enp.code = ap.plancode \n" +
@@ -4484,7 +4484,7 @@ public class ActLogic extends LogicModule{
         					"                            and sc.statusrefcode = 2  \n" +
         					"                            and sc.code = sci2scc.sccounterrefcode \n" +
         					"                            and sc.estimateitemrefcode = eni.code \n" +
-        					"                            and eni.accountingtyperefcode = 2 /*Счетчики */ \n" +
+        					"                            and eni.accountingtyperefcode = 2 /*РЎС‡РµС‚С‡РёРєРё */ \n" +
         					"                            and enp.code = eni.planrefcode \n" +
         					"                            and enp.elementrefcode = el.code \n" +
         					"                            and md.workordercode=wp.workordercode \n" +
@@ -4494,15 +4494,15 @@ public class ActLogic extends LogicModule{
         					"         \n" +
         					"  union all \n" +
         					"  Select (((/*SUPP-107906*/ case when en2h.paysworkbonus-coalesce(en2h.payworkcou,0) = 0 then en2h.paysworkbonus else en2h.paysworkbonus-coalesce(en2h.payworkcou,0) end)*en2h.chargepercent)/100)::numeric(15,2) as chargesum , en2h.cehid  ,  en2h.chargerefcode  \n" +
-        					"   /* определение подразделения ЗКУ */ \n" +
+        					"   /* РѕРїСЂРµРґРµР»РµРЅРёРµ РїРѕРґСЂР°Р·РґРµР»РµРЅРёСЏ Р—РљРЈ */ \n" +
         					"    , ( select /*string_agg(sc.code::text ,',')*/ coalesce(sc.podrcodezku,'') From \n" +
         					"              sccounter sc , \n" +
         					"              enestimateitem eni , \n" +
         					"              enplanwork enp , \n" +
         					"              enelement el \n" +
-        					"          where sc.statusrefcode = 2 /*в Акті (ОЗ-1 і інш.)*/ \n" +
+        					"          where sc.statusrefcode = 2 /*РІ РђРєС‚С– (РћР—-1 С– С–РЅС€.)*/ \n" +
         					"            and sc.estimateitemrefcode = eni.code \n" +
-        					"            and eni.accountingtyperefcode = 2 /*Счетчики */ \n" +
+        					"            and eni.accountingtyperefcode = 2 /*РЎС‡РµС‚С‡РёРєРё */ \n" +
         					"            and enp.code = eni.planrefcode \n" +
         					"            and enp.elementrefcode = el.code \n" +
         					"            and enp.code = ap.plancode \n" +
@@ -4525,7 +4525,7 @@ public class ActLogic extends LogicModule{
         					"                            and sc.statusrefcode = 2  \n" +
         					"                            and sc.code = sci2scc.sccounterrefcode \n" +
         					"                            and sc.estimateitemrefcode = eni.code \n" +
-        					"                            and eni.accountingtyperefcode = 2 /*Счетчики */ \n" +
+        					"                            and eni.accountingtyperefcode = 2 /*РЎС‡РµС‚С‡РёРєРё */ \n" +
         					"                            and enp.code = eni.planrefcode \n" +
         					"                            and enp.elementrefcode = el.code \n" +
         					"                            and md.workordercode=wp.workordercode \n" +
@@ -4582,14 +4582,14 @@ public class ActLogic extends LogicModule{
         	}
 
 
-            public FKTrans2AXTransItemShortList getDataForRedProvsСhargesumByAct(int actCode) throws PersistenceException {
-            	return this.getDataForRedProvsСhargesumByAct(actCode, false);
+            public FKTrans2AXTransItemShortList getDataForRedProvsРЎhargesumByAct(int actCode) throws PersistenceException {
+            	return this.getDataForRedProvsРЎhargesumByAct(actCode, false);
             }
         /**
-         * возвращает сумму отчислений соц страх  по акту сгрупированную по ЦЕХУ , ШПЗ и поввиду работника - инвалид /не инвалид  для формирования проводок КРАСНЫМ
-         *  !!!!!!!!!!!!! замена 8 символа в ШПЗ на цифру 3
+         * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ РѕС‚С‡РёСЃР»РµРЅРёР№ СЃРѕС† СЃС‚СЂР°С…  РїРѕ Р°РєС‚Сѓ СЃРіСЂСѓРїРёСЂРѕРІР°РЅРЅСѓСЋ РїРѕ Р¦Р•РҐРЈ , РЁРџР— Рё РїРѕРІРІРёРґСѓ СЂР°Р±РѕС‚РЅРёРєР° - РёРЅРІР°Р»РёРґ /РЅРµ РёРЅРІР°Р»РёРґ  РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє РљР РђРЎРќР«Рњ
+         *  !!!!!!!!!!!!! Р·Р°РјРµРЅР° 8 СЃРёРјРІРѕР»Р° РІ РЁРџР— РЅР° С†РёС„СЂСѓ 3
          * */
-            public FKTrans2AXTransItemShortList getDataForRedProvsСhargesumByAct(int actCode, boolean groupByPlans)  throws PersistenceException
+            public FKTrans2AXTransItemShortList getDataForRedProvsРЎhargesumByAct(int actCode, boolean groupByPlans)  throws PersistenceException
             {
             	FKTrans2AXTransItemShortList result = new FKTrans2AXTransItemShortList();
         		FKTrans2AXTransItemShort anObject;
@@ -4684,10 +4684,10 @@ public class ActLogic extends LogicModule{
 
 
     /**
-     * возвращает сумму отчислений соц страх  по акту сгрупированную по ЦЕХУ , ШПЗ и поввиду работника - инвалид /не инвалид  для формирования проводок КРАСНЫМ
-     *  !!!!!!!!!!!!! замена 8 символа в ШПЗ на цифру 3
+     * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ РѕС‚С‡РёСЃР»РµРЅРёР№ СЃРѕС† СЃС‚СЂР°С…  РїРѕ Р°РєС‚Сѓ СЃРіСЂСѓРїРёСЂРѕРІР°РЅРЅСѓСЋ РїРѕ Р¦Р•РҐРЈ , РЁРџР— Рё РїРѕРІРІРёРґСѓ СЂР°Р±РѕС‚РЅРёРєР° - РёРЅРІР°Р»РёРґ /РЅРµ РёРЅРІР°Р»РёРґ  РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє РљР РђРЎРќР«Рњ
+     *  !!!!!!!!!!!!! Р·Р°РјРµРЅР° 8 СЃРёРјРІРѕР»Р° РІ РЁРџР— РЅР° С†РёС„СЂСѓ 3
      * */
-        public FKTrans2AXTransItemShortList getDataForRedProvsСhargesumByOZ(int ozCode ,int iszku , int scUsageInputItemKind )  throws PersistenceException
+        public FKTrans2AXTransItemShortList getDataForRedProvsРЎhargesumByOZ(int ozCode ,int iszku , int scUsageInputItemKind )  throws PersistenceException
         {
         	FKTrans2AXTransItemShortList result = new FKTrans2AXTransItemShortList();
     		FKTrans2AXTransItemShort anObject;
@@ -4717,9 +4717,9 @@ public class ActLogic extends LogicModule{
     					" and oz.code = oz2act.usageinputitemozrefcod " +
     					" )  " +
     					//SUPP-106909" and a2h.payworkcou>0  " +
-    					" and a2h.humenkindrefcode = 1 " +  // задваивались работники в проводках
+    					" and a2h.humenkindrefcode = 1 " +  // Р·Р°РґРІР°РёРІР°Р»РёСЃСЊ СЂР°Р±РѕС‚РЅРёРєРё РІ РїСЂРѕРІРѕРґРєР°С…
     					" union all " +
-    					" select /*a2h.chargesum::numeric(15,2)*/ (((a2h.paysworkbonus/* в отчете не отнимается -coalesce(a2h.payworkcou,0)*/)*a2h.chargepercent)/100)::numeric(15,2) as chargesum , a2h.cehid , a2h.chargerefcode , a2h.balans " +
+    					" select /*a2h.chargesum::numeric(15,2)*/ (((a2h.paysworkbonus/* РІ РѕС‚С‡РµС‚Рµ РЅРµ РѕС‚РЅРёРјР°РµС‚СЃСЏ -coalesce(a2h.payworkcou,0)*/)*a2h.chargepercent)/100)::numeric(15,2) as chargesum , a2h.cehid , a2h.chargerefcode , a2h.balans " +
     					" from enact2humen a2h , enact2enplanwork ap , enplanwork p  " +
     					" where a2h.actrefcode = ap.actrefcode " +
     					" and ap.plancode = p.code " +
@@ -4734,7 +4734,7 @@ public class ActLogic extends LogicModule{
     					" group by dat1.cehid , dat1.chargerefcode , overlay(balans placing '3' from 8 )" ;
     		}
 
-    		// по примеру репорта reportName := '201109/ActZKU/Act21';
+    		// РїРѕ РїСЂРёРјРµСЂСѓ СЂРµРїРѕСЂС‚Р° reportName := '201109/ActZKU/Act21';
     		if(scUsageInputItemKind == 4 ){
     			selectStr = "  select sum(chargesum) as chargesum , cehid ,  chargerefcode  , overlay(balans placing '3' from 8 ) as balans  from \n" +
     					"  (  \n" +
@@ -4755,7 +4755,7 @@ public class ActLogic extends LogicModule{
     					"                            and sc.statusrefcode = 2  \n" +
     					"                            and sc.code = sci2scc.sccounterrefcode \n" +
     					"                            and sc.estimateitemrefcode = eni.code \n" +
-    					"                            and eni.accountingtyperefcode = 2 /*Счетчики */ \n" +
+    					"                            and eni.accountingtyperefcode = 2 /*РЎС‡РµС‚С‡РёРєРё */ \n" +
     					"                            and enp.code = eni.planrefcode \n" +
     					"                            and enp.elementrefcode = el.code \n" +
     					"                            and md.workordercode=wp.workordercode \n" +
@@ -4781,7 +4781,7 @@ public class ActLogic extends LogicModule{
     					"                            and sc.statusrefcode = 2  \n" +
     					"                            and sc.code = sci2scc.sccounterrefcode \n" +
     					"                            and sc.estimateitemrefcode = eni.code \n" +
-    					"                            and eni.accountingtyperefcode = 2 /*Счетчики */ \n" +
+    					"                            and eni.accountingtyperefcode = 2 /*РЎС‡РµС‚С‡РёРєРё */ \n" +
     					"                            and enp.code = eni.planrefcode \n" +
     					"                            and enp.elementrefcode = el.code \n" +
     					"                            and md.workordercode=wp.workordercode \n" +
@@ -4835,7 +4835,7 @@ public class ActLogic extends LogicModule{
     	}
         
         public Map.Entry<List<DataForTransAmortizacBlack>, List<DataForTransAmortizacRed>> getDataForProvsAmortization(ENAct act) throws PersistenceException {
-			// IV пачка проводок амортизация
+			// IV РїР°С‡РєР° РїСЂРѕРІРѕРґРѕРє Р°РјРѕСЂС‚РёР·Р°С†РёСЏ
         	
         	Connection finConn = null;
     		try {
@@ -4853,7 +4853,7 @@ public class ActLogic extends LogicModule{
     			
     			for(ENAct2TransportShort item : a2tList.list) {
     				String cehtransport = fpLogic.getKodPodr(item.invNumber);
-    				// вытянем код цеха по штатному mdax
+    				// РІС‹С‚СЏРЅРµРј РєРѕРґ С†РµС…Р° РїРѕ С€С‚Р°С‚РЅРѕРјСѓ mdax
     				cehtransport = mdLogic.getMAINORGANIZATIONIDByHRMORGANIZATIONID(cehtransport, act.dateGen);
     				String kodSubschB = fpLogic.getKodSubschB(item.invNumber);
     				String vidOStransp = fpLogic.getG45(item.invNumber);
@@ -4896,10 +4896,10 @@ public class ActLogic extends LogicModule{
         
 
 	/**
-	 *	возврашает вид присоединения (стандартное/не стандартное) по акту выполненных работ
+	 *	РІРѕР·РІСЂР°С€Р°РµС‚ РІРёРґ РїСЂРёСЃРѕРµРґРёРЅРµРЅРёСЏ (СЃС‚Р°РЅРґР°СЂС‚РЅРѕРµ/РЅРµ СЃС‚Р°РЅРґР°СЂС‚РЅРѕРµ) РїРѕ Р°РєС‚Сѓ РІС‹РїРѕР»РЅРµРЅРЅС‹С… СЂР°Р±РѕС‚
 	 *
-	 *	@param actCode - код акта
-	 *	@return connectionKind - вид присоединения
+	 *	@param actCode - РєРѕРґ Р°РєС‚Р°
+	 *	@return connectionKind - РІРёРґ РїСЂРёСЃРѕРµРґРёРЅРµРЅРёСЏ
 	 */
 	public int getConnectionKind(int actCode) {
 		int connectionKind = Integer.MIN_VALUE;
@@ -4961,12 +4961,12 @@ public class ActLogic extends LogicModule{
 
 /**
  *
- * Возвратит десятичное представление процента общепроизводственных затрат
+ * Р’РѕР·РІСЂР°С‚РёС‚ РґРµСЃСЏС‚РёС‡РЅРѕРµ РїСЂРµРґСЃС‚Р°РІР»РµРЅРёРµ РїСЂРѕС†РµРЅС‚Р° РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… Р·Р°С‚СЂР°С‚
  *
- * То есть если процент общепроизводственных затрат равняется 50%, то функция возвратит 0.5
+ * РўРѕ РµСЃС‚СЊ РµСЃР»Рё РїСЂРѕС†РµРЅС‚ РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… Р·Р°С‚СЂР°С‚ СЂР°РІРЅСЏРµС‚СЃСЏ 50%, С‚Рѕ С„СѓРЅРєС†РёСЏ РІРѕР·РІСЂР°С‚РёС‚ 0.5
  *
- * @param codeAct код акта
- * @return десятичное представление процента общепроизводственных затрат
+ * @param codeAct РєРѕРґ Р°РєС‚Р°
+ * @return РґРµСЃСЏС‚РёС‡РЅРѕРµ РїСЂРµРґСЃС‚Р°РІР»РµРЅРёРµ РїСЂРѕС†РµРЅС‚Р° РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… Р·Р°С‚СЂР°С‚
  */
 public BigDecimal getProductionExpencesRateByAct(int codeAct) {
 	BigDecimal percent = getProductionExpencesPercentByAct(codeAct);
@@ -4975,12 +4975,12 @@ public BigDecimal getProductionExpencesRateByAct(int codeAct) {
 
 /**
  *
- * Возвратит десятичное представление процента общепроизводственных затрат на заданную дату
+ * Р’РѕР·РІСЂР°С‚РёС‚ РґРµСЃСЏС‚РёС‡РЅРѕРµ РїСЂРµРґСЃС‚Р°РІР»РµРЅРёРµ РїСЂРѕС†РµРЅС‚Р° РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… Р·Р°С‚СЂР°С‚ РЅР° Р·Р°РґР°РЅРЅСѓСЋ РґР°С‚Сѓ
  *
- * То есть если процент общепроизводственных затрат равняется 50%, то функция возвратит 0.5
+ * РўРѕ РµСЃС‚СЊ РµСЃР»Рё РїСЂРѕС†РµРЅС‚ РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… Р·Р°С‚СЂР°С‚ СЂР°РІРЅСЏРµС‚СЃСЏ 50%, С‚Рѕ С„СѓРЅРєС†РёСЏ РІРѕР·РІСЂР°С‚РёС‚ 0.5
  *
- * @param date заданная дата
- * @return десятичное представление процента общепроизводственных затрат
+ * @param date Р·Р°РґР°РЅРЅР°СЏ РґР°С‚Р°
+ * @return РґРµСЃСЏС‚РёС‡РЅРѕРµ РїСЂРµРґСЃС‚Р°РІР»РµРЅРёРµ РїСЂРѕС†РµРЅС‚Р° РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… Р·Р°С‚СЂР°С‚
  */
 public BigDecimal getProductionExpencesRateByDate(Date date) {
 	BigDecimal percent = this.getProductionExpencesPercentByDate(date);
@@ -4989,10 +4989,10 @@ public BigDecimal getProductionExpencesRateByDate(Date date) {
 
 /**
  *
- * Возвратит процент общепроизводственных затрат на заданную дату
+ * Р’РѕР·РІСЂР°С‚РёС‚ РїСЂРѕС†РµРЅС‚ РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… Р·Р°С‚СЂР°С‚ РЅР° Р·Р°РґР°РЅРЅСѓСЋ РґР°С‚Сѓ
  *
- * @param date заданная дата
- * @return процент общепроизводственных затрат
+ * @param date Р·Р°РґР°РЅРЅР°СЏ РґР°С‚Р°
+ * @return РїСЂРѕС†РµРЅС‚ РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… Р·Р°С‚СЂР°С‚
  */
 public BigDecimal getProductionExpencesPercentByDate(Date date) {
 	ENStandardConstDAO dao = new ENStandardConstDAO(connection, userProfile);
@@ -5001,10 +5001,10 @@ public BigDecimal getProductionExpencesPercentByDate(Date date) {
 
 /**
  *
- * Возвратит процент общепроизводственных затрат по коду акта
+ * Р’РѕР·РІСЂР°С‚РёС‚ РїСЂРѕС†РµРЅС‚ РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… Р·Р°С‚СЂР°С‚ РїРѕ РєРѕРґСѓ Р°РєС‚Р°
  *
- * @param codeAct код акта
- * @return процент общепроизводственных затрат
+ * @param codeAct РєРѕРґ Р°РєС‚Р°
+ * @return РїСЂРѕС†РµРЅС‚ РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… Р·Р°С‚СЂР°С‚
  */
 public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
@@ -5048,7 +5048,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 
 /**
- * возвращает сумму амортизации грн.  по акту услуг на сторону для формирования проводок
+ * РІРѕР·РІСЂР°С‰Р°РµС‚ СЃСѓРјРјСѓ Р°РјРѕСЂС‚РёР·Р°С†РёРё РіСЂРЅ.  РїРѕ Р°РєС‚Сѓ СѓСЃР»СѓРі РЅР° СЃС‚РѕСЂРѕРЅСѓ РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє
  * */
     public FKTrans2AXTransItemShortList getDataForProvsAmortizationByActServices(int actCode , int tkcalckind , boolean isWithDelivery )  throws PersistenceException
     {
@@ -5081,8 +5081,8 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 			for (i = 0; set.next(); i++) {
 				anObject = new FKTrans2AXTransItemShort();
 
-				anObject.accountDimension1 = set.getString(1); // код инв
-				anObject.accountDimension2 = set.getString(2); // наименование инв
+				anObject.accountDimension1 = set.getString(1); // РєРѕРґ РёРЅРІ
+				anObject.accountDimension2 = set.getString(2); // РЅР°РёРјРµРЅРѕРІР°РЅРёРµ РёРЅРІ
 
 				anObject.amountCur = set.getBigDecimal(3);
 				if(anObject.amountCur != null) {
@@ -5115,17 +5115,17 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     
     /**
      * 
-     * Получить корреспондирующий счет для актов реконструкции и модернизации
+     * РџРѕР»СѓС‡РёС‚СЊ РєРѕСЂСЂРµСЃРїРѕРЅРґРёСЂСѓСЋС‰РёР№ СЃС‡РµС‚ РґР»СЏ Р°РєС‚РѕРІ СЂРµРєРѕРЅСЃС‚СЂСѓРєС†РёРё Рё РјРѕРґРµСЂРЅРёР·Р°С†РёРё
      * 
-     * @param act акт {@link ENAct}
-     * @param invNumber инвентарный номер основного средства для получения характеристик
-     * @return корреспондирующий счет
+     * @param act Р°РєС‚ {@link ENAct}
+     * @param invNumber РёРЅРІРµРЅС‚Р°СЂРЅС‹Р№ РЅРѕРјРµСЂ РѕСЃРЅРѕРІРЅРѕРіРѕ СЃСЂРµРґСЃС‚РІР° РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРє
+     * @return РєРѕСЂСЂРµСЃРїРѕРЅРґРёСЂСѓСЋС‰РёР№ СЃС‡РµС‚
      */
     public String getCorrespondingAccountForReconstructionAndModernization(ENAct act, String invNumber) {
     	if(act == null || act.code == Integer.MIN_VALUE) throw new java.lang.NullPointerException();
 
     	if (invNumber == null || invNumber.trim().isEmpty()) {
-    		throw new IllegalArgumentException("\n\nЗаборонено складати акти реконструкції/модернізації на об'єкти без інвентарного номера!");
+    		throw new IllegalArgumentException("\n\nР—Р°Р±РѕСЂРѕРЅРµРЅРѕ СЃРєР»Р°РґР°С‚Рё Р°РєС‚Рё СЂРµРєРѕРЅСЃС‚СЂСѓРєС†С–С—/РјРѕРґРµСЂРЅС–Р·Р°С†С–С— РЅР° РѕР±'С”РєС‚Рё Р±РµР· С–РЅРІРµРЅС‚Р°СЂРЅРѕРіРѕ РЅРѕРјРµСЂР°!");
     	}
 
     	Connection finConn = null;
@@ -5133,9 +5133,9 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     		finConn = getNEWConnection(AuthorizationJNDINames.FINMATERIAL_DATASOURCE);
         	FKPostingLogic fpLogic = new FKPostingLogic(finConn , userProfile);
         	boolean isPricon = this.getConnectionKind(act.code) != Integer.MIN_VALUE;
-    		/* признак налог/неналог из ОС */
+    		/* РїСЂРёР·РЅР°Рє РЅР°Р»РѕРі/РЅРµРЅР°Р»РѕРі РёР· РћРЎ */
             String nalog = fpLogic.getM(invNumber);
-            /* добавился код затрат ОС */
+            /* РґРѕР±Р°РІРёР»СЃСЏ РєРѕРґ Р·Р°С‚СЂР°С‚ РћРЎ */
             String kod_zatr = fpLogic.getNNNN(invNumber);
         	
             String korSch_black = (isPricon && nalog.equals("1") && kod_zatr.equals("94")) ? "1526" :
@@ -5159,10 +5159,10 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     
     /**
      * 
-     * Получить корреспондирующий счет для актов по услугам на сторону
+     * РџРѕР»СѓС‡РёС‚СЊ РєРѕСЂСЂРµСЃРїРѕРЅРґРёСЂСѓСЋС‰РёР№ СЃС‡РµС‚ РґР»СЏ Р°РєС‚РѕРІ РїРѕ СѓСЃР»СѓРіР°Рј РЅР° СЃС‚РѕСЂРѕРЅСѓ
      * 
-     * @param акт услуг {@link ENAct}
-     * @return корреспондирующий счет
+     * @param Р°РєС‚ СѓСЃР»СѓРі {@link ENAct}
+     * @return РєРѕСЂСЂРµСЃРїРѕРЅРґРёСЂСѓСЋС‰РёР№ СЃС‡РµС‚
      */
     public String getCorrespondingAccountForServices(ENAct act) throws PersistenceException {
     	ENAct2ProvDAO dao = new ENAct2ProvDAO(connection, userProfile);
@@ -5173,10 +5173,10 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     
     /**
      * 
-     * Получить корр. счет по ОЗ при вводе в эксплуатации счетчиков
+     * РџРѕР»СѓС‡РёС‚СЊ РєРѕСЂСЂ. СЃС‡РµС‚ РїРѕ РћР— РїСЂРё РІРІРѕРґРµ РІ СЌРєСЃРїР»СѓР°С‚Р°С†РёРё СЃС‡РµС‚С‡РёРєРѕРІ
      * 
-     * @param oz объект ОЗ для получения счета
-     * @return корр. счет
+     * @param oz РѕР±СЉРµРєС‚ РћР— РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ СЃС‡РµС‚Р°
+     * @return РєРѕСЂСЂ. СЃС‡РµС‚
      * @throws PersistenceException 
      */
     public String getCorrespondingAccountForOZ(SCUsageInputItemOZ oz) throws PersistenceException {
@@ -5184,7 +5184,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     	SCUsageInputItem usiObject = usiDao.getObject(oz.usageInputItemRef.code);
     	String IIII;
     	
-        // SUPP-67738 Определение ОЗ для счетчиков абонентов
+        // SUPP-67738 РћРїСЂРµРґРµР»РµРЅРёРµ РћР— РґР»СЏ СЃС‡РµС‚С‡РёРєРѕРІ Р°Р±РѕРЅРµРЅС‚РѕРІ
         boolean isAbonCounter = (oz.account == null || oz.account.trim().length() == 0);
         
 	    if( usiObject.kindRef.code == SCUsageInputItemKind.UsageInput ||
@@ -5228,11 +5228,11 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     
     /**
      * 
-     * Получить корреспондирующий счет для актов по услугам на сторону
+     * РџРѕР»СѓС‡РёС‚СЊ РєРѕСЂСЂРµСЃРїРѕРЅРґРёСЂСѓСЋС‰РёР№ СЃС‡РµС‚ РґР»СЏ Р°РєС‚РѕРІ РїРѕ СѓСЃР»СѓРіР°Рј РЅР° СЃС‚РѕСЂРѕРЅСѓ
      * 
-     * @param postingKind код шаблона проводок {@link ENActPostingKind}
-     * @param isIncomeAct параметр о наличии доходного акта
-     * @return корреспондирующий счет
+     * @param postingKind РєРѕРґ С€Р°Р±Р»РѕРЅР° РїСЂРѕРІРѕРґРѕРє {@link ENActPostingKind}
+     * @param isIncomeAct РїР°СЂР°РјРµС‚СЂ Рѕ РЅР°Р»РёС‡РёРё РґРѕС…РѕРґРЅРѕРіРѕ Р°РєС‚Р°
+     * @return РєРѕСЂСЂРµСЃРїРѕРЅРґРёСЂСѓСЋС‰РёР№ СЃС‡РµС‚
      */
     public String getCorrespondingAccountForServices(int postingKind, boolean isIncomeAct) {
     	String out = null;
@@ -5256,14 +5256,14 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     		out = "9033";
     		break;	
     		default:
-    			throw new SystemException("Неправильный шаблон проводок: " + postingKind);
+    			throw new SystemException("РќРµРїСЂР°РІРёР»СЊРЅС‹Р№ С€Р°Р±Р»РѕРЅ РїСЂРѕРІРѕРґРѕРє: " + postingKind);
     	}
     	return out;
     }
     
     
     private String getFinDocCodeByENAct(ENAct act) throws PersistenceException {
-    	if(act == null || act.code == Integer.MIN_VALUE) throw new NullPointerException("Не заданий акт!");
+    	if(act == null || act.code == Integer.MIN_VALUE) throw new NullPointerException("РќРµ Р·Р°РґР°РЅРёР№ Р°РєС‚!");
 		ENServicesObjectDAO soDao = new ENServicesObjectDAO(connection, userProfile);
 		ENGeneralContractsDAO genContractDAO = new ENGeneralContractsDAO(connection, userProfile);
         ENServicesObject soObj = soDao.getObjectByENAct(act);
@@ -5290,12 +5290,12 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     
     /**
      * 
-     * Получить корреспондирующий КАУ для актов реконструкции и модернизации
+     * РџРѕР»СѓС‡РёС‚СЊ РєРѕСЂСЂРµСЃРїРѕРЅРґРёСЂСѓСЋС‰РёР№ РљРђРЈ РґР»СЏ Р°РєС‚РѕРІ СЂРµРєРѕРЅСЃС‚СЂСѓРєС†РёРё Рё РјРѕРґРµСЂРЅРёР·Р°С†РёРё
      * 
-     * @param act акт {@link ENAct}
-     * @param invNumber инвентарный номер основного средства для получения характеристик
-     * @param correspondentAccount корреспондирующий счет
-     * @return строка с корреспондирующим КАУ
+     * @param act Р°РєС‚ {@link ENAct}
+     * @param invNumber РёРЅРІРµРЅС‚Р°СЂРЅС‹Р№ РЅРѕРјРµСЂ РѕСЃРЅРѕРІРЅРѕРіРѕ СЃСЂРµРґСЃС‚РІР° РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРє
+     * @param correspondentAccount РєРѕСЂСЂРµСЃРїРѕРЅРґРёСЂСѓСЋС‰РёР№ СЃС‡РµС‚
+     * @return СЃС‚СЂРѕРєР° СЃ РєРѕСЂСЂРµСЃРїРѕРЅРґРёСЂСѓСЋС‰РёРј РљРђРЈ
      * @throws PersistenceException
      * @throws DatasourceConnectException
      */
@@ -5307,16 +5307,16 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     		FKPostingLogic fpLogic = new FKPostingLogic(finConn , userProfile);
     		ENPlanWorkDAO plDao = new ENPlanWorkDAO(connection, userProfile);
     		
-			// вид Основного из ФК
+			// РІРёРґ РћСЃРЅРѕРІРЅРѕРіРѕ РёР· Р¤Рљ
 			String vidOS = fpLogic.getG45(invNumber);
 			String connectionKind_KAU = "_";
 	       	int connectionKind = this.getConnectionKind(act.code);
-	         // 2019.06.27 Если тип присоединения не опреден то для проводок букву как для стандартного ( паламар так сказала )
+	         // 2019.06.27 Р•СЃР»Рё С‚РёРї РїСЂРёСЃРѕРµРґРёРЅРµРЅРёСЏ РЅРµ РѕРїСЂРµРґРµРЅ С‚Рѕ РґР»СЏ РїСЂРѕРІРѕРґРѕРє Р±СѓРєРІСѓ РєР°Рє РґР»СЏ СЃС‚Р°РЅРґР°СЂС‚РЅРѕРіРѕ ( РїР°Р»Р°РјР°СЂ С‚Р°Рє СЃРєР°Р·Р°Р»Р° )
 	       	if (connectionKind == ENConnectionKind.STANDART || connectionKind == ENConnectionKind.UNDEFINED || connectionKind == ENConnectionKind.GENERAL_CONNECTION) {
-	       		connectionKind_KAU = "Ц";
+	       		connectionKind_KAU = "Р¦";
 	        }
 	        if (connectionKind == ENConnectionKind.NO_STANDART || connectionKind == ENConnectionKind.READY_MADE ) {
-	        	connectionKind_KAU = "Я";
+	        	connectionKind_KAU = "РЇ";
 	        }
 	        
 	         boolean isInvest = false;
@@ -5334,9 +5334,9 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 	         String finDocCode = this.getFinDocCodeByENAct(act);
 	         
         	return new String((correspondentAccount.equals("1521") || correspondentAccount.equals("1526")) ? connectionKind_KAU : isInvest==true ? "0":"2"  )
-            		/*пять знаков - инвентарный объекта */
+            		/*РїСЏС‚СЊ Р·РЅР°РєРѕРІ - РёРЅРІРµРЅС‚Р°СЂРЅС‹Р№ РѕР±СЉРµРєС‚Р° */
             		+ invNumber.substring(1, 6)
-            		/*пять знаков - если присоед (1521,1526) - то договор ФК  иначе '030'+Вид ОС  */
+            		/*РїСЏС‚СЊ Р·РЅР°РєРѕРІ - РµСЃР»Рё РїСЂРёСЃРѕРµРґ (1521,1526) - С‚Рѕ РґРѕРіРѕРІРѕСЂ Р¤Рљ  РёРЅР°С‡Рµ '030'+Р’РёРґ РћРЎ  */
             		+new String( (correspondentAccount.equals("1521") || correspondentAccount.equals("1526")) ? finDocCode : "030" + vidOS );
     	} finally {
 	    	  try {
@@ -5351,13 +5351,13 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     
     /**
      * 
-     * Получить корреспондирующий КАУ для актов текущего и капитального ремонтов
+     * РџРѕР»СѓС‡РёС‚СЊ РєРѕСЂСЂРµСЃРїРѕРЅРґРёСЂСѓСЋС‰РёР№ РљРђРЈ РґР»СЏ Р°РєС‚РѕРІ С‚РµРєСѓС‰РµРіРѕ Рё РєР°РїРёС‚Р°Р»СЊРЅРѕРіРѕ СЂРµРјРѕРЅС‚РѕРІ
      * 
-     * При счете 2361 с 6м знаком равным 1
+     * РџСЂРё СЃС‡РµС‚Рµ 2361 СЃ 6Рј Р·РЅР°РєРѕРј СЂР°РІРЅС‹Рј 1
      * 
-     * @param act акт {@link ENAct}
-     * @param invNumber инвентарный номер основного средства для получения характеристик
-     * @return строка с корреспондирующим КАУ
+     * @param act Р°РєС‚ {@link ENAct}
+     * @param invNumber РёРЅРІРµРЅС‚Р°СЂРЅС‹Р№ РЅРѕРјРµСЂ РѕСЃРЅРѕРІРЅРѕРіРѕ СЃСЂРµРґСЃС‚РІР° РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРє
+     * @return СЃС‚СЂРѕРєР° СЃ РєРѕСЂСЂРµСЃРїРѕРЅРґРёСЂСѓСЋС‰РёРј РљРђРЈ
      * @throws PersistenceException
      * @throws DatasourceConnectException
      */
@@ -5367,7 +5367,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     		throw new java.lang.NullPointerException();
     	if(act.actTypeRef.code != ENPlanWorkState.CAPITAL_REPAIR
     			&& act.actTypeRef.code != ENPlanWorkState.CURRENT_REPAIR) {
-    		throw new SystemException("Неправильный тип акта!");
+    		throw new SystemException("РќРµРїСЂР°РІРёР»СЊРЅС‹Р№ С‚РёРї Р°РєС‚Р°!");
     	}
     	Connection finConn = null;
     	try {
@@ -5401,10 +5401,10 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     
     /**
      * 
-     * Получить корреспондирующий КАУ для актов по услугам на сторону
+     * РџРѕР»СѓС‡РёС‚СЊ РєРѕСЂСЂРµСЃРїРѕРЅРґРёСЂСѓСЋС‰РёР№ РљРђРЈ РґР»СЏ Р°РєС‚РѕРІ РїРѕ СѓСЃР»СѓРіР°Рј РЅР° СЃС‚РѕСЂРѕРЅСѓ
      * 
-     * @param акт услуг {@link ENAct}
-     * @return корреспондирующий КАУ
+     * @param Р°РєС‚ СѓСЃР»СѓРі {@link ENAct}
+     * @return РєРѕСЂСЂРµСЃРїРѕРЅРґРёСЂСѓСЋС‰РёР№ РљРђРЈ
      */
     public String getCorrespondingCAAForServices(ENAct act) throws PersistenceException {
     	ENAct2ProvDAO provDao = new ENAct2ProvDAO(connection, userProfile);
@@ -5413,12 +5413,12 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     	ENAct2ProvShortList provList = provDao.getListByAct(act, chk);
 		String connectionKind_KAU = "_";
        	int connectionKind = this.getConnectionKind(act.code);
-         // 2019.06.27 Если тип присоединения не опреден то для проводок букву как для стандартного ( паламар так сказала )
+         // 2019.06.27 Р•СЃР»Рё С‚РёРї РїСЂРёСЃРѕРµРґРёРЅРµРЅРёСЏ РЅРµ РѕРїСЂРµРґРµРЅ С‚Рѕ РґР»СЏ РїСЂРѕРІРѕРґРѕРє Р±СѓРєРІСѓ РєР°Рє РґР»СЏ СЃС‚Р°РЅРґР°СЂС‚РЅРѕРіРѕ ( РїР°Р»Р°РјР°СЂ С‚Р°Рє СЃРєР°Р·Р°Р»Р° )
        	if (connectionKind == ENConnectionKind.STANDART || connectionKind == ENConnectionKind.UNDEFINED || connectionKind == ENConnectionKind.GENERAL_CONNECTION) {
-       		connectionKind_KAU = "Ц";
+       		connectionKind_KAU = "Р¦";
         }
         if (connectionKind == ENConnectionKind.NO_STANDART || connectionKind == ENConnectionKind.READY_MADE ) {
-        	connectionKind_KAU = "Я";
+        	connectionKind_KAU = "РЇ";
         }
         String X = null;
         if(provList.get(0).actPostingKindRefCode == ENActPostingKind.SERVICES_CONTRACT) {
@@ -5459,13 +5459,13 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     		out = finWorkType + "6662" +  "00001" ;
     		break;	
     		default:
-    			throw new SystemException("Неправильный шаблон проводок: " + postingKind);
+    			throw new SystemException("РќРµРїСЂР°РІРёР»СЊРЅС‹Р№ С€Р°Р±Р»РѕРЅ РїСЂРѕРІРѕРґРѕРє: " + postingKind);
     	}
     	return out;
     }
     
     /**
-     * Набор проводк для "Послуги за догововари на ТО та ремонт"
+     * РќР°Р±РѕСЂ РїСЂРѕРІРѕРґРє РґР»СЏ "РџРѕСЃР»СѓРіРё Р·Р° РґРѕРіРѕРІРѕРІР°СЂРё РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚"
      * */
     public String getStrProv_OPERATIVE_OBJECT(ENAct act, String userName 
     		, BigDecimal productionExpencesPercent
@@ -5480,212 +5480,212 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     		ENAct2TransportDAO a2tDAO = new ENAct2TransportDAO(connection, userProfile);
     		String V_Prov_Buffer = "";
     		BigDecimal zpByAct = new BigDecimal(0);
-    		// I ПРОВОДКИ ПО ЗП черным
+    		// I РџР РћР’РћР”РљР РџРћ Р—Рџ С‡РµСЂРЅС‹Рј
 			FKTrans2AXTransItemShortList fkTrans2axTransList = this.getDataForProvsSalaryByAct(act.code);
 			for (int i = 0; i < fkTrans2axTransList.totalCount; i++) {
 				zpByAct = zpByAct.add(fkTrans2axTransList.get(i).amountCur);
 				V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-								fkTrans2axTransList.get(i).amountCur, // сумма в роводке
+						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+								fkTrans2axTransList.get(i).amountCur, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 								"000", 
-								"6610", // балансовый счет
-								"00000000130", // балансовый КАУ
-								"000", // Корреспондентский цех
-								"9033", // Корреспондентский счет
-								"Т0666200001", // кор кау 
+								"6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+								"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+								"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+								"9033", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+								"Рў0666200001", // РєРѕСЂ РєР°Сѓ 
 								act.numberGen, act.dateGen,
-								"Акт № " + act.numberGen + ", "
+								"РђРєС‚ в„– " + act.numberGen + ", "
 										+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-										+ " Об’єкти договорів на ТО та ремонт "
+										+ " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ "
 										 
 							 ,	userName
 						);
 			} 
-			// I ПРОВОДКИ ПО ЗП красным, выбираем суммы зп с группировкой по шпз сотрудника и сех
+			// I РџР РћР’РћР”РљР РџРћ Р—Рџ РєСЂР°СЃРЅС‹Рј, РІС‹Р±РёСЂР°РµРј СЃСѓРјРјС‹ Р·Рї СЃ РіСЂСѓРїРїРёСЂРѕРІРєРѕР№ РїРѕ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР° Рё СЃРµС…
 			
 			fkTrans2axTransList = this.getDataForProvsSalaryByActRed(act.code);
 			for (int ir = 0; ir < fkTrans2axTransList.totalCount; ir++) {
 				V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-								fkTrans2axTransList.get(ir).amountCur.negate(), // сумма в роводке
+						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+								fkTrans2axTransList.get(ir).amountCur.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 								fkTrans2axTransList.get(ir).balCeh, 
-								"6610", // балансовый счет
-								"00000000130", // балансовый КАУ
-								fkTrans2axTransList.get(ir).balCeh, // Корреспондентский цех
-								fkTrans2axTransList.get(ir).balans.substring(0, 4), // Корреспондентский счет шпз
-								// Корреспондентский КАУ
+								"6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+								"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+								fkTrans2axTransList.get(ir).balCeh, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+								fkTrans2axTransList.get(ir).balans.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР·
+								// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 								fkTrans2axTransList.get(ir).balans.substring(4, 15), act.numberGen, act.dateGen,
-								"Акт № " + act.numberGen + ", "
+								"РђРєС‚ в„– " + act.numberGen + ", "
 										+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-										+ " Об’єкти договорів на ТО та ремонт" // назначение
+										+ " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚" // РЅР°Р·РЅР°С‡РµРЅРёРµ
 										, userName
 						);
 			}
 			
-			// II проводки 
-			// (В) вычисляемое   Загальновиробничі витрати по акту (загальновиробничы
-			// витрати * 100/122 ) // черным
+			// II РїСЂРѕРІРѕРґРєРё 
+			// (Р’) РІС‹С‡РёСЃР»СЏРµРјРѕРµ   Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё РїРѕ Р°РєС‚Сѓ (Р·Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С‹
+			// РІРёС‚СЂР°С‚Рё * 100/122 ) // С‡РµСЂРЅС‹Рј
 		        BigDecimal amountCur = zpByAct.multiply(productionExpencesPercent);
 				amountCur = amountCur.divide(new BigDecimal(100), 6, BigDecimal.ROUND_HALF_UP);
 				amountCur = amountCur.multiply(new BigDecimal(100));
 				amountCur = amountCur.divide(new BigDecimal(100).add(chargepercent), 6, BigDecimal.ROUND_HALF_UP)
 						.setScale(2, BigDecimal.ROUND_HALF_UP);
 				V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-								// сумма в роводке = ЗП по акту * процент общщепроизв затрат / 100 * 100 /
-								// (100+22 - где 22 это есв по работнику - для проводок берут значение с
-								// обычного работника - не инвалида )
+						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+								// СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ = Р—Рџ РїРѕ Р°РєС‚Сѓ * РїСЂРѕС†РµРЅС‚ РѕР±С‰С‰РµРїСЂРѕРёР·РІ Р·Р°С‚СЂР°С‚ / 100 * 100 /
+								// (100+22 - РіРґРµ 22 СЌС‚Рѕ РµСЃРІ РїРѕ СЂР°Р±РѕС‚РЅРёРєСѓ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє Р±РµСЂСѓС‚ Р·РЅР°С‡РµРЅРёРµ СЃ
+								// РѕР±С‹С‡РЅРѕРіРѕ СЂР°Р±РѕС‚РЅРёРєР° - РЅРµ РёРЅРІР°Р»РёРґР° )
 								amountCur,
 								"000", 
-								"6610", // балансовый счет
-								"10000000130", // балансовый КАУ
-								"000", // Корреспондентский цех
-								"9033", // Корреспондентский счет
-								"Т0666500001",// Корреспондентский КАУ						
+								"6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+								"10000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+								"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+								"9033", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+								"Рў0666500001",// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ						
 								act.numberGen, act.dateGen,
-								"Акт № " + act.numberGen + ", "
+								"РђРєС‚ в„– " + act.numberGen + ", "
 										+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-										+ " Об’єкти договорів на ТО та ремонт "
+										+ " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ "
 								 , userName 
 								
 						);
-				/*** II (В)_red проводка на вычисляемую сумму красным */
+				/*** II (Р’)_red РїСЂРѕРІРѕРґРєР° РЅР° РІС‹С‡РёСЃР»СЏРµРјСѓСЋ СЃСѓРјРјСѓ РєСЂР°СЃРЅС‹Рј */
 				V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-								// сумма в роводке = ЗП по акту * процент общщепроизв затрат / 100 * 100 /
-								// (100+22 - где 22 это есв по работнику - для проводок берут значение с
-								// обычного работника - не инвалида )
+						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+								// СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ = Р—Рџ РїРѕ Р°РєС‚Сѓ * РїСЂРѕС†РµРЅС‚ РѕР±С‰С‰РµРїСЂРѕРёР·РІ Р·Р°С‚СЂР°С‚ / 100 * 100 /
+								// (100+22 - РіРґРµ 22 СЌС‚Рѕ РµСЃРІ РїРѕ СЂР°Р±РѕС‚РЅРёРєСѓ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє Р±РµСЂСѓС‚ Р·РЅР°С‡РµРЅРёРµ СЃ
+								// РѕР±С‹С‡РЅРѕРіРѕ СЂР°Р±РѕС‚РЅРёРєР° - РЅРµ РёРЅРІР°Р»РёРґР° )
 								amountCur.negate(),
 								"000",
-								"6610", // балансовый счет
-								"10000000130", // балансовый КАУ
-								"000", // Корреспондентский цех
-								"9100", // Корреспондентский счет
-								"10110000001", // Корреспондентский КАУ
+								"6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+								"10000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+								"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+								"9100", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+								"10110000001", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 								 act.numberGen, 
 								 act.dateGen,
-								"Акт № " + act.numberGen + ", "
+								"РђРєС‚ в„– " + act.numberGen + ", "
 										+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-										+ " Об’єкти договорів на ТО та ремонт "
+										+ " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ "
 								 , userName
 						);
 				/*
-				 * II_2+ black вторая часть проводки (Загальновиробничі витрати 50% від суми
-				 * заробітної плати - минус (В) // черное )
+				 * II_2+ black РІС‚РѕСЂР°СЏ С‡Р°СЃС‚СЊ РїСЂРѕРІРѕРґРєРё (Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё 50% РІС–Рґ СЃСѓРјРё
+				 * Р·Р°СЂРѕР±С–С‚РЅРѕС— РїР»Р°С‚Рё - РјРёРЅСѓСЃ (Р’) // С‡РµСЂРЅРѕРµ )
 				 */
 				BigDecimal amountCur_2 = zpByAct.multiply(productionExpencesPercent);
 				amountCur_2 = amountCur_2.divide(new BigDecimal(100), 6, BigDecimal.ROUND_HALF_UP);
 				amountCur_2 = amountCur_2.subtract(amountCur).setScale(2, BigDecimal.ROUND_HALF_UP);
 				V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
+						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
 								amountCur_2, 
 								"000",
-								"6510", // балансовый счет
-								"10000000130", // балансовый КАУ
-								"000", // Корреспондентский цех
-								"9033", // Корреспондентский счет
-								"Т0666500001",// Корреспондентский КАУ
+								"6510", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+								"10000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+								"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+								"9033", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+								"Рў0666500001",// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 								  act.numberGen, act.dateGen,
-								"Акт № " + act.numberGen + ", "
+								"РђРєС‚ в„– " + act.numberGen + ", "
 										+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-										+ " Об’єкти договорів на ТО та ремонт "
+										+ " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ "
 								 ,userName   
 								
 						);
 				/*
-				 * II_2+ red вторая часть проводки (Загальновиробничі витрати 50% від суми
-				 * заробітної плати - минус (В) // красное )
+				 * II_2+ red РІС‚РѕСЂР°СЏ С‡Р°СЃС‚СЊ РїСЂРѕРІРѕРґРєРё (Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё 50% РІС–Рґ СЃСѓРјРё
+				 * Р·Р°СЂРѕР±С–С‚РЅРѕС— РїР»Р°С‚Рё - РјРёРЅСѓСЃ (Р’) // РєСЂР°СЃРЅРѕРµ )
 				 */
 				V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
+						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
 								amountCur_2.negate(), 
 								"000", 
-								"6510", // балансовый счет
-								"10000000130", // балансовый КАУ
-								"000", // Корреспондентский цех
-								"9100", // Корреспондентский счет
-								"20130000001" , // Корреспондентский КАУ
+								"6510", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+								"10000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+								"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+								"9100", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+								"20130000001" , // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 								act.numberGen, act.dateGen,
-								"Акт № " + act.numberGen + ", "
+								"РђРєС‚ в„– " + act.numberGen + ", "
 										+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-										+ " Об’єкти договорів на ТО та ремонт "
+										+ " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ "
 								, userName
 								
 						);
 				
 				
-				// III пачка проводок Єдиний внесок на загальнообов'язкове державне соціальне
-				// страхування - черным
-				fkTrans2axTransList = this.getDataForBlackProvsСhargesumByAct(act.code);
+				// III РїР°С‡РєР° РїСЂРѕРІРѕРґРѕРє Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ
+				// СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - С‡РµСЂРЅС‹Рј
+				fkTrans2axTransList = this.getDataForBlackProvsРЎhargesumByAct(act.code);
 				BigDecimal esvSum = new BigDecimal(0);
 				for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 					esvSum = esvSum.add(fkTrans2axTransList.get(c).amountCur);
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(c).amountCur, // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(c).amountCur, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									"000",
-									"6510" , // балансовый счет
-									"00000000130", // балансовый КАУ
-									"000", // Корреспондентский цех
-									"9033", // Корреспондентский счет
-									 "Т0666300001", 
+									"6510" , // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									"9033", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									 "Рў0666300001", 
 									 act.numberGen, 
 									 act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											+ " Об’єкти договорів на ТО та ремонт  " , // назначение
+											+ " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚  " , // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
 
-				// Єдиний внесок на загальнообов'язкове державне соціальне страхування - красным
-				// , разбивка по цеху , ШПЗ , виду работника - инвалид / не инвалид
-				fkTrans2axTransList = this.getDataForRedProvsСhargesumByAct(act.code);
+				// Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - РєСЂР°СЃРЅС‹Рј
+				// , СЂР°Р·Р±РёРІРєР° РїРѕ С†РµС…Сѓ , РЁРџР— , РІРёРґСѓ СЂР°Р±РѕС‚РЅРёРєР° - РёРЅРІР°Р»РёРґ / РЅРµ РёРЅРІР°Р»РёРґ
+				fkTrans2axTransList = this.getDataForRedProvsРЎhargesumByAct(act.code);
 				for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(c).amountCur.negate(), // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(c).amountCur.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									"000",
 									fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"
-											: "6512", // балансовый счет
-									"00000000130", // балансовый КАУ
-									"000", // Корреспондентский цех
-									fkTrans2axTransList.get(c).balans.substring(0, 4), // Корреспондентский счет шпз
-																						// сотрудника идет
-									// Корреспондентский КАУ
+											: "6512", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									fkTrans2axTransList.get(c).balans.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР·
+																						// СЃРѕС‚СЂСѓРґРЅРёРєР° РёРґРµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									fkTrans2axTransList.get(c).balans.substring(4, 15),
 									act.numberGen,
 									act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											+ " Об’єкти договорів на ТО та ремонт " , // назначение
+											+ " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ " , // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
 				
 				
-				// IV пачка проводок амортизация
+				// IV РїР°С‡РєР° РїСЂРѕРІРѕРґРѕРє Р°РјРѕСЂС‚РёР·Р°С†РёСЏ
 
 				ENAct2TransportFilter a2tFilter = new ENAct2TransportFilter();
 				a2tFilter.actRef.code = act.code;
 				ENAct2TransportShortList a2tList = a2tDAO.getScrollableFilteredList(a2tFilter, 0, -1);
 
-				// строки для проводок по амортизации красным
+				// СЃС‚СЂРѕРєРё РґР»СЏ РїСЂРѕРІРѕРґРѕРє РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё РєСЂР°СЃРЅС‹Рј
 				HashMap<DataForTransAmortizacRed, DataForTransAmortizacRed> transDataAmortizacRed = new HashMap<>();
-				// строки для проводок по амортизации черным
+				// СЃС‚СЂРѕРєРё РґР»СЏ РїСЂРѕРІРѕРґРѕРє РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё С‡РµСЂРЅС‹Рј
 				HashMap<DataForTransAmortizacBlack, DataForTransAmortizacBlack> transDataAmortizacBlack = new HashMap<>();
 
 				for (int tr = 0; tr < a2tList.totalCount; tr++) {
 
 					String cehtransport = fpLogic.getKodPodr(a2tList.get(tr).invNumber);
-					// вытянем код цеха по штатному mdax
+					// РІС‹С‚СЏРЅРµРј РєРѕРґ С†РµС…Р° РїРѕ С€С‚Р°С‚РЅРѕРјСѓ mdax
 					cehtransport = mdLogic.getMAINORGANIZATIONIDByHRMORGANIZATIONID(cehtransport, act.dateGen);
 					String kodSubschB = fpLogic.getKodSubschB(a2tList.get(tr).invNumber);
 					String vidOStransp = fpLogic.getG45(a2tList.get(tr).invNumber);
 					String kodZatrTransp = fpLogic.getNNNN(a2tList.get(tr).invNumber);
 
-					// !!!!!RED набрать строки по транспорту . уник значения по цеху транспорта ,
-					// коду затрат , вид ОС - для проводок красным
+					// !!!!!RED РЅР°Р±СЂР°С‚СЊ СЃС‚СЂРѕРєРё РїРѕ С‚СЂР°РЅСЃРїРѕСЂС‚Сѓ . СѓРЅРёРє Р·РЅР°С‡РµРЅРёСЏ РїРѕ С†РµС…Сѓ С‚СЂР°РЅСЃРїРѕСЂС‚Р° ,
+					// РєРѕРґСѓ Р·Р°С‚СЂР°С‚ , РІРёРґ РћРЎ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє РєСЂР°СЃРЅС‹Рј
 					DataForTransAmortizacRed rKey;
 					rKey = new DataForTransAmortizacRed(cehtransport, kodZatrTransp, vidOStransp,
 							"131" + kodSubschB.substring(2, 3), a2tList.get(tr).paysWork);
@@ -5693,13 +5693,13 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 					if (transDataAmortizacRed.containsValue(rKey)) {
 						DataForTransAmortizacRed dValue = (DataForTransAmortizacRed) transDataAmortizacRed.get(rKey);
 						rKey.summa = rKey.summa.add(dValue.summa);
-						// удалим из списка запись что есть и добавим с увелич суммой
+						// СѓРґР°Р»РёРј РёР· СЃРїРёСЃРєР° Р·Р°РїРёСЃСЊ С‡С‚Рѕ РµСЃС‚СЊ Рё РґРѕР±Р°РІРёРј СЃ СѓРІРµР»РёС‡ СЃСѓРјРјРѕР№
 						transDataAmortizacRed.remove(rKey);
 					}
 					transDataAmortizacRed.put(rKey, rKey);
 
-					// !!!!!BLACK набрать строки по транспорту . уник значения по цеху транспорта ,
-					// вид ОС - для проводок черным
+					// !!!!!BLACK РЅР°Р±СЂР°С‚СЊ СЃС‚СЂРѕРєРё РїРѕ С‚СЂР°РЅСЃРїРѕСЂС‚Сѓ . СѓРЅРёРє Р·РЅР°С‡РµРЅРёСЏ РїРѕ С†РµС…Сѓ С‚СЂР°РЅСЃРїРѕСЂС‚Р° ,
+					// РІРёРґ РћРЎ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє С‡РµСЂРЅС‹Рј
 					DataForTransAmortizacBlack bKey;
 					bKey = new DataForTransAmortizacBlack(cehtransport, vidOStransp, "131" + kodSubschB.substring(2, 3),
 							a2tList.get(tr).paysWork);
@@ -5708,14 +5708,14 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 						DataForTransAmortizacBlack bValue = (DataForTransAmortizacBlack) transDataAmortizacBlack
 								.get(bKey);
 						bKey.summa = bKey.summa.add(bValue.summa);
-						// удалим из списка запись что есть и добавим с увелич суммой
+						// СѓРґР°Р»РёРј РёР· СЃРїРёСЃРєР° Р·Р°РїРёСЃСЊ С‡С‚Рѕ РµСЃС‚СЊ Рё РґРѕР±Р°РІРёРј СЃ СѓРІРµР»РёС‡ СЃСѓРјРјРѕР№
 						transDataAmortizacBlack.remove(bKey);
 					}
 					transDataAmortizacBlack.put(bKey, bKey);
 
 				}
 
-				// формирование шаблонов по амортизации красным
+				// С„РѕСЂРјРёСЂРѕРІР°РЅРёРµ С€Р°Р±Р»РѕРЅРѕРІ РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё РєСЂР°СЃРЅС‹Рј
 				DataForTransAmortizacRed rrKey = null;
 				Iterator<DataForTransAmortizacRed> rrIterator = transDataAmortizacRed.keySet().iterator();
 				while (rrIterator.hasNext()) {
@@ -5725,21 +5725,21 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 							+ " // " + rrValue.vidOS + " // " + rrValue.balSch + " // " + rrValue.summa + " // ");
 					if (rrValue.summa.doubleValue() > 0) {
 						V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-										rrValue.summa.negate(), // сумма в роводке
+								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+										rrValue.summa.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 										rrValue.ceh,
-										rrValue.balSch, // балансовый счет 131 + ( 3 - й знак счета по
-																		// карточке ОС- транспорта )
-										"310000000"+rrValue.ceh.substring(0, 2), // балансовый КАУ
-										"000", // Корреспондентский цех
-										rrValue.kodZatrat.substring(0, 4), // Корреспондентский счет шпз транспортного
-																			// идет
-										rrValue.kodZatrat.substring(4, 15), // Корреспондентский КАУ остаток от ШПЗ
-																			// транспортного
+										rrValue.balSch, // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚ 131 + ( 3 - Р№ Р·РЅР°Рє СЃС‡РµС‚Р° РїРѕ
+																		// РєР°СЂС‚РѕС‡РєРµ РћРЎ- С‚СЂР°РЅСЃРїРѕСЂС‚Р° )
+										"310000000"+rrValue.ceh.substring(0, 2), // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+										"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+										rrValue.kodZatrat.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР· С‚СЂР°РЅСЃРїРѕСЂС‚РЅРѕРіРѕ
+																			// РёРґРµС‚
+										rrValue.kodZatrat.substring(4, 15), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ РѕСЃС‚Р°С‚РѕРє РѕС‚ РЁРџР—
+																			// С‚СЂР°РЅСЃРїРѕСЂС‚РЅРѕРіРѕ
 										act.numberGen, act.dateGen,
-										"Акт № " + act.numberGen + ", "
+										"РђРєС‚ в„– " + act.numberGen + ", "
 												+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-												+ " Об’єкти договорів на ТО та ремонт " , // назначение
+												+ " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ " , // РЅР°Р·РЅР°С‡РµРЅРёРµ
 												 
 										userName
 								);
@@ -5747,7 +5747,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 				}
 
-				// формирование шаблонов по амортизации черным
+				// С„РѕСЂРјРёСЂРѕРІР°РЅРёРµ С€Р°Р±Р»РѕРЅРѕРІ РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё С‡РµСЂРЅС‹Рј
 				DataForTransAmortizacBlack bbKey = null;
 				Iterator<DataForTransAmortizacBlack> bbIterator = transDataAmortizacBlack.keySet().iterator();
 				BigDecimal sumAmort = new BigDecimal(0);
@@ -5760,20 +5760,20 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 					if (bbValue.summa.doubleValue() > 0) {
 						sumAmort = sumAmort.add(bbValue.summa);
 						V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-										bbValue.summa, // сумма в роводке
+								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+										bbValue.summa, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 										bbValue.ceh, 
-										bbValue.balSch, // балансовый счет 131 + ( 3 - й знак счета по
-																		// карточке ОС- транспорта )
-										"310000000"+bbValue.ceh.substring(0, 2) , // балансовый КАУ
-										"000", // Корреспондентский цех
-										"9033", // Корреспондентский счет
-										"Т0666100001", // Корреспондентский КАУ										
+										bbValue.balSch, // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚ 131 + ( 3 - Р№ Р·РЅР°Рє СЃС‡РµС‚Р° РїРѕ
+																		// РєР°СЂС‚РѕС‡РєРµ РћРЎ- С‚СЂР°РЅСЃРїРѕСЂС‚Р° )
+										"310000000"+bbValue.ceh.substring(0, 2) , // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+										"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+										"9033", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+										"Рў0666100001", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ										
 										 act.numberGen, 
 										 act.dateGen,
-										"Акт № " + act.numberGen + ", "
+										"РђРєС‚ в„– " + act.numberGen + ", "
 												 + new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-												 + " Об’єкти договорів на ТО та ремонт " , // назначение
+												 + " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ " , // РЅР°Р·РЅР°С‡РµРЅРёРµ
 												 
 										userName
 								);
@@ -5781,108 +5781,108 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 				}
 				
-			// Закриття амортизації по акту  
+			// Р—Р°РєСЂРёС‚С‚СЏ Р°РјРѕСЂС‚РёР·Р°С†С–С— РїРѕ Р°РєС‚Сѓ  
 			  if(sumAmort.doubleValue()>0) {	
 				V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-								sumAmort, // сумма в роводке
+						+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+								sumAmort, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 								"000", 
-								"9033", // балансовый счет  											
-								"Т0666100001" , // балансовый КАУ
-								"000", // Корреспондентский цех
-								"7913", // Корреспондентский счет
-								"11000000001", // Корреспондентский КАУ										
+								"9033", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚  											
+								"Рў0666100001" , // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+								"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+								"7913", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+								"11000000001", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ										
 								 act.numberGen, 
 								 act.dateGen,
-								"Акт № " + act.numberGen + ", "
+								"РђРєС‚ в„– " + act.numberGen + ", "
 										 + new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-										 + " Об’єкти договорів на ТО та ремонт close amort" , // назначение
+										 + " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ close amort" , // РЅР°Р·РЅР°С‡РµРЅРёРµ
 										 
 								userName
 						);
 			  }
-		 // Закриття  ЄСВ  по акту 	
+		 // Р—Р°РєСЂРёС‚С‚СЏ  Р„РЎР’  РїРѕ Р°РєС‚Сѓ 	
 				if (esvSum.doubleValue()>0) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									esvSum, // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									esvSum, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									"000", 
-									"9033", // балансовый счет  											
-									"Т0666300001" , // балансовый КАУ
-									"000", // Корреспондентский цех
-									"7913", // Корреспондентский счет
-									"11000000001", // Корреспондентский КАУ										
+									"9033", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚  											
+									"Рў0666300001" , // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									"7913", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									"11000000001", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ										
 									 act.numberGen, 
 									 act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											 + new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											 + " Об’єкти договорів на ТО та ремонт close esv" , // назначение
+											 + " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ close esv" , // РЅР°Р·РЅР°С‡РµРЅРёРµ
 											 
 									userName
 							);
 				}
 				
-				// Закриття загальновир по акту
+				// Р—Р°РєСЂРёС‚С‚СЏ Р·Р°РіР°Р»СЊРЅРѕРІРёСЂ РїРѕ Р°РєС‚Сѓ
                if (amountCur.doubleValue()>0){
             	   V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									amountCur, // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									amountCur, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									"000", 
-									"9033", // балансовый счет  											
-									"Т0666500001" , // балансовый КАУ
-									"000", // Корреспондентский цех
-									"7913", // Корреспондентский счет
-									"11000000001", // Корреспондентский КАУ										
+									"9033", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚  											
+									"Рў0666500001" , // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									"7913", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									"11000000001", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ										
 									 act.numberGen, 
 									 act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											 + new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											 + " Об’єкти договорів на ТО та ремонт close zagal vitrati" , // назначение
+											 + " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ close zagal vitrati" , // РЅР°Р·РЅР°С‡РµРЅРёРµ
 											 
 									userName
 							);  
                }
                
                /*
-				 * Закриття вторая часть проводки (Загальновиробничі витрати 50% від суми
-				 * заробітної плати - минус (В) // черное )
+				 * Р—Р°РєСЂРёС‚С‚СЏ РІС‚РѕСЂР°СЏ С‡Р°СЃС‚СЊ РїСЂРѕРІРѕРґРєРё (Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё 50% РІС–Рґ СЃСѓРјРё
+				 * Р·Р°СЂРѕР±С–С‚РЅРѕС— РїР»Р°С‚Рё - РјРёРЅСѓСЃ (Р’) // С‡РµСЂРЅРѕРµ )
 				 */
                if (amountCur.doubleValue()>0){
             	   V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									amountCur_2, // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									amountCur_2, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									"000", 
-									"9033", // балансовый счет  											
-									"Т0666500001" , // балансовый КАУ
-									"000", // Корреспондентский цех
-									"7913", // Корреспондентский счет
-									"11000000001", // Корреспондентский КАУ										
+									"9033", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚  											
+									"Рў0666500001" , // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									"7913", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									"11000000001", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ										
 									 act.numberGen, 
 									 act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											 + new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											 + " Об’єкти договорів на ТО та ремонт close zagal vitrati_50proc" , // назначение
+											 + " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ close zagal vitrati_50proc" , // РЅР°Р·РЅР°С‡РµРЅРёРµ
 											 
 									userName
 							);  
                }
                
-               // Закриття  зарплати по акту
+               // Р—Р°РєСЂРёС‚С‚СЏ  Р·Р°СЂРїР»Р°С‚Рё РїРѕ Р°РєС‚Сѓ
 			 if (zpByAct.doubleValue()>0) {
 				 V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									zpByAct, // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									zpByAct, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									"000", 
-									"9033", // балансовый счет  											
-									"Т0666200001" , // балансовый КАУ
-									"000", // Корреспондентский цех
-									"7913", // Корреспондентский счет
-									"11000000001", // Корреспондентский КАУ										
+									"9033", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚  											
+									"Рў0666200001" , // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									"000", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									"7913", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									"11000000001", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ										
 									 act.numberGen, 
 									 act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											 + new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											 + " Об’єкти договорів на ТО та ремонт close zp" , // назначение
+											 + " РћР±вЂ™С”РєС‚Рё РґРѕРіРѕРІРѕСЂС–РІ РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ close zp" , // РЅР°Р·РЅР°С‡РµРЅРёРµ
 											 
 									userName
 							); 
@@ -5900,7 +5900,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
     	}
     }
 
-// NET-2335 Передача проводок по акту затратная часть FK & AX
+// NET-2335 РџРµСЂРµРґР°С‡Р° РїСЂРѕРІРѕРґРѕРє РїРѕ Р°РєС‚Сѓ Р·Р°С‚СЂР°С‚РЅР°СЏ С‡Р°СЃС‚СЊ FK & AX
 	public FKProvResult movePostingByActWork(ENAct act) {
 		Connection finConn = null;
 		try {
@@ -5938,11 +5938,11 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 			TechCardLogic techCardLogic = new TechCardLogic(connection, userProfile);
 
 			/*
-			 * Значение отчислений по АКТУ , для проводок бухгалтерия берет на для обычного
-			 * работника
+			 * Р—РЅР°С‡РµРЅРёРµ РѕС‚С‡РёСЃР»РµРЅРёР№ РїРѕ РђРљРўРЈ , РґР»СЏ РїСЂРѕРІРѕРґРѕРє Р±СѓС…РіР°Р»С‚РµСЂРёСЏ Р±РµСЂРµС‚ РЅР° РґР»СЏ РѕР±С‹С‡РЅРѕРіРѕ
+			 * СЂР°Р±РѕС‚РЅРёРєР°
 			 */
 			BigDecimal chargepercent = hLogic.getChargePercentByDate(FINChargeType.IS_NOT_INVALID, act.dateGen);
-			/* по правельному берем с акта */
+			/* РїРѕ РїСЂР°РІРµР»СЊРЅРѕРјСѓ Р±РµСЂРµРј СЃ Р°РєС‚Р° */
 			ENAct2HumenFilter a2hFilter = new ENAct2HumenFilter();
 			a2hFilter.chargeRef.code = FINChargeType.IS_NOT_INVALID;
 			a2hFilter.actRef.code = act.code;
@@ -5952,12 +5952,12 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 			}
 
 			/*
-			 * !!!! Если тип акта = Техническое обслуживание и подвид работ в планах в этом
-			 * акте один из перечня () ( 100 ЕЗ - Планова заміна лічильника 102 ЕЗ -
-			 * Непланова заміна лічильника 103 ЕЗ - Непланове встановлення лічильника 106 ЕЗ
-			 * - Установка ЗКУ 111 ЕЗ - Установка ЗКУ с заменой(переносом) счетчика 112 ЕЗ -
-			 * Замена счетчика в составе ЗКУ ) !!!!! то ВЫХОД !!!! те проводки по ЗП
-			 * передаются при проведении ОЗ
+			 * !!!! Р•СЃР»Рё С‚РёРї Р°РєС‚Р° = РўРµС…РЅРёС‡РµСЃРєРѕРµ РѕР±СЃР»СѓР¶РёРІР°РЅРёРµ Рё РїРѕРґРІРёРґ СЂР°Р±РѕС‚ РІ РїР»Р°РЅР°С… РІ СЌС‚РѕРј
+			 * Р°РєС‚Рµ РѕРґРёРЅ РёР· РїРµСЂРµС‡РЅСЏ () ( 100 Р•Р— - РџР»Р°РЅРѕРІР° Р·Р°РјС–РЅР° Р»С–С‡РёР»СЊРЅРёРєР° 102 Р•Р— -
+			 * РќРµРїР»Р°РЅРѕРІР° Р·Р°РјС–РЅР° Р»С–С‡РёР»СЊРЅРёРєР° 103 Р•Р— - РќРµРїР»Р°РЅРѕРІРµ РІСЃС‚Р°РЅРѕРІР»РµРЅРЅСЏ Р»С–С‡РёР»СЊРЅРёРєР° 106 Р•Р—
+			 * - РЈСЃС‚Р°РЅРѕРІРєР° Р—РљРЈ 111 Р•Р— - РЈСЃС‚Р°РЅРѕРІРєР° Р—РљРЈ СЃ Р·Р°РјРµРЅРѕР№(РїРµСЂРµРЅРѕСЃРѕРј) СЃС‡РµС‚С‡РёРєР° 112 Р•Р— -
+			 * Р—Р°РјРµРЅР° СЃС‡РµС‚С‡РёРєР° РІ СЃРѕСЃС‚Р°РІРµ Р—РљРЈ ) !!!!! С‚Рѕ Р’Р«РҐРћР” !!!! С‚Рµ РїСЂРѕРІРѕРґРєРё РїРѕ Р—Рџ
+			 * РїРµСЂРµРґР°СЋС‚СЃСЏ РїСЂРё РїСЂРѕРІРµРґРµРЅРёРё РћР—
 			 */
 			ENPlanWorkFilter plFil = new ENPlanWorkFilter();
 			plFil.conditionSQL = "  enplanwork.code in ( select p.code from enplanwork p  , enact2enplanwork a2p \n"
@@ -5966,8 +5966,8 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 					+ ENPlanWorkType.EZ_NOPLANED_CHANGE_COUNTER + " , " + ENPlanWorkType.EZ_NOPLANED_SETUP_COUNTER
 					+ " , " + ENPlanWorkType.EZ_SETUP_ZKU + " , " + ENPlanWorkType.EZ_CHANGE_ZKU + " , "
 					+ ENPlanWorkType.EZ_CHANGE_COUNTER_IN_ZKU + " )  "
-					// SUPP-72333 решили что если нету связки акта с ОЗшкой то проводим єтим методом
-					// . иначе на выход как и было
+					// SUPP-72333 СЂРµС€РёР»Рё С‡С‚Рѕ РµСЃР»Рё РЅРµС‚Сѓ СЃРІСЏР·РєРё Р°РєС‚Р° СЃ РћР—С€РєРѕР№ С‚Рѕ РїСЂРѕРІРѕРґРёРј С”С‚РёРј РјРµС‚РѕРґРѕРј
+					// . РёРЅР°С‡Рµ РЅР° РІС‹С…РѕРґ РєР°Рє Рё Р±С‹Р»Рѕ
 					+ " and a2p.actrefcode in ( select qq.enactrefcode from scusageinputitemoz2nct qq where qq.enactrefcode = "
 					+ act.code + " ) ) ";
 			int[] plFilArr = plDao.getFilteredCodeArrayNOSEGR(plFil, 0, -1);
@@ -5977,8 +5977,8 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 			
 			Set<Integer> budgetCodes = departmentLogic.getBudgetCodesByAct(act);
 
-			// !!!!!!!!! если в развязке акт2humen есть работники то идем дальше , иначе на
-			// выход
+			// !!!!!!!!! РµСЃР»Рё РІ СЂР°Р·РІСЏР·РєРµ Р°РєС‚2humen РµСЃС‚СЊ СЂР°Р±РѕС‚РЅРёРєРё С‚Рѕ РёРґРµРј РґР°Р»СЊС€Рµ , РёРЅР°С‡Рµ РЅР°
+			// РІС‹С…РѕРґ
 			ENAct2HumenFilter a2hFIl = new ENAct2HumenFilter();
 			a2hFIl.actRef.code = act.code;
 			int[] a2hArr = a2hDAO.getFilteredCodeArray(a2hFIl, 0, -1);
@@ -6000,10 +6000,10 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 	        
 	         
 
-			/***** процент Загальновиробничі витрати */
+			/***** РїСЂРѕС†РµРЅС‚ Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё */
 			BigDecimal productionExpencesPercent = this.getProductionExpencesPercentByAct(act.code);
 
-			/***************** определение инвест не инвест */
+			/***************** РѕРїСЂРµРґРµР»РµРЅРёРµ РёРЅРІРµСЃС‚ РЅРµ РёРЅРІРµСЃС‚ */
 			boolean isInvest = false;
 			ENPlanWorkFilter plFilter = new ENPlanWorkFilter();
 			plFilter.conditionSQL = " enplanwork.code = ( select p.code from enact2enplanwork a2p , enplanwork p \n"
@@ -6056,7 +6056,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				}
 			}
 
-			/******** договора партнеры */
+			/******** РґРѕРіРѕРІРѕСЂР° РїР°СЂС‚РЅРµСЂС‹ */
 
 			String finDocCode = "";
 
@@ -6067,15 +6067,15 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				finDocCode = genContract.finDocCode;
 			}
 
-			// 2019.06.27 Если тип присоединения не опреден то для проводок букву как для
-			// стандартного ( паламар так сказала )
+			// 2019.06.27 Р•СЃР»Рё С‚РёРї РїСЂРёСЃРѕРµРґРёРЅРµРЅРёСЏ РЅРµ РѕРїСЂРµРґРµРЅ С‚Рѕ РґР»СЏ РїСЂРѕРІРѕРґРѕРє Р±СѓРєРІСѓ РєР°Рє РґР»СЏ
+			// СЃС‚Р°РЅРґР°СЂС‚РЅРѕРіРѕ ( РїР°Р»Р°РјР°СЂ С‚Р°Рє СЃРєР°Р·Р°Р»Р° )
 			if (connectionKind == ENConnectionKind.STANDART || connectionKind == ENConnectionKind.UNDEFINED
 					|| connectionKind == ENConnectionKind.GENERAL_CONNECTION) {
-				connectionKind_KAU = "Ц";
+				connectionKind_KAU = "Р¦";
 			}
 
 			if (connectionKind == ENConnectionKind.NO_STANDART || connectionKind == ENConnectionKind.READY_MADE) {
-				connectionKind_KAU = "Я";
+				connectionKind_KAU = "РЇ";
 			}
 
 			String invNumber = "";
@@ -6083,11 +6083,11 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				invNumber = elLogic.getElementInvNumber(act.element.code);
 			}
 
-			// Если акт проводится с применением ЭЦП, будем проводить под юзером energynet
+			// Р•СЃР»Рё Р°РєС‚ РїСЂРѕРІРѕРґРёС‚СЃСЏ СЃ РїСЂРёРјРµРЅРµРЅРёРµРј Р­Р¦Рџ, Р±СѓРґРµРј РїСЂРѕРІРѕРґРёС‚СЊ РїРѕРґ СЋР·РµСЂРѕРј energynet
 			String userName = getUserNameForFK(act.code);
 			
 			
-			//// ПРОВОДКИ ПО ОБ'ЄКТИ ДОГОВОРІВ НА ТО ТА РЕМОНТ
+			//// РџР РћР’РћР”РљР РџРћ РћР‘'Р„РљРўР Р”РћР“РћР’РћР Р†Р’ РќРђ РўРћ РўРђ Р Р•РњРћРќРў
 			String V_Prov_Buffer = "";
 			
 			if (act.element.typeRef.code == ENElementType.OPERATIVE_OBJECT) {
@@ -6099,12 +6099,12 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 			
 			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// !!!!!! РЕКОНСТРУКЦИЯ МОДЕРНИЗАЦИЯ
+			// !!!!!! Р Р•РљРћРќРЎРўР РЈРљР¦РРЇ РњРћР”Р•Р РќРР—РђР¦РРЇ
 			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			if (act.actTypeRef.code == ENPlanWorkState.RECONSTRUCTION_MODERNIZATION
 					/*
-					 * SUPP-87098 проводки если тип акта проектирование и подвид работ = инвест
-					 * программа и есть реальный инв номер
+					 * SUPP-87098 РїСЂРѕРІРѕРґРєРё РµСЃР»Рё С‚РёРї Р°РєС‚Р° РїСЂРѕРµРєС‚РёСЂРѕРІР°РЅРёРµ Рё РїРѕРґРІРёРґ СЂР°Р±РѕС‚ = РёРЅРІРµСЃС‚
+					 * РїСЂРѕРіСЂР°РјРјР° Рё РµСЃС‚СЊ СЂРµР°Р»СЊРЅС‹Р№ РёРЅРІ РЅРѕРјРµСЂ
 					 */
 					|| (act.actTypeRef.code == ENPlanWorkState.DESIGNING && isInvest
 							&& (!invNumber.equals("000000") && !invNumber.equals("")))) {
@@ -6133,26 +6133,26 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				}
 
 				if (!fkOsLogic.getInvNumberIsExist(invNumber)) {
-					throw new SystemException("Не знайдено об'єкт з інвентарним - " + invNumber);
+					throw new SystemException("РќРµ Р·РЅР°Р№РґРµРЅРѕ РѕР±'С”РєС‚ Р· С–РЅРІРµРЅС‚Р°СЂРЅРёРј - " + invNumber);
 				}
 				;
 
-				/* код цеха основного */
+				/* РєРѕРґ С†РµС…Р° РѕСЃРЅРѕРІРЅРѕРіРѕ */
 				String KodPodr = fpLogic.getKodPodr(invNumber);
 
-				// I ПРОВОДКИ ПО ЗП черным
+				// I РџР РћР’РћР”РљР РџРћ Р—Рџ С‡РµСЂРЅС‹Рј
 				FKTrans2AXTransItemShortList fkTrans2axTransList = this.getDataForProvsSalaryByAct(act.code);
 
 				if (fkTrans2axTransList == null || fkTrans2axTransList.list == null || fkTrans2axTransList.list.isEmpty()
 						|| fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("")) {
-					this.recalcENAct2HumenCehIdbyAct(act.code); // если данных нет перессчитаем и вытянем данные заново
+					this.recalcENAct2HumenCehIdbyAct(act.code); // РµСЃР»Рё РґР°РЅРЅС‹С… РЅРµС‚ РїРµСЂРµСЃСЃС‡РёС‚Р°РµРј Рё РІС‹С‚СЏРЅРµРј РґР°РЅРЅС‹Рµ Р·Р°РЅРѕРІРѕ
 					fkTrans2axTransList = this.getDataForProvsSalaryByAct(act.code);
 				}
-				// если повторно не определили цех - тогда ошибка
+				// РµСЃР»Рё РїРѕРІС‚РѕСЂРЅРѕ РЅРµ РѕРїСЂРµРґРµР»РёР»Рё С†РµС… - С‚РѕРіРґР° РѕС€РёР±РєР°
 				if (fkTrans2axTransList == null || fkTrans2axTransList.list == null || fkTrans2axTransList.list.isEmpty()
 						|| fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("")) {
 					throw new EnergyproSystemException(
-							" \n Для робітників не визначено код цеху !!! Потрібно зробити розрахунок акту !!! ");
+							" \n Р”Р»СЏ СЂРѕР±С–С‚РЅРёРєС–РІ РЅРµ РІРёР·РЅР°С‡РµРЅРѕ РєРѕРґ С†РµС…Сѓ !!! РџРѕС‚СЂС–Р±РЅРѕ Р·СЂРѕР±РёС‚Рё СЂРѕР·СЂР°С…СѓРЅРѕРє Р°РєС‚Сѓ !!! ");
 				}
 
 				String korSch_black = this.getCorrespondingAccountForReconstructionAndModernization(act, invNumber);
@@ -6163,47 +6163,47 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				for (int i = 0; i < fkTrans2axTransList.totalCount; i++) {
 					zpByAct = zpByAct.add(fkTrans2axTransList.get(i).amountCur);
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(i).amountCur, // сумма в роводке
-									fkTrans2axTransList.get(i).balCeh, "6610", // балансовый счет
-									"00000000130", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									korSch_black, // Корреспондентский счет
-									// Корреспондентский КАУ
-									/* один знак */
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(i).amountCur, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+									fkTrans2axTransList.get(i).balCeh, "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									korSch_black, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+									/* РѕРґРёРЅ Р·РЅР°Рє */
 									correspondingCaa, act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											+ " Реконструкция и модернизация ОС и МНМА "
-											+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+											+ " Р РµРєРѕРЅСЃС‚СЂСѓРєС†РёСЏ Рё РјРѕРґРµСЂРЅРёР·Р°С†РёСЏ РћРЎ Рё РњРќРњРђ "
+											+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
-				// I ПРОВОДКИ ПО ЗП красным, выбираем суммы зп с группировкой по шпз сотрудника
-				// и сех
+				// I РџР РћР’РћР”РљР РџРћ Р—Рџ РєСЂР°СЃРЅС‹Рј, РІС‹Р±РёСЂР°РµРј СЃСѓРјРјС‹ Р·Рї СЃ РіСЂСѓРїРїРёСЂРѕРІРєРѕР№ РїРѕ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР°
+				// Рё СЃРµС…
 				fkTrans2axTransList = this.getDataForProvsSalaryByActRed(act.code);
 				for (int ir = 0; ir < fkTrans2axTransList.totalCount; ir++) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(ir).amountCur.negate(), // сумма в роводке
-									fkTrans2axTransList.get(ir).balCeh, "6610", // балансовый счет
-									"00000000130", // балансовый КАУ
-									fkTrans2axTransList.get(ir).balCeh, // Корреспондентский цех
-									fkTrans2axTransList.get(ir).balans.substring(0, 4), // Корреспондентский счет шпз
-																						// сотрудника идет
-									// Корреспондентский КАУ
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(ir).amountCur.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+									fkTrans2axTransList.get(ir).balCeh, "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									fkTrans2axTransList.get(ir).balCeh, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									fkTrans2axTransList.get(ir).balans.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР·
+																						// СЃРѕС‚СЂСѓРґРЅРёРєР° РёРґРµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									fkTrans2axTransList.get(ir).balans.substring(4, 15), act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											+ " Реконструкция и модернизация ОС и МНМА "
-											+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+											+ " Р РµРєРѕРЅСЃС‚СЂСѓРєС†РёСЏ Рё РјРѕРґРµСЂРЅРёР·Р°С†РёСЏ РћРЎ Рё РњРќРњРђ "
+											+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
 
-				// II проводки если присоед
-				// (В) вычисляемое от Загальновиробничі витрати по акту (загальновиробничы
-				// витрати * 100/122 ) // черным
+				// II РїСЂРѕРІРѕРґРєРё РµСЃР»Рё РїСЂРёСЃРѕРµРґ
+				// (Р’) РІС‹С‡РёСЃР»СЏРµРјРѕРµ РѕС‚ Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё РїРѕ Р°РєС‚Сѓ (Р·Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С‹
+				// РІРёС‚СЂР°С‚Рё * 100/122 ) // С‡РµСЂРЅС‹Рј
 				if (isPricon) {
 
 					BigDecimal amountCur = zpByAct.multiply(productionExpencesPercent);
@@ -6212,156 +6212,156 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 					amountCur = amountCur.divide(new BigDecimal(100).add(chargepercent), 6, BigDecimal.ROUND_HALF_UP)
 							.setScale(2, BigDecimal.ROUND_HALF_UP);
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									// сумма в роводке = ЗП по акту * процент общщепроизв затрат / 100 * 100 /
-									// (100+22 - где 22 это есв по работнику - для проводок берут значение с
-									// обычного работника - не инвалида )
-									amountCur, KodPodr, "6610", // балансовый счет
-									"10000000130", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									korSch_black, // Корреспондентский счет
-									// Корреспондентский КАУ
-									/* один знак */
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									// СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ = Р—Рџ РїРѕ Р°РєС‚Сѓ * РїСЂРѕС†РµРЅС‚ РѕР±С‰С‰РµРїСЂРѕРёР·РІ Р·Р°С‚СЂР°С‚ / 100 * 100 /
+									// (100+22 - РіРґРµ 22 СЌС‚Рѕ РµСЃРІ РїРѕ СЂР°Р±РѕС‚РЅРёРєСѓ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє Р±РµСЂСѓС‚ Р·РЅР°С‡РµРЅРёРµ СЃ
+									// РѕР±С‹С‡РЅРѕРіРѕ СЂР°Р±РѕС‚РЅРёРєР° - РЅРµ РёРЅРІР°Р»РёРґР° )
+									amountCur, KodPodr, "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"10000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									korSch_black, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+									/* РѕРґРёРЅ Р·РЅР°Рє */
 									correspondingCaa, act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											+ " Реконструкция и модернизация ОС и МНМА "
-											+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+											+ " Р РµРєРѕРЅСЃС‚СЂСѓРєС†РёСЏ Рё РјРѕРґРµСЂРЅРёР·Р°С†РёСЏ РћРЎ Рё РњРќРњРђ "
+											+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
-					/*** II (В)_red проводка на вычисляемую сумму красным */
+					/*** II (Р’)_red РїСЂРѕРІРѕРґРєР° РЅР° РІС‹С‡РёСЃР»СЏРµРјСѓСЋ СЃСѓРјРјСѓ РєСЂР°СЃРЅС‹Рј */
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									// сумма в роводке = ЗП по акту * процент общщепроизв затрат / 100 * 100 /
-									// (100+22 - где 22 это есв по работнику - для проводок берут значение с
-									// обычного работника - не инвалида )
-									amountCur.negate(), KodPodr, "6610", // балансовый счет
-									"10000000130", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									"9100", // Корреспондентский счет
-									// Корреспондентский КАУ
-									/* один знак */
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									// СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ = Р—Рџ РїРѕ Р°РєС‚Сѓ * РїСЂРѕС†РµРЅС‚ РѕР±С‰С‰РµРїСЂРѕРёР·РІ Р·Р°С‚СЂР°С‚ / 100 * 100 /
+									// (100+22 - РіРґРµ 22 СЌС‚Рѕ РµСЃРІ РїРѕ СЂР°Р±РѕС‚РЅРёРєСѓ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє Р±РµСЂСѓС‚ Р·РЅР°С‡РµРЅРёРµ СЃ
+									// РѕР±С‹С‡РЅРѕРіРѕ СЂР°Р±РѕС‚РЅРёРєР° - РЅРµ РёРЅРІР°Р»РёРґР° )
+									amountCur.negate(), KodPodr, "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"10000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									"9100", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+									/* РѕРґРёРЅ Р·РЅР°Рє */
 									"00110000001", act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											+ " Реконструкция и модернизация ОС и МНМА "
-											+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+											+ " Р РµРєРѕРЅСЃС‚СЂСѓРєС†РёСЏ Рё РјРѕРґРµСЂРЅРёР·Р°С†РёСЏ РћРЎ Рё РњРќРњРђ "
+											+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 					/*
-					 * II_2+ black вторая часть проводки (Загальновиробничі витрати 50% від суми
-					 * заробітної плати - минус (В) // черное )
+					 * II_2+ black РІС‚РѕСЂР°СЏ С‡Р°СЃС‚СЊ РїСЂРѕРІРѕРґРєРё (Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё 50% РІС–Рґ СЃСѓРјРё
+					 * Р·Р°СЂРѕР±С–С‚РЅРѕС— РїР»Р°С‚Рё - РјРёРЅСѓСЃ (Р’) // С‡РµСЂРЅРѕРµ )
 					 */
 					BigDecimal amountCur_2 = zpByAct.multiply(productionExpencesPercent);
 					amountCur_2 = amountCur_2.divide(new BigDecimal(100), 6, BigDecimal.ROUND_HALF_UP);
 					amountCur_2 = amountCur_2.subtract(amountCur).setScale(2, BigDecimal.ROUND_HALF_UP);
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									amountCur_2, KodPodr, "6510", // балансовый счет
-									"10000000130", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									korSch_black, // Корреспондентский счет
-									// Корреспондентский КАУ
-									/* один знак */
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									amountCur_2, KodPodr, "6510", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"10000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									korSch_black, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+									/* РѕРґРёРЅ Р·РЅР°Рє */
 									correspondingCaa, act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											+ " Реконструкция и модернизация ОС и МНМА "
-											+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+											+ " Р РµРєРѕРЅСЃС‚СЂСѓРєС†РёСЏ Рё РјРѕРґРµСЂРЅРёР·Р°С†РёСЏ РћРЎ Рё РњРќРњРђ "
+											+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 					/*
-					 * II_2+ red вторая часть проводки (Загальновиробничі витрати 50% від суми
-					 * заробітної плати - минус (В) // красное )
+					 * II_2+ red РІС‚РѕСЂР°СЏ С‡Р°СЃС‚СЊ РїСЂРѕРІРѕРґРєРё (Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё 50% РІС–Рґ СЃСѓРјРё
+					 * Р·Р°СЂРѕР±С–С‚РЅРѕС— РїР»Р°С‚Рё - РјРёРЅСѓСЃ (Р’) // РєСЂР°СЃРЅРѕРµ )
 					 */
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									amountCur_2.negate(), KodPodr, "6510", // балансовый счет
-									"10000000130", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									"9100", // Корреспондентский счет
-									// Корреспондентский КАУ
-									/* один знак */
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									amountCur_2.negate(), KodPodr, "6510", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"10000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									"9100", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+									/* РѕРґРёРЅ Р·РЅР°Рє */
 									"00130000001", act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											+ " Реконструкция и модернизация ОС и МНМА "
-											+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+											+ " Р РµРєРѕРЅСЃС‚СЂСѓРєС†РёСЏ Рё РјРѕРґРµСЂРЅРёР·Р°С†РёСЏ РћРЎ Рё РњРќРњРђ "
+											+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 
 				}
 
-				// III пачка проводок Єдиний внесок на загальнообов'язкове державне соціальне
-				// страхування - черным
-				fkTrans2axTransList = this.getDataForBlackProvsСhargesumByAct(act.code);
+				// III РїР°С‡РєР° РїСЂРѕРІРѕРґРѕРє Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ
+				// СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - С‡РµСЂРЅС‹Рј
+				fkTrans2axTransList = this.getDataForBlackProvsРЎhargesumByAct(act.code);
 				for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(c).amountCur, // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(c).amountCur, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									fkTrans2axTransList.get(c).balCeh,
 									fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"
-											: "6512", // балансовый счет
-									"00000000130", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									korSch_black, // Корреспондентский счет
-									// Корреспондентский КАУ
-									/* один знак */
+											: "6512", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									korSch_black, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+									/* РѕРґРёРЅ Р·РЅР°Рє */
 									correspondingCaa, act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											+ " Реконструкция и модернизация ОС и МНМА "
-											+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+											+ " Р РµРєРѕРЅСЃС‚СЂСѓРєС†РёСЏ Рё РјРѕРґРµСЂРЅРёР·Р°С†РёСЏ РћРЎ Рё РњРќРњРђ "
+											+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
 
-				// Єдиний внесок на загальнообов'язкове державне соціальне страхування - красным
-				// , разбивка по цеху , ШПЗ , виду работника - инвалид / не инвалид
-				fkTrans2axTransList = this.getDataForRedProvsСhargesumByAct(act.code);
+				// Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - РєСЂР°СЃРЅС‹Рј
+				// , СЂР°Р·Р±РёРІРєР° РїРѕ С†РµС…Сѓ , РЁРџР— , РІРёРґСѓ СЂР°Р±РѕС‚РЅРёРєР° - РёРЅРІР°Р»РёРґ / РЅРµ РёРЅРІР°Р»РёРґ
+				fkTrans2axTransList = this.getDataForRedProvsРЎhargesumByAct(act.code);
 				for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(c).amountCur.negate(), // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(c).amountCur.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									fkTrans2axTransList.get(c).balCeh,
 									fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"
-											: "6512", // балансовый счет
-									"00000000130", // балансовый КАУ
-									fkTrans2axTransList.get(c).balCeh, // Корреспондентский цех
-									fkTrans2axTransList.get(c).balans.substring(0, 4), // Корреспондентский счет шпз
-																						// сотрудника идет
-									// Корреспондентский КАУ
+											: "6512", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									fkTrans2axTransList.get(c).balCeh, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									fkTrans2axTransList.get(c).balans.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР·
+																						// СЃРѕС‚СЂСѓРґРЅРёРєР° РёРґРµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									fkTrans2axTransList.get(c).balans.substring(4, 15), act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
+									"РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-											+ " Реконструкция и модернизация ОС и МНМА "
-											+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+											+ " Р РµРєРѕРЅСЃС‚СЂСѓРєС†РёСЏ Рё РјРѕРґРµСЂРЅРёР·Р°С†РёСЏ РћРЎ Рё РњРќРњРђ "
+											+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
 
-				// IV пачка проводок амортизация
+				// IV РїР°С‡РєР° РїСЂРѕРІРѕРґРѕРє Р°РјРѕСЂС‚РёР·Р°С†РёСЏ
 
 				ENAct2TransportFilter a2tFilter = new ENAct2TransportFilter();
 				a2tFilter.actRef.code = act.code;
 				ENAct2TransportShortList a2tList = a2tDAO.getScrollableFilteredList(a2tFilter, 0, -1);
 
-				// строки для проводок по амортизации красным
+				// СЃС‚СЂРѕРєРё РґР»СЏ РїСЂРѕРІРѕРґРѕРє РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё РєСЂР°СЃРЅС‹Рј
 				HashMap<DataForTransAmortizacRed, DataForTransAmortizacRed> transDataAmortizacRed = new HashMap<>();
-				// строки для проводок по амортизации черным
+				// СЃС‚СЂРѕРєРё РґР»СЏ РїСЂРѕРІРѕРґРѕРє РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё С‡РµСЂРЅС‹Рј
 				HashMap<DataForTransAmortizacBlack, DataForTransAmortizacBlack> transDataAmortizacBlack = new HashMap<>();
 
 				for (int tr = 0; tr < a2tList.totalCount; tr++) {
 
 					String cehtransport = fpLogic.getKodPodr(a2tList.get(tr).invNumber);
-					// вытянем код цеха по штатному mdax
+					// РІС‹С‚СЏРЅРµРј РєРѕРґ С†РµС…Р° РїРѕ С€С‚Р°С‚РЅРѕРјСѓ mdax
 					cehtransport = mdLogic.getMAINORGANIZATIONIDByHRMORGANIZATIONID(cehtransport, act.dateGen);
 					String kodSubschB = fpLogic.getKodSubschB(a2tList.get(tr).invNumber);
 					String vidOStransp = fpLogic.getG45(a2tList.get(tr).invNumber);
 					String kodZatrTransp = fpLogic.getNNNN(a2tList.get(tr).invNumber);
 
-					// !!!!!RED набрать строки по транспорту . уник значения по цеху транспорта ,
-					// коду затрат , вид ОС - для проводок красным
+					// !!!!!RED РЅР°Р±СЂР°С‚СЊ СЃС‚СЂРѕРєРё РїРѕ С‚СЂР°РЅСЃРїРѕСЂС‚Сѓ . СѓРЅРёРє Р·РЅР°С‡РµРЅРёСЏ РїРѕ С†РµС…Сѓ С‚СЂР°РЅСЃРїРѕСЂС‚Р° ,
+					// РєРѕРґСѓ Р·Р°С‚СЂР°С‚ , РІРёРґ РћРЎ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє РєСЂР°СЃРЅС‹Рј
 					DataForTransAmortizacRed rKey;
 					rKey = new DataForTransAmortizacRed(cehtransport, kodZatrTransp, vidOStransp,
 							"131" + kodSubschB.substring(2, 3), a2tList.get(tr).paysWork);
@@ -6369,13 +6369,13 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 					if (transDataAmortizacRed.containsValue(rKey)) {
 						DataForTransAmortizacRed dValue = (DataForTransAmortizacRed) transDataAmortizacRed.get(rKey);
 						rKey.summa = rKey.summa.add(dValue.summa);
-						// удалим из списка запись что есть и добавим с увелич суммой
+						// СѓРґР°Р»РёРј РёР· СЃРїРёСЃРєР° Р·Р°РїРёСЃСЊ С‡С‚Рѕ РµСЃС‚СЊ Рё РґРѕР±Р°РІРёРј СЃ СѓРІРµР»РёС‡ СЃСѓРјРјРѕР№
 						transDataAmortizacRed.remove(rKey);
 					}
 					transDataAmortizacRed.put(rKey, rKey);
 
-					// !!!!!BLACK набрать строки по транспорту . уник значения по цеху транспорта ,
-					// вид ОС - для проводок черным
+					// !!!!!BLACK РЅР°Р±СЂР°С‚СЊ СЃС‚СЂРѕРєРё РїРѕ С‚СЂР°РЅСЃРїРѕСЂС‚Сѓ . СѓРЅРёРє Р·РЅР°С‡РµРЅРёСЏ РїРѕ С†РµС…Сѓ С‚СЂР°РЅСЃРїРѕСЂС‚Р° ,
+					// РІРёРґ РћРЎ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє С‡РµСЂРЅС‹Рј
 					DataForTransAmortizacBlack bKey;
 					bKey = new DataForTransAmortizacBlack(cehtransport, vidOStransp, "131" + kodSubschB.substring(2, 3),
 							a2tList.get(tr).paysWork);
@@ -6384,14 +6384,14 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 						DataForTransAmortizacBlack bValue = (DataForTransAmortizacBlack) transDataAmortizacBlack
 								.get(bKey);
 						bKey.summa = bKey.summa.add(bValue.summa);
-						// удалим из списка запись что есть и добавим с увелич суммой
+						// СѓРґР°Р»РёРј РёР· СЃРїРёСЃРєР° Р·Р°РїРёСЃСЊ С‡С‚Рѕ РµСЃС‚СЊ Рё РґРѕР±Р°РІРёРј СЃ СѓРІРµР»РёС‡ СЃСѓРјРјРѕР№
 						transDataAmortizacBlack.remove(bKey);
 					}
 					transDataAmortizacBlack.put(bKey, bKey);
 
 				}
 
-				// формирование шаблонов по амортизации красным
+				// С„РѕСЂРјРёСЂРѕРІР°РЅРёРµ С€Р°Р±Р»РѕРЅРѕРІ РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё РєСЂР°СЃРЅС‹Рј
 				DataForTransAmortizacRed rrKey = null;
 				Iterator<DataForTransAmortizacRed> rrIterator = transDataAmortizacRed.keySet().iterator();
 				while (rrIterator.hasNext()) {
@@ -6401,28 +6401,28 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 							+ " // " + rrValue.vidOS + " // " + rrValue.balSch + " // " + rrValue.summa + " // ");
 					if (rrValue.summa.doubleValue() > 0) {
 						V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-										rrValue.summa.negate(), // сумма в роводке
-										rrValue.ceh, rrValue.balSch, // балансовый счет 131 + ( 3 - й знак счета по
-																		// карточке ОС- транспорта )
-										rrValue.vidOS + "000000000", // балансовый КАУ
-										KodPodr, // Корреспондентский цех
-										rrValue.kodZatrat.substring(0, 4), // Корреспондентский счет шпз транспортного
-																			// идет
-										rrValue.kodZatrat.substring(4, 15), // Корреспондентский КАУ остаток от ШПЗ
-																			// транспортного
+								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+										rrValue.summa.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+										rrValue.ceh, rrValue.balSch, // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚ 131 + ( 3 - Р№ Р·РЅР°Рє СЃС‡РµС‚Р° РїРѕ
+																		// РєР°СЂС‚РѕС‡РєРµ РћРЎ- С‚СЂР°РЅСЃРїРѕСЂС‚Р° )
+										rrValue.vidOS + "000000000", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+										KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+										rrValue.kodZatrat.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР· С‚СЂР°РЅСЃРїРѕСЂС‚РЅРѕРіРѕ
+																			// РёРґРµС‚
+										rrValue.kodZatrat.substring(4, 15), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ РѕСЃС‚Р°С‚РѕРє РѕС‚ РЁРџР—
+																			// С‚СЂР°РЅСЃРїРѕСЂС‚РЅРѕРіРѕ
 										act.numberGen, act.dateGen,
-										"Акт № " + act.numberGen + ", "
+										"РђРєС‚ в„– " + act.numberGen + ", "
 												+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-												+ " Реконструкция и модернизация ОС и МНМА "
-												+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+												+ " Р РµРєРѕРЅСЃС‚СЂСѓРєС†РёСЏ Рё РјРѕРґРµСЂРЅРёР·Р°С†РёСЏ РћРЎ Рё РњРќРњРђ "
+												+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 										userName
 								);
 					}
 
 				}
 
-				// формирование шаблонов по амортизации черным
+				// С„РѕСЂРјРёСЂРѕРІР°РЅРёРµ С€Р°Р±Р»РѕРЅРѕРІ РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё С‡РµСЂРЅС‹Рј
 				DataForTransAmortizacBlack bbKey = null;
 				Iterator<DataForTransAmortizacBlack> bbIterator = transDataAmortizacBlack.keySet().iterator();
 				while (bbIterator.hasNext()) {
@@ -6433,20 +6433,20 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 							+ " // " + bbValue.balSch + " // " + bbValue.summa + " // ");
 					if (bbValue.summa.doubleValue() > 0) {
 						V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-										bbValue.summa, // сумма в роводке
-										bbValue.ceh, bbValue.balSch, // балансовый счет 131 + ( 3 - й знак счета по
-																		// карточке ОС- транспорта )
-										bbValue.vidOS + "000000000", // балансовый КАУ
-										KodPodr, // Корреспондентский цех
-										korSch_black, // Корреспондентский счет
-										// Корреспондентский КАУ
-										// один знак
+								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+										bbValue.summa, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+										bbValue.ceh, bbValue.balSch, // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚ 131 + ( 3 - Р№ Р·РЅР°Рє СЃС‡РµС‚Р° РїРѕ
+																		// РєР°СЂС‚РѕС‡РєРµ РћРЎ- С‚СЂР°РЅСЃРїРѕСЂС‚Р° )
+										bbValue.vidOS + "000000000", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+										KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+										korSch_black, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+										// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+										// РѕРґРёРЅ Р·РЅР°Рє
 										correspondingCaa, act.numberGen, act.dateGen,
-										"Акт № " + act.numberGen + ", "
+										"РђРєС‚ в„– " + act.numberGen + ", "
 												+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-												+ " Реконструкция и модернизация ОС и МНМА "
-												+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+												+ " Р РµРєРѕРЅСЃС‚СЂСѓРєС†РёСЏ Рё РјРѕРґРµСЂРЅРёР·Р°С†РёСЏ РћРЎ Рё РњРќРњРђ "
+												+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 										userName
 								);
 					}
@@ -6461,30 +6461,30 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 			if (act.actTypeRef.code == ENPlanWorkState.TO
 					|| act.actTypeRef.code == ENPlanWorkState.COUNTERS_PARAMETRIZATION_FREE_OF_CHARGE) {
 				/*
-				 * Дата увед. Основний рахунок Кореспонд. рахунок Сума Цех Кт Цех Дт
+				 * Р”Р°С‚Р° СѓРІРµРґ. РћСЃРЅРѕРІРЅРёР№ СЂР°С…СѓРЅРѕРє РљРѕСЂРµСЃРїРѕРЅРґ. СЂР°С…СѓРЅРѕРє РЎСѓРјР° Р¦РµС… РљС‚ Р¦РµС… Р”С‚
 				 * 
-				 * 1 блок 18/05/17 ХХХ 6610 00000000130 ХХХ СССС РРРРРРРРРРР - 18/05/17 ХХХ 6510
-				 * 00000000130 ХХХ СССС РРРРРРРРРРР - 2 блок 18/05/17 ХХХ 6510 00000000130 ААА
-				 * ИИИИ ВВВВВВВВВВВ + 18/05/17 ХХХ 6610 00000000130 ААА ИИИИ ВВВВВВВВВВВ +
+				 * 1 Р±Р»РѕРє 18/05/17 РҐРҐРҐ 6610 00000000130 РҐРҐРҐ РЎРЎРЎРЎ Р Р Р Р Р Р Р Р Р Р Р  - 18/05/17 РҐРҐРҐ 6510
+				 * 00000000130 РҐРҐРҐ РЎРЎРЎРЎ Р Р Р Р Р Р Р Р Р Р Р  - 2 Р±Р»РѕРє 18/05/17 РҐРҐРҐ 6510 00000000130 РђРђРђ
+				 * РРРР Р’Р’Р’Р’Р’Р’Р’Р’Р’Р’Р’ + 18/05/17 РҐРҐРҐ 6610 00000000130 РђРђРђ РРРР Р’Р’Р’Р’Р’Р’Р’Р’Р’Р’Р’ +
 				 */
 
 				/*
-				 * 1 блок Дт СССС-РРРРРРРРРР счет и КАУ из акта тех ослуживания ХХХ цех Рэса или
-				 * 000 если админуправление По Кт 6610 сумма начисленной зарплаты - По Кт 6510
-				 * сумма отчислений -
+				 * 1 Р±Р»РѕРє Р”С‚ РЎРЎРЎРЎ-Р Р Р Р Р Р Р Р Р Р  СЃС‡РµС‚ Рё РљРђРЈ РёР· Р°РєС‚Р° С‚РµС… РѕСЃР»СѓР¶РёРІР°РЅРёСЏ РҐРҐРҐ С†РµС… Р СЌСЃР° РёР»Рё
+				 * 000 РµСЃР»Рё Р°РґРјРёРЅСѓРїСЂР°РІР»РµРЅРёРµ РџРѕ РљС‚ 6610 СЃСѓРјРјР° РЅР°С‡РёСЃР»РµРЅРЅРѕР№ Р·Р°СЂРїР»Р°С‚С‹ - РџРѕ РљС‚ 6510
+				 * СЃСѓРјРјР° РѕС‚С‡РёСЃР»РµРЅРёР№ -
 				 * 
-				 * 2 блок Дт ААА цех обьекта на котором выполняют работы по техобслуживанию
-				 * --если тип акта техобслуживания (первичная параметризация счетчика ) то
-				 * ИИИИ=2320 , ВВВВВВВВВВВ=00507500001 (!!! определяется - если тип акта =
-				 * первичная параметризация счетчика ) --если тип акта техобслуживания то ИИИИ=
-				 * код первые четыре знака кода затрат из инвентарного номера ОС на котором
-				 * производят работы еcли вид ОС = 01 или 02 то КАУ= 00503000001 если вид ОС не
-				 * равен 01 и 02 то КАУ =00503300001, -- если проводят техобслуживание счетчиков
-				 * то КАУ =00506300001.( определим это так или нет по типу акта = должно быть
-				 * тех.обсуживание и объект ту быт или ту пром !! посмотрел проводки с таким КАУ
-				 * так же есть и акты с типом объекта "маршрут БЫТ") -- если в инветарном номере
-				 * ОС Код затрат № 1 = 94ХХ то КАУ = 00505900001 и должна быть дополнительная
-				 * проводка на + Кт 94ХХ 00505900001 Дт 7915 40100000001 + сумма зарплаты
+				 * 2 Р±Р»РѕРє Р”С‚ РђРђРђ С†РµС… РѕР±СЊРµРєС‚Р° РЅР° РєРѕС‚РѕСЂРѕРј РІС‹РїРѕР»РЅСЏСЋС‚ СЂР°Р±РѕС‚С‹ РїРѕ С‚РµС…РѕР±СЃР»СѓР¶РёРІР°РЅРёСЋ
+				 * --РµСЃР»Рё С‚РёРї Р°РєС‚Р° С‚РµС…РѕР±СЃР»СѓР¶РёРІР°РЅРёСЏ (РїРµСЂРІРёС‡РЅР°СЏ РїР°СЂР°РјРµС‚СЂРёР·Р°С†РёСЏ СЃС‡РµС‚С‡РёРєР° ) С‚Рѕ
+				 * РРРР=2320 , Р’Р’Р’Р’Р’Р’Р’Р’Р’Р’Р’=00507500001 (!!! РѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ - РµСЃР»Рё С‚РёРї Р°РєС‚Р° =
+				 * РїРµСЂРІРёС‡РЅР°СЏ РїР°СЂР°РјРµС‚СЂРёР·Р°С†РёСЏ СЃС‡РµС‚С‡РёРєР° ) --РµСЃР»Рё С‚РёРї Р°РєС‚Р° С‚РµС…РѕР±СЃР»СѓР¶РёРІР°РЅРёСЏ С‚Рѕ РРРР=
+				 * РєРѕРґ РїРµСЂРІС‹Рµ С‡РµС‚С‹СЂРµ Р·РЅР°РєР° РєРѕРґР° Р·Р°С‚СЂР°С‚ РёР· РёРЅРІРµРЅС‚Р°СЂРЅРѕРіРѕ РЅРѕРјРµСЂР° РћРЎ РЅР° РєРѕС‚РѕСЂРѕРј
+				 * РїСЂРѕРёР·РІРѕРґСЏС‚ СЂР°Р±РѕС‚С‹ РµcР»Рё РІРёРґ РћРЎ = 01 РёР»Рё 02 С‚Рѕ РљРђРЈ= 00503000001 РµСЃР»Рё РІРёРґ РћРЎ РЅРµ
+				 * СЂР°РІРµРЅ 01 Рё 02 С‚Рѕ РљРђРЈ =00503300001, -- РµСЃР»Рё РїСЂРѕРІРѕРґСЏС‚ С‚РµС…РѕР±СЃР»СѓР¶РёРІР°РЅРёРµ СЃС‡РµС‚С‡РёРєРѕРІ
+				 * С‚Рѕ РљРђРЈ =00506300001.( РѕРїСЂРµРґРµР»РёРј СЌС‚Рѕ С‚Р°Рє РёР»Рё РЅРµС‚ РїРѕ С‚РёРїСѓ Р°РєС‚Р° = РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ
+				 * С‚РµС….РѕР±СЃСѓР¶РёРІР°РЅРёРµ Рё РѕР±СЉРµРєС‚ С‚Сѓ Р±С‹С‚ РёР»Рё С‚Сѓ РїСЂРѕРј !! РїРѕСЃРјРѕС‚СЂРµР» РїСЂРѕРІРѕРґРєРё СЃ С‚Р°РєРёРј РљРђРЈ
+				 * С‚Р°Рє Р¶Рµ РµСЃС‚СЊ Рё Р°РєС‚С‹ СЃ С‚РёРїРѕРј РѕР±СЉРµРєС‚Р° "РјР°СЂС€СЂСѓС‚ Р‘Р«Рў") -- РµСЃР»Рё РІ РёРЅРІРµС‚Р°СЂРЅРѕРј РЅРѕРјРµСЂРµ
+				 * РћРЎ РљРѕРґ Р·Р°С‚СЂР°С‚ в„– 1 = 94РҐРҐ С‚Рѕ РљРђРЈ = 00505900001 Рё РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РґРѕРїРѕР»РЅРёС‚РµР»СЊРЅР°СЏ
+				 * РїСЂРѕРІРѕРґРєР° РЅР° + РљС‚ 94РҐРҐ 00505900001 Р”С‚ 7915 40100000001 + СЃСѓРјРјР° Р·Р°СЂРїР»Р°С‚С‹
 				 */
 
 				if (act.element.typeRef.code != ENElementType.TY_BYT
@@ -6496,41 +6496,41 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 							/*SUPP-102170*/
 							&& !invNumber.equals("111111")
 							&& !fkOsLogic.getInvNumberIsExist(invNumber)) {
-						throw new SystemException("Не знайдено об'єкт з інвентарним - " + invNumber);
+						throw new SystemException("РќРµ Р·РЅР°Р№РґРµРЅРѕ РѕР±'С”РєС‚ Р· С–РЅРІРµРЅС‚Р°СЂРЅРёРј - " + invNumber);
 					}
 					;
 				}
 
-				// вид Основного из ФК
+				// РІРёРґ РћСЃРЅРѕРІРЅРѕРіРѕ РёР· Р¤Рљ
 				String vidOS = fpLogic.getG45(invNumber);
 
-				/* код затрат ОС */
+				/* РєРѕРґ Р·Р°С‚СЂР°С‚ РћРЎ */
 				String kod_zatr = fpLogic.getNNNN(invNumber);
 
-				/* код источника основного при приходе */
+				/* РєРѕРґ РёСЃС‚РѕС‡РЅРёРєР° РѕСЃРЅРѕРІРЅРѕРіРѕ РїСЂРё РїСЂРёС…РѕРґРµ */
 				int kod_ist_prihod = fkOsLogic.getKod_IstPrihod(invNumber);
 
 				String KodPodr = "????";
-				String IIII = "2320"; // кор счет по умолчанию
+				String IIII = "2320"; // РєРѕСЂ СЃС‡РµС‚ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
 
-				// спец проводки если инв = 000000 и мол мастер =0910
+				// СЃРїРµС† РїСЂРѕРІРѕРґРєРё РµСЃР»Рё РёРЅРІ = 000000 Рё РјРѕР» РјР°СЃС‚РµСЂ =0910
 				boolean isTO_000000 = false;
 				FINMolDataFilter fmDataFilter = new FINMolDataFilter();
 				fmDataFilter.act.code = act.code;
 				fmDataFilter.molTypeRef.code = ENMolType.MASTER;
-				// fmDataFilter.finMolCode="0910"; добавляем еще молы SUPP-69111
+				// fmDataFilter.finMolCode="0910"; РґРѕР±Р°РІР»СЏРµРј РµС‰Рµ РјРѕР»С‹ SUPP-69111
 				fmDataFilter.conditionSQL = " FINMolData.finmolcode in ('0910' , '0920')  ";
 				int[] fmDataArr = fmDataDAO.getFilteredCodeArray(fmDataFilter, 0, -1);
 				if (fmDataArr.length > 0 && invNumber.equals("000000")) {
 					isTO_000000 = true;
 				}
 
-				// если тип єлемента Обладнання у Ремонті ИЛИ Устаткування компанії (бензопили і
-				// т.д.)
-				// И длина инвентарного > 6 символов то KodPodr(цех) и IIII(кор счет) определим
-				// по МОЛу на котором числится объект
+				// РµСЃР»Рё С‚РёРї С”Р»РµРјРµРЅС‚Р° РћР±Р»Р°РґРЅР°РЅРЅСЏ Сѓ Р РµРјРѕРЅС‚С– РР›Р РЈСЃС‚Р°С‚РєСѓРІР°РЅРЅСЏ РєРѕРјРїР°РЅС–С— (Р±РµРЅР·РѕРїРёР»Рё С–
+				// С‚.Рґ.)
+				// Р РґР»РёРЅР° РёРЅРІРµРЅС‚Р°СЂРЅРѕРіРѕ > 6 СЃРёРјРІРѕР»РѕРІ С‚Рѕ KodPodr(С†РµС…) Рё IIII(РєРѕСЂ СЃС‡РµС‚) РѕРїСЂРµРґРµР»РёРј
+				// РїРѕ РњРћР›Сѓ РЅР° РєРѕС‚РѕСЂРѕРј С‡РёСЃР»РёС‚СЃСЏ РѕР±СЉРµРєС‚
 
-				boolean isMNMA = false; // если объект МНМА
+				boolean isMNMA = false; // РµСЃР»Рё РѕР±СЉРµРєС‚ РњРќРњРђ
 				if ((act.element.typeRef.code == ENElementType.EQUIPMENT_OBJECTS
 						|| act.element.typeRef.code == ENElementType.EQUIPMENT_REPAIR_OBJECTS
 						|| act.element.typeRef.code == ENElementType.SDTU
@@ -6543,7 +6543,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 				) && invNumber.length() > 6) {
 
-					// выберем шпз по табельному и подразделение
+					// РІС‹Р±РµСЂРµРј С€РїР· РїРѕ С‚Р°Р±РµР»СЊРЅРѕРјСѓ Рё РїРѕРґСЂР°Р·РґРµР»РµРЅРёРµ
 					ENAct2Humen a2hObj = getBalansWithMainCeh(act, finConn);
 					String balans = a2hObj.balans;
 					String cehId = a2hObj.cehId;
@@ -6553,11 +6553,11 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 					isMNMA = true;
 
 				} else {
-					/* код цеха основного */
+					/* РєРѕРґ С†РµС…Р° РѕСЃРЅРѕРІРЅРѕРіРѕ */
 					KodPodr = fpLogic.getKodPodr(invNumber);
 
 					if (KodPodr.equalsIgnoreCase("????")) {
-						/* код цеха основного -- по объекту в акте */
+						/* РєРѕРґ С†РµС…Р° РѕСЃРЅРѕРІРЅРѕРіРѕ -- РїРѕ РѕР±СЉРµРєС‚Сѓ РІ Р°РєС‚Рµ */
 						ENDepartment2EPRenFilter d2pFilter = new ENDepartment2EPRenFilter();
 						d2pFilter.conditionSQL = " ENDepartment2EPRen.code in ( " + " select d2r.code  "
 								+ " from enact a  , enelementdata eld , enelement el , endepartment2epren d2r "
@@ -6571,36 +6571,36 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 					}
 
-					// определим код цеха по штатному mdax
+					// РѕРїСЂРµРґРµР»РёРј РєРѕРґ С†РµС…Р° РїРѕ С€С‚Р°С‚РЅРѕРјСѓ mdax
 					KodPodr = mdLogic.getMAINORGANIZATIONIDByHRMORGANIZATIONID(KodPodr, act.dateGen);
 				}
 
-				/// 20.09.2017 - временно обработаем .. если тип объекта ту-быт или ту-пром и
-				/// рес = 015 то меняем на 052 так как лицевые относятся к
-				/// хмве а не к хмему
+				/// 20.09.2017 - РІСЂРµРјРµРЅРЅРѕ РѕР±СЂР°Р±РѕС‚Р°РµРј .. РµСЃР»Рё С‚РёРї РѕР±СЉРµРєС‚Р° С‚Сѓ-Р±С‹С‚ РёР»Рё С‚Сѓ-РїСЂРѕРј Рё
+				/// СЂРµСЃ = 015 С‚Рѕ РјРµРЅСЏРµРј РЅР° 052 С‚Р°Рє РєР°Рє Р»РёС†РµРІС‹Рµ РѕС‚РЅРѕСЃСЏС‚СЃСЏ Рє
+				/// С…РјРІРµ Р° РЅРµ Рє С…РјРµРјСѓ
 
 				if (KodPodr.equals("051") && (act.element.typeRef.code == ENElementType.TY_BYT
 						|| act.element.typeRef.code == ENElementType.TY_PROM)
-				/* не надо для монтажа ЗКУ */
+				/* РЅРµ РЅР°РґРѕ РґР»СЏ РјРѕРЅС‚Р°Р¶Р° Р—РљРЈ */
 						&& !isZKUMounting) {
 					KodPodr = "052";
 				}
 
-				// 13.08.2018 Марьевна Н.Л. сказала что по установке ЗКУ должно быть 051
-				// подразделение
+				// 13.08.2018 РњР°СЂСЊРµРІРЅР° Рќ.Р›. СЃРєР°Р·Р°Р»Р° С‡С‚Рѕ РїРѕ СѓСЃС‚Р°РЅРѕРІРєРµ Р—РљРЈ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ 051
+				// РїРѕРґСЂР°Р·РґРµР»РµРЅРёРµ
 
 				/*
-				 * !!!!26.10.2018 Макс из общения С Ляховской сказал что тут не нужно
-				 * принудительно ставить 51 цех if(isZKUMounting && KodPodr.equals("052")) {
+				 * !!!!26.10.2018 РњР°РєСЃ РёР· РѕР±С‰РµРЅРёСЏ РЎ Р›СЏС…РѕРІСЃРєРѕР№ СЃРєР°Р·Р°Р» С‡С‚Рѕ С‚СѓС‚ РЅРµ РЅСѓР¶РЅРѕ
+				 * РїСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕ СЃС‚Р°РІРёС‚СЊ 51 С†РµС… if(isZKUMounting && KodPodr.equals("052")) {
 				 * KodPodr = "051"; }
 				 */
 
 				if (isZKUMounting) {
-					// 08.04.2019 Если это установка ЗКУ, то подразделение будет того кто владеет
-					// ЗКУ (Ляховская А.Н.)
+					// 08.04.2019 Р•СЃР»Рё СЌС‚Рѕ СѓСЃС‚Р°РЅРѕРІРєР° Р—РљРЈ, С‚Рѕ РїРѕРґСЂР°Р·РґРµР»РµРЅРёРµ Р±СѓРґРµС‚ С‚РѕРіРѕ РєС‚Рѕ РІР»Р°РґРµРµС‚
+					// Р—РљРЈ (Р›СЏС…РѕРІСЃРєР°СЏ Рђ.Рќ.)
 					if (act.finMolCode == null || act.finMolCode.length() == 0) {
 						throw new SystemException(
-								"Неможливо визначити підрозділ для передачі проводок по установці ЗКУ");
+								"РќРµРјРѕР¶Р»РёРІРѕ РІРёР·РЅР°С‡РёС‚Рё РїС–РґСЂРѕР·РґС–Р» РґР»СЏ РїРµСЂРµРґР°С‡С– РїСЂРѕРІРѕРґРѕРє РїРѕ СѓСЃС‚Р°РЅРѕРІС†С– Р—РљРЈ");
 					}
 					KodPodr = String.format("0%s", act.finMolCode.substring(0, 2));
 				}
@@ -6610,15 +6610,15 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				if (act.actTypeRef.code == ENPlanWorkState.COUNTERS_PARAMETRIZATION_FREE_OF_CHARGE) {
 					BBBBBBBBBBB_nachisl = "00507800001"; // "00507500301";
 					BBBBBBBBBBB_otchisl = "00507800001"; // "00507500201";
-				} /* ТО счетчиков */
+				} /* РўРћ СЃС‡РµС‚С‡РёРєРѕРІ */
 				else if (act.actTypeRef.code == ENPlanWorkState.TO && (act.element.typeRef.code == ENElementType.TY_BYT
 						|| act.element.typeRef.code == ENElementType.TY_PROM
 						|| act.element.typeRef.code == ENElementType.ROUTE_BYT)) {
 
 					BBBBBBBBBBB_nachisl = "00503300001"; // "00506300301";
 					BBBBBBBBBBB_otchisl = "00503300001"; // "00506300201";
-				} // если ТО но не параметризация и не ТО счетчиков то ИИИИ= код первые четыре
-					// знака кода затрат из инвентарного номера ОС на котором производят работы
+				} // РµСЃР»Рё РўРћ РЅРѕ РЅРµ РїР°СЂР°РјРµС‚СЂРёР·Р°С†РёСЏ Рё РЅРµ РўРћ СЃС‡РµС‚С‡РёРєРѕРІ С‚Рѕ РРРР= РєРѕРґ РїРµСЂРІС‹Рµ С‡РµС‚С‹СЂРµ
+					// Р·РЅР°РєР° РєРѕРґР° Р·Р°С‚СЂР°С‚ РёР· РёРЅРІРµРЅС‚Р°СЂРЅРѕРіРѕ РЅРѕРјРµСЂР° РћРЎ РЅР° РєРѕС‚РѕСЂРѕРј РїСЂРѕРёР·РІРѕРґСЏС‚ СЂР°Р±РѕС‚С‹
 				else if (act.actTypeRef.code == ENPlanWorkState.TO && (act.element.typeRef.code != ENElementType.TY_BYT
 						&& act.element.typeRef.code != ENElementType.TY_PROM
 						&& act.element.typeRef.code != ENElementType.ROUTE_BYT)) {
@@ -6631,8 +6631,8 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 						BBBBBBBBBBB_nachisl = "00503300001"; // "00503000301";
 						BBBBBBBBBBB_otchisl = "00503300001"; // "00503000201";
 					}
-					// 19.09.2017 - бух. подкиинула условие . если вид ос = 22 и счет затрат = 2320
-					// то кау черным = 00506600001 вместо 00503300001
+					// 19.09.2017 - Р±СѓС…. РїРѕРґРєРёРёРЅСѓР»Р° СѓСЃР»РѕРІРёРµ . РµСЃР»Рё РІРёРґ РѕСЃ = 22 Рё СЃС‡РµС‚ Р·Р°С‚СЂР°С‚ = 2320
+					// С‚Рѕ РєР°Сѓ С‡РµСЂРЅС‹Рј = 00506600001 РІРјРµСЃС‚Рѕ 00503300001
 					else if (kod_ist_prihod == 22
 							&& (IIII.substring(0, 2).equals("23") || IIII.substring(0, 2).equals("91"))) {
 						BBBBBBBBBBB_nachisl = "00503300001";
@@ -6660,13 +6660,13 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 				String infoDescript = "";
 				if (act.actTypeRef.code == ENPlanWorkState.TO)
-					infoDescript = " з технічного обслуговування ";
+					infoDescript = " Р· С‚РµС…РЅС–С‡РЅРѕРіРѕ РѕР±СЃР»СѓРіРѕРІСѓРІР°РЅРЅСЏ ";
 				if (act.actTypeRef.code == ENPlanWorkState.COUNTERS_PARAMETRIZATION_FREE_OF_CHARGE)
-					infoDescript = " з параметризації лічильників ";
+					infoDescript = " Р· РїР°СЂР°РјРµС‚СЂРёР·Р°С†С–С— Р»С–С‡РёР»СЊРЅРёРєС–РІ ";
 
 				/*
-				 * +++++++++++++++++++ проверка если параметризация , то данные в enact2humen
-				 * должны быть расчитаны в разрезе плана-факта
+				 * +++++++++++++++++++ РїСЂРѕРІРµСЂРєР° РµСЃР»Рё РїР°СЂР°РјРµС‚СЂРёР·Р°С†РёСЏ , С‚Рѕ РґР°РЅРЅС‹Рµ РІ enact2humen
+				 * РґРѕР»Р¶РЅС‹ Р±С‹С‚СЊ СЂР°СЃС‡РёС‚Р°РЅС‹ РІ СЂР°Р·СЂРµР·Рµ РїР»Р°РЅР°-С„Р°РєС‚Р°
 				 */
 				if (act.actTypeRef.code == ENPlanWorkState.COUNTERS_PARAMETRIZATION_FREE_OF_CHARGE
 						|| act.actTypeRef.code == ENPlanWorkState.COUNTERS_PARAMETRIZATION) {
@@ -6676,68 +6676,68 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 					for (int ff = 0; ff < a2hffList.totalCount; ff++) {
 						if (a2hffList.get(ff).planRefCode == Integer.MIN_VALUE) {
 							throw new EnergyproSystemException(
-									" \n Невірно розрахована ЗП робітників. Потрібно зробити розрахунок акту !!! ");
+									" \n РќРµРІС–СЂРЅРѕ СЂРѕР·СЂР°С…РѕРІР°РЅР° Р—Рџ СЂРѕР±С–С‚РЅРёРєС–РІ. РџРѕС‚СЂС–Р±РЅРѕ Р·СЂРѕР±РёС‚Рё СЂРѕР·СЂР°С…СѓРЅРѕРє Р°РєС‚Сѓ !!! ");
 						}
 					}
 				}
 
-				// I ПРОВОДКИ ПО ЗП черным
+				// I РџР РћР’РћР”РљР РџРћ Р—Рџ С‡РµСЂРЅС‹Рј
 				FKTrans2AXTransItemShortList fkTrans2axTransList = this.getDataForProvsSalaryByAct(act.code);
 
 				if (fkTrans2axTransList == null || fkTrans2axTransList.list == null || fkTrans2axTransList.list.isEmpty()
 						|| fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("")) {
-					this.recalcENAct2HumenCehIdbyAct(act.code); // если данных нет перессчитаем и вытянем данные заново
+					this.recalcENAct2HumenCehIdbyAct(act.code); // РµСЃР»Рё РґР°РЅРЅС‹С… РЅРµС‚ РїРµСЂРµСЃСЃС‡РёС‚Р°РµРј Рё РІС‹С‚СЏРЅРµРј РґР°РЅРЅС‹Рµ Р·Р°РЅРѕРІРѕ
 					fkTrans2axTransList = this.getDataForProvsSalaryByAct(act.code);
 				}
-				// если повторно не определили цех - тогда ошибка
+				// РµСЃР»Рё РїРѕРІС‚РѕСЂРЅРѕ РЅРµ РѕРїСЂРµРґРµР»РёР»Рё С†РµС… - С‚РѕРіРґР° РѕС€РёР±РєР°
 				if (fkTrans2axTransList == null || fkTrans2axTransList.list == null || fkTrans2axTransList.list.isEmpty()
 						|| fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("")) {
 					throw new EnergyproSystemException(
-							" \n Для робітників не визначено код цеху !!! Потрібно зробити розрахунок акту !!! ");
+							" \n Р”Р»СЏ СЂРѕР±С–С‚РЅРёРєС–РІ РЅРµ РІРёР·РЅР°С‡РµРЅРѕ РєРѕРґ С†РµС…Сѓ !!! РџРѕС‚СЂС–Р±РЅРѕ Р·СЂРѕР±РёС‚Рё СЂРѕР·СЂР°С…СѓРЅРѕРє Р°РєС‚Сѓ !!! ");
 				}
 
 				BigDecimal zpByAct = new BigDecimal(0);
 				for (int i = 0; i < fkTrans2axTransList.totalCount; i++) {
 					zpByAct = zpByAct.add(fkTrans2axTransList.get(i).amountCur);
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(i).amountCur, // сумма в роводке
-									fkTrans2axTransList.get(i).balCeh, "6610", // балансовый счет
-									"00000000130", // балансовый КАУ
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(i).amountCur, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+									fkTrans2axTransList.get(i).balCeh, "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
 									new String((IIII.substring(0, 3).equals("232") || IIII.equals("9100")
-											|| IIII.equals("9200")) ? "000" : KodPodr), // Корр.цех ( код РЕСа или 000
-																						// если подразделения АУП )
-									IIII, // Корр.счет
-									// Корр.КАУ
+											|| IIII.equals("9200")) ? "000" : KodPodr), // РљРѕСЂСЂ.С†РµС… ( РєРѕРґ Р Р•РЎР° РёР»Рё 000
+																						// РµСЃР»Рё РїРѕРґСЂР°Р·РґРµР»РµРЅРёСЏ РђРЈРџ )
+									IIII, // РљРѕСЂСЂ.СЃС‡РµС‚
+									// РљРѕСЂСЂ.РљРђРЈ
 									new String((IIII.substring(0, 3).equals("232") || IIII.equals("9100")
 											|| IIII.equals("9200")) ? "1"
 													+ BBBBBBBBBBB_nachisl.substring(1, BBBBBBBBBBB_nachisl.length())
 													: BBBBBBBBBBB_nachisl),
 									act.numberGen, act.dateGen,
-									"TO_net Акт № " + act.numberGen + ", "
+									"TO_net РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript
-											+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+											+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
-				// I ПРОВОДКИ ПО ЗП красным, выбираем суммы зп с группировкой по шпз сотрудника
-				// и сех
+				// I РџР РћР’РћР”РљР РџРћ Р—Рџ РєСЂР°СЃРЅС‹Рј, РІС‹Р±РёСЂР°РµРј СЃСѓРјРјС‹ Р·Рї СЃ РіСЂСѓРїРїРёСЂРѕРІРєРѕР№ РїРѕ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР°
+				// Рё СЃРµС…
 				fkTrans2axTransList = this.getDataForProvsSalaryByActRed(act.code);
 				for (int ir = 0; ir < fkTrans2axTransList.totalCount; ir++) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(ir).amountCur.negate(), // сумма в роводке
-									fkTrans2axTransList.get(ir).balCeh, "6610", // балансовый счет
-									"00000000130", // балансовый КАУ
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(ir).amountCur.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+									fkTrans2axTransList.get(ir).balCeh, "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
 									new String((fkTrans2axTransList.get(ir).balans.substring(0, 4).substring(0, 3)
 											.equals("232")
 											|| fkTrans2axTransList.get(ir).balans.substring(0, 4).equals("9100")
 											|| fkTrans2axTransList.get(ir).balans.substring(0, 4).equals("9200"))
 													? "000"
-													: fkTrans2axTransList.get(ir).balCeh), // Корреспондентский цех
-									fkTrans2axTransList.get(ir).balans.substring(0, 4), // Корреспондентский счет шпз
-																						// сотрудника идет
-									// Корреспондентский КАУ
+													: fkTrans2axTransList.get(ir).balCeh), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									fkTrans2axTransList.get(ir).balans.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР·
+																						// СЃРѕС‚СЂСѓРґРЅРёРєР° РёРґРµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									new String((fkTrans2axTransList.get(ir).balans.substring(0, 4).substring(0, 3)
 											.equals("232")
 											|| fkTrans2axTransList.get(ir).balans.substring(0, 4).equals("9100")
@@ -6748,58 +6748,58 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 													: fkTrans2axTransList.get(ir).balans.substring(4, 15))
 
 									, act.numberGen, act.dateGen,
-									"TO_net Акт № " + act.numberGen + ", "
+									"TO_net РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript
-											+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+											+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
 
-				// II пачка проводок Єдиний внесок на загальнообов'язкове державне соціальне
-				// страхування - черным
-				fkTrans2axTransList = this.getDataForBlackProvsСhargesumByAct(act.code);
+				// II РїР°С‡РєР° РїСЂРѕРІРѕРґРѕРє Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ
+				// СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - С‡РµСЂРЅС‹Рј
+				fkTrans2axTransList = this.getDataForBlackProvsРЎhargesumByAct(act.code);
 				for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(c).amountCur, // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(c).amountCur, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									fkTrans2axTransList.get(c).balCeh,
 									fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"
-											: "6512", // балансовый счет
-									"00000000130", // балансовый КАУ
+											: "6512", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
 									new String((IIII.substring(0, 3).equals("232") || IIII.equals("9100")
-											|| IIII.equals("9200")) ? "000" : KodPodr), // Корреспондентский цех
-									IIII, // Корреспондентский счет
+											|| IIII.equals("9200")) ? "000" : KodPodr), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									IIII, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
 									new String((IIII.substring(0, 3).equals("232") || IIII.equals("9100")
 											|| IIII.equals("9200")) ? "2"
 													+ BBBBBBBBBBB_otchisl.substring(1, BBBBBBBBBBB_otchisl.length())
-													: BBBBBBBBBBB_otchisl), // Корреспондентский КАУ
+													: BBBBBBBBBBB_otchisl), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									act.numberGen, act.dateGen,
-									"TO_net Акт № " + act.numberGen + ", "
+									"TO_net РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript
-											+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+											+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
 
-				// Єдиний внесок на загальнообов'язкове державне соціальне страхування - красным
-				// , разбивка по цеху , ШПЗ , виду работника - инвалид / не инвалид
-				fkTrans2axTransList = this.getDataForRedProvsСhargesumByAct(act.code);
+				// Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - РєСЂР°СЃРЅС‹Рј
+				// , СЂР°Р·Р±РёРІРєР° РїРѕ С†РµС…Сѓ , РЁРџР— , РІРёРґСѓ СЂР°Р±РѕС‚РЅРёРєР° - РёРЅРІР°Р»РёРґ / РЅРµ РёРЅРІР°Р»РёРґ
+				fkTrans2axTransList = this.getDataForRedProvsРЎhargesumByAct(act.code);
 				for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(c).amountCur.negate(), // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(c).amountCur.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									fkTrans2axTransList.get(c).balCeh,
 									fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"
-											: "6512", // балансовый счет
-									"00000000130", // балансовый КАУ
+											: "6512", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
 									new String((fkTrans2axTransList.get(c).balans.substring(0, 4).substring(0, 3)
 											.equals("232")
 											|| fkTrans2axTransList.get(c).balans.substring(0, 4).equals("9100")
 											|| fkTrans2axTransList.get(c).balans.substring(0, 4).equals("9200")) ? "000"
-													: fkTrans2axTransList.get(c).balCeh), // Корреспондентский цех
-									fkTrans2axTransList.get(c).balans.substring(0, 4), // Корреспондентский счет шпз
-																						// сотрудника идет
-									// Корреспондентский КАУ
+													: fkTrans2axTransList.get(c).balCeh), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									fkTrans2axTransList.get(c).balans.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР·
+																						// СЃРѕС‚СЂСѓРґРЅРёРєР° РёРґРµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									new String((fkTrans2axTransList.get(c).balans.substring(0, 4).substring(0, 3)
 											.equals("232")
 											|| fkTrans2axTransList.get(c).balans.substring(0, 4).equals("9100")
@@ -6808,27 +6808,27 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 															fkTrans2axTransList.get(c).balans.substring(4, 15).length())
 													: fkTrans2axTransList.get(c).balans.substring(4, 15)),
 									act.numberGen, act.dateGen,
-									"TO_net Акт № " + act.numberGen + ", "
+									"TO_net РђРєС‚ в„– " + act.numberGen + ", "
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript
-											+ new String(isPricon == true ? "(присоединение)" : ""), // назначение
+											+ new String(isPricon == true ? "(РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
 
 			}
 			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ПРОВОДКИ УСЛУГИ PROV SERVICES
+			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! РџР РћР’РћР”РљР РЈРЎР›РЈР“Р PROV SERVICES
 			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			if (act.element.typeRef.code == ENElementType.SERVICES_OBJECT
 					|| (act.actTypeRef.code == ENPlanWorkState.DESIGNING && !isInvest)
 					|| (act.actTypeRef.code == ENPlanWorkState.WORK_IN_OUT && planWorkType == ENPlanWorkType.WORK_IN_OUT /*zzz777*/ ) ) /*
-					 * SUPP-87098 проводки если тип акта проектирование хоз способом то проводки
-					 * такие же как при реконстукции и сюда не заходим
+					 * SUPP-87098 РїСЂРѕРІРѕРґРєРё РµСЃР»Рё С‚РёРї Р°РєС‚Р° РїСЂРѕРµРєС‚РёСЂРѕРІР°РЅРёРµ С…РѕР· СЃРїРѕСЃРѕР±РѕРј С‚Рѕ РїСЂРѕРІРѕРґРєРё
+					 * С‚Р°РєРёРµ Р¶Рµ РєР°Рє РїСЂРё СЂРµРєРѕРЅСЃС‚СѓРєС†РёРё Рё СЃСЋРґР° РЅРµ Р·Р°С…РѕРґРёРј
 					 */
 			{
-				// проверим относится ли акт с "Договори на відшкодування з постачальниками е/е" 
+				// РїСЂРѕРІРµСЂРёРј РѕС‚РЅРѕСЃРёС‚СЃСЏ Р»Рё Р°РєС‚ СЃ "Р”РѕРіРѕРІРѕСЂРё РЅР° РІС–РґС€РєРѕРґСѓРІР°РЅРЅСЏ Р· РїРѕСЃС‚Р°С‡Р°Р»СЊРЅРёРєР°РјРё Рµ/Рµ" 
 				ENServicesObject servicesObjectSupplier = soLogic.getServicesObjectForSupplierByActCode(act.code, false);
 				if (servicesObjectSupplier == null 
 						|| servicesObjectSupplier.contractKindRef.code != ENServicesContractKind.SUPPLIER_CONTRACT) {
@@ -6836,7 +6836,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				}
 				
 				System.out.print("\n \n \n  start generate prov services by act  " + act.numberGen);
-				// !!!!!!!!!!!!!!!!! пока делаем по обычным услугам на сторону
+				// !!!!!!!!!!!!!!!!! РїРѕРєР° РґРµР»Р°РµРј РїРѕ РѕР±С‹С‡РЅС‹Рј СѓСЃР»СѓРіР°Рј РЅР° СЃС‚РѕСЂРѕРЅСѓ
 				if ( (soObj == null && servicesObjectSupplier == null) || 
 						(soObj != null && soObj.contractKindRef.code != ENServicesContractKind.SERVICES
 						&& soObj != null &&  soObj.contractKindRef.code != ENServicesContractKind.PROJECT
@@ -6847,7 +6847,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				}
 
 				String KodPodr = "000";
-				String infoDescript = "Послуги на сторону";
+				String infoDescript = "РџРѕСЃР»СѓРіРё РЅР° СЃС‚РѕСЂРѕРЅСѓ";
 
 				String X = fwTpDAO.getFinCodeByActCode(act.code, !isPricon);
 
@@ -6858,7 +6858,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 					pstKindList.add(ar);
 				}
 
-				// определить шаблон для проводок по услугам на сторону
+				// РѕРїСЂРµРґРµР»РёС‚СЊ С€Р°Р±Р»РѕРЅ РґР»СЏ РїСЂРѕРІРѕРґРѕРє РїРѕ СѓСЃР»СѓРіР°Рј РЅР° СЃС‚РѕСЂРѕРЅСѓ
 				ENAct2ProvFilter a2pFil = new ENAct2ProvFilter();
 				a2pFil.actRef.code = act.code;
 				ENAct2ProvShortList a2pList = a2pDAO.getScrollableFilteredList(a2pFil, 0, -1);
@@ -6868,7 +6868,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 					if (!/* Arrays.asList(pstKindArr) */pstKindList.contains(a2pList.get(0).actPostingKindRefCode)) {
 						throw new EnergyproSystemException(
-								" \n Не вказаний шаблон проводок для акту виконаних робіт!!! (Акт/Проводки по акту) ");
+								" \n РќРµ РІРєР°Р·Р°РЅРёР№ С€Р°Р±Р»РѕРЅ РїСЂРѕРІРѕРґРѕРє РґР»СЏ Р°РєС‚Сѓ РІРёРєРѕРЅР°РЅРёС… СЂРѕР±С–С‚!!! (РђРєС‚/РџСЂРѕРІРѕРґРєРё РїРѕ Р°РєС‚Сѓ) ");
 					}
 
 					if (a2pList.get(0).isIncomeAct == 1) {
@@ -6877,47 +6877,47 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 						isIncomeAct = false;
 					} else
 						throw new EnergyproSystemException(
-								" \n Не вказана ознака наявності прибуткового акту для акту виконаних робіт !!! (Акт/Проводки по акту) ");
+								" \n РќРµ РІРєР°Р·Р°РЅР° РѕР·РЅР°РєР° РЅР°СЏРІРЅРѕСЃС‚С– РїСЂРёР±СѓС‚РєРѕРІРѕРіРѕ Р°РєС‚Сѓ РґР»СЏ Р°РєС‚Сѓ РІРёРєРѕРЅР°РЅРёС… СЂРѕР±С–С‚ !!! (РђРєС‚/РџСЂРѕРІРѕРґРєРё РїРѕ Р°РєС‚Сѓ) ");
 
 					infoDescript = a2pList.get(0).actPostingKindRefName;
 
 				} else {
 					throw new EnergyproSystemException(
-							" \n Не вказаний шаблон для проводок, або ознака наявності прибуткового акту для акту виконаних робіт!!! (Акт/Проводки по акту) ");
+							" \n РќРµ РІРєР°Р·Р°РЅРёР№ С€Р°Р±Р»РѕРЅ РґР»СЏ РїСЂРѕРІРѕРґРѕРє, Р°Р±Рѕ РѕР·РЅР°РєР° РЅР°СЏРІРЅРѕСЃС‚С– РїСЂРёР±СѓС‚РєРѕРІРѕРіРѕ Р°РєС‚Сѓ РґР»СЏ Р°РєС‚Сѓ РІРёРєРѕРЅР°РЅРёС… СЂРѕР±С–С‚!!! (РђРєС‚/РџСЂРѕРІРѕРґРєРё РїРѕ Р°РєС‚Сѓ) ");
 				}
 
-				// Вид розрахунку калькуляції
+				// Р’РёРґ СЂРѕР·СЂР°С…СѓРЅРєСѓ РєР°Р»СЊРєСѓР»СЏС†С–С—
 				int tkCalcKindByActCode = techCardLogic.getTKCalcKindByActCode(act.code);
 				if (tkCalcKindByActCode == Integer.MIN_VALUE) {
 
 					if (!isPricon) {
-						throw new EnergyproSystemException(" \n Не вказаний Вид розрахунку калькуляції !!! ");
+						throw new EnergyproSystemException(" \n РќРµ РІРєР°Р·Р°РЅРёР№ Р’РёРґ СЂРѕР·СЂР°С…СѓРЅРєСѓ РєР°Р»СЊРєСѓР»СЏС†С–С— !!! ");
 					}
 				}
 
-				///// зп из акта если не присоединение и метод расчета без зп водителей без
-				///// затрат на доставку и зп водителей
+				///// Р·Рї РёР· Р°РєС‚Р° РµСЃР»Рё РЅРµ РїСЂРёСЃРѕРµРґРёРЅРµРЅРёРµ Рё РјРµС‚РѕРґ СЂР°СЃС‡РµС‚Р° Р±РµР· Р·Рї РІРѕРґРёС‚РµР»РµР№ Р±РµР·
+				///// Р·Р°С‚СЂР°С‚ РЅР° РґРѕСЃС‚Р°РІРєСѓ Рё Р·Рї РІРѕРґРёС‚РµР»РµР№
 				boolean isWithDelivery = false;
 				if (isPricon || (tkCalcKindByActCode == TKCalcKind.OLD || tkCalcKindByActCode == TKCalcKind.NEW2)) {
 					isWithDelivery = true;
 				}
 
-				// возникают случаи что не проставлен цех в enact2humen, потому если по акте
-				// есть незаполненное что то то обновим
+				// РІРѕР·РЅРёРєР°СЋС‚ СЃР»СѓС‡Р°Рё С‡С‚Рѕ РЅРµ РїСЂРѕСЃС‚Р°РІР»РµРЅ С†РµС… РІ enact2humen, РїРѕС‚РѕРјСѓ РµСЃР»Рё РїРѕ Р°РєС‚Рµ
+				// РµСЃС‚СЊ РЅРµР·Р°РїРѕР»РЅРµРЅРЅРѕРµ С‡С‚Рѕ С‚Рѕ С‚Рѕ РѕР±РЅРѕРІРёРј
 				ENAct2HumenFilter a2hFilt = new ENAct2HumenFilter();
 				a2hFilt.actRef.code = act.code;
 				ENAct2HumenShortList a2hll = a2hDAO.getScrollableFilteredList(a2hFilt, 0, -1);
 				for (int ll = 0; ll < a2hll.totalCount; ll++) {
 					if (a2hll.get(ll).cehId.equalsIgnoreCase("") || a2hll.get(ll).cehId == null) {
-						this.recalcENAct2HumenCehIdbyAct(act.code); // если данных нет перессчитаем и вытянем данные
-																	// заново
+						this.recalcENAct2HumenCehIdbyAct(act.code); // РµСЃР»Рё РґР°РЅРЅС‹С… РЅРµС‚ РїРµСЂРµСЃСЃС‡РёС‚Р°РµРј Рё РІС‹С‚СЏРЅРµРј РґР°РЅРЅС‹Рµ
+																	// Р·Р°РЅРѕРІРѕ
 						this.recalcenplanworkitem2humenbyAct(act.code);
 						break;
 					}
 				}
 
 				FKTrans2AXTransItemShortList fkTrans2axTransList = null;
-				// ************** I ПРОВОДКИ ПО ЗП КРАСНЫМ ****/
+				// ************** I РџР РћР’РћР”РљР РџРћ Р—Рџ РљР РђРЎРќР«Рњ ****/
 				if (act.element.typeRef.code != ENElementType.SERVICES_OBJECT  
 						 && ( servicesObjectSupplier== null  )  ) {
 					fkTrans2axTransList = this.getDataForProvsSalaryByActRed(act.code);
@@ -6928,42 +6928,42 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 				if (fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("")) {
 					throw new EnergyproSystemException(
-							" \n Для робітників не визначено код цеху !!! Потрібно зробити розрахунок акту !!! ");
+							" \n Р”Р»СЏ СЂРѕР±С–С‚РЅРёРєС–РІ РЅРµ РІРёР·РЅР°С‡РµРЅРѕ РєРѕРґ С†РµС…Сѓ !!! РџРѕС‚СЂС–Р±РЅРѕ Р·СЂРѕР±РёС‚Рё СЂРѕР·СЂР°С…СѓРЅРѕРє Р°РєС‚Сѓ !!! ");
 				}
 
 				BigDecimal zpByAct = new BigDecimal(0);
 				for (int i = 0; i < fkTrans2axTransList.totalCount; i++) {
 					zpByAct = zpByAct.add(fkTrans2axTransList.get(i).amountCur);
 
-					// ЗП сторно для всех шаблонов одинакова
+					// Р—Рџ СЃС‚РѕСЂРЅРѕ РґР»СЏ РІСЃРµС… С€Р°Р±Р»РѕРЅРѕРІ РѕРґРёРЅР°РєРѕРІР°
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(i).amountCur.negate(), // сумма в проводке красным
-									/* fkTrans2axTransList.get(i).balCeh SUPP-98754 цеха 000 */ "000", "6610", // балансовый
-																												// счет
-									"00000000130", // балансовый КАУ
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(i).amountCur.negate(), // СЃСѓРјРјР° РІ РїСЂРѕРІРѕРґРєРµ РєСЂР°СЃРЅС‹Рј
+									/* fkTrans2axTransList.get(i).balCeh SUPP-98754 С†РµС…Р° 000 */ "000", "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№
+																												// СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
 									fkTrans2axTransList.get(i).balCeh,
-									fkTrans2axTransList.get(i).balans.substring(0, 4), // Корр счет по шпз сотрудника
+									fkTrans2axTransList.get(i).balans.substring(0, 4), // РљРѕСЂСЂ СЃС‡РµС‚ РїРѕ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР°
 
 									new String((fkTrans2axTransList.get(i).balans.substring(0, 4).substring(0, 3)
 											.equals("232")
 											|| fkTrans2axTransList.get(i).balans.substring(0, 4).equals("9100")
 											|| fkTrans2axTransList.get(i).balans.substring(0, 4).equals("9200")) ? "1"
 													+ fkTrans2axTransList.get(i).balans.substring(5, 15)
-													: fkTrans2axTransList.get(i).balans.substring(4, 15)), // Корр.КАУ
-																											// по шпз
-																											// сотрудника
+													: fkTrans2axTransList.get(i).balans.substring(4, 15)), // РљРѕСЂСЂ.РљРђРЈ
+																											// РїРѕ С€РїР·
+																											// СЃРѕС‚СЂСѓРґРЅРёРєР°
 
-									// SUPP-98754 fkTrans2axTransList.get(i).balans.substring(4, 15) , // Корр.КАУ
-									// по шпз сотрудника
+									// SUPP-98754 fkTrans2axTransList.get(i).balans.substring(4, 15) , // РљРѕСЂСЂ.РљРђРЈ
+									// РїРѕ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР°
 									act.numberGen, act.dateGen, "servise" + act.numberGen + ", "
-											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript, // назначение
+											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript, // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 
 				}
 
-				// START************** ІІ ПРОВОДКИ ПО ЗП ЧЕРНЫМ ****/
+				// START************** Р†Р† РџР РћР’РћР”РљР РџРћ Р—Рџ Р§Р•Р РќР«Рњ ****/
 				fkTrans2axTransList = null;
 				if (act.element.typeRef.code != ENElementType.SERVICES_OBJECT 
 						 && ( servicesObjectSupplier== null  ) ) {
@@ -6976,7 +6976,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				if (fkTrans2axTransList == null || fkTrans2axTransList.list == null || fkTrans2axTransList.list.isEmpty()
 						|| fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("")) {
 					throw new EnergyproSystemException(
-							" \n Для робітників не визначено код цеху !!! Потрібно зробити розрахунок акту !!! ");
+							" \n Р”Р»СЏ СЂРѕР±С–С‚РЅРёРєС–РІ РЅРµ РІРёР·РЅР°С‡РµРЅРѕ РєРѕРґ С†РµС…Сѓ !!! РџРѕС‚СЂС–Р±РЅРѕ Р·СЂРѕР±РёС‚Рё СЂРѕР·СЂР°С…СѓРЅРѕРє Р°РєС‚Сѓ !!! ");
 				}
 				
 				String correspondingAccount = this.getCorrespondingAccountForServices(a2pList.get(0).actPostingKindRefCode, isIncomeAct);
@@ -6984,14 +6984,14 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 						, X, connectionKind_KAU, finDocCode, isIncomeAct);
 				
 				
-				// Исключение
-				// При реалізації  бухгалтерських проведень даного типу договору  необхідно зробити виключення для організації з кодом ЄДРПОУ 42117825 ТОВ «ХОЕК».
-				// При проведенні актів, що виконуються по договорам з даною організацією завжди повинна проставлятися літера Ъ, незважаючи на калькуляцію та  значенню «вид работ из Услуг» програмного комплексу «TechCard»
+				// РСЃРєР»СЋС‡РµРЅРёРµ
+				// РџСЂРё СЂРµР°Р»С–Р·Р°С†С–С—  Р±СѓС…РіР°Р»С‚РµСЂСЃСЊРєРёС… РїСЂРѕРІРµРґРµРЅСЊ РґР°РЅРѕРіРѕ С‚РёРїСѓ РґРѕРіРѕРІРѕСЂСѓ  РЅРµРѕР±С…С–РґРЅРѕ Р·СЂРѕР±РёС‚Рё РІРёРєР»СЋС‡РµРЅРЅСЏ РґР»СЏ РѕСЂРіР°РЅС–Р·Р°С†С–С— Р· РєРѕРґРѕРј Р„Р”Р РџРћРЈ 42117825 РўРћР’ В«РҐРћР•РљВ».
+				// РџСЂРё РїСЂРѕРІРµРґРµРЅРЅС– Р°РєС‚С–РІ, С‰Рѕ РІРёРєРѕРЅСѓСЋС‚СЊСЃСЏ РїРѕ РґРѕРіРѕРІРѕСЂР°Рј Р· РґР°РЅРѕСЋ РѕСЂРіР°РЅС–Р·Р°С†С–С”СЋ Р·Р°РІР¶РґРё РїРѕРІРёРЅРЅР° РїСЂРѕСЃС‚Р°РІР»СЏС‚РёСЃСЏ Р»С–С‚РµСЂР° РЄ, РЅРµР·РІР°Р¶Р°СЋС‡Рё РЅР° РєР°Р»СЊРєСѓР»СЏС†С–СЋ С‚Р°  Р·РЅР°С‡РµРЅРЅСЋ В«РІРёРґ СЂР°Р±РѕС‚ РёР· РЈСЃР»СѓРіВ» РїСЂРѕРіСЂР°РјРЅРѕРіРѕ РєРѕРјРїР»РµРєСЃСѓ В«TechCardВ»
               	if (servicesObjectSupplier != null) {
 					if (servicesObjectSupplier.contragentOkpo.equals("42117825")) {
-						correspondingCAA = new StringBuilder(correspondingCAA).replace(0, 1, "Ь").toString();
+						correspondingCAA = new StringBuilder(correspondingCAA).replace(0, 1, "Р¬").toString();
 						 if (X.length()!= 0 ) {
-							 X = new StringBuilder(X).replace(0, 1, "Ь").toString();	 
+							 X = new StringBuilder(X).replace(0, 1, "Р¬").toString();	 
 						 }
 						
 					} 
@@ -7016,7 +7016,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript
 									, userName
 								);
-					// проводка -- Закриття  зарплати по акту 
+					// РїСЂРѕРІРѕРґРєР° -- Р—Р°РєСЂРёС‚С‚СЏ  Р·Р°СЂРїР»Р°С‚Рё РїРѕ Р°РєС‚Сѓ 
 					if( (a2pList.get(0).actPostingKindRefCode == ENActPostingKind.SERVICES_CONTRACT && isIncomeAct) 
 							 || (a2pList.get(0).actPostingKindRefCode == ENActPostingKind.SERVICES_SUPPLIER_CONTRACT ) ) {
 						V_Prov_Buffer = (V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
@@ -7035,10 +7035,10 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 									);
 						}
 					}
-				// END************** ІІ ПРОВОДКИ ПО ЗП ЧЕРНЫМ
+				// END************** Р†Р† РџР РћР’РћР”РљР РџРћ Р—Рџ Р§Р•Р РќР«Рњ
 				// *******************************************************************************************************/
 
-				// START************** ІІI ПРОВОДКИ ПО ЕСВ КРАСНЫМ ****/
+				// START************** Р†Р†I РџР РћР’РћР”РљР РџРћ Р•РЎР’ РљР РђРЎРќР«Рњ ****/
 
 				fkTrans2axTransList = null;
 				if (act.element.typeRef.code != ENElementType.SERVICES_OBJECT && servicesObjectSupplier == null 
@@ -7057,19 +7057,19 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				if (fkTrans2axTransList == null || fkTrans2axTransList.list == null || fkTrans2axTransList.list.isEmpty()
 						|| fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("")) {
 					throw new EnergyproSystemException(
-							" \n Для робітників не визначено код цеху !!! Потрібно зробити розрахунок акту !!! ");
+							" \n Р”Р»СЏ СЂРѕР±С–С‚РЅРёРєС–РІ РЅРµ РІРёР·РЅР°С‡РµРЅРѕ РєРѕРґ С†РµС…Сѓ !!! РџРѕС‚СЂС–Р±РЅРѕ Р·СЂРѕР±РёС‚Рё СЂРѕР·СЂР°С…СѓРЅРѕРє Р°РєС‚Сѓ !!! ");
 				}
 
 				for (int i = 0; i < fkTrans2axTransList.totalCount; i++) {
 
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(i).amountCur.negate(), // сумма в роводке красным
-									/* fkTrans2axTransList.get(i).balCeh SUPP-98754 цеха 000 */ "000", "6510", // балансовый
-																												// счет
-									"00000000130", // балансовый КАУ
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(i).amountCur.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ РєСЂР°СЃРЅС‹Рј
+									/* fkTrans2axTransList.get(i).balCeh SUPP-98754 С†РµС…Р° 000 */ "000", "6510", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№
+																												// СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
 									fkTrans2axTransList.get(i).balCeh,
-									fkTrans2axTransList.get(i).balans.substring(0, 4), // Корр счет по шпз сотрудника
+									fkTrans2axTransList.get(i).balans.substring(0, 4), // РљРѕСЂСЂ СЃС‡РµС‚ РїРѕ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР°
 									new String((fkTrans2axTransList.get(i).balans.substring(0, 4).substring(0, 3)
 											.equals("232")
 											|| fkTrans2axTransList.get(i).balans.substring(0, 4).equals("9100")
@@ -7077,17 +7077,17 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 													+ fkTrans2axTransList.get(i).balans.substring(4, 15).substring(1,
 															fkTrans2axTransList.get(i).balans.substring(4, 15).length())
 													: fkTrans2axTransList.get(i).balans.substring(4, 15)),
-									// fkTrans2axTransList.get(i).balans.substring(4, 15) , // Корр.КАУ по шпз
-									// сотрудника
+									// fkTrans2axTransList.get(i).balans.substring(4, 15) , // РљРѕСЂСЂ.РљРђРЈ РїРѕ С€РїР·
+									// СЃРѕС‚СЂСѓРґРЅРёРєР°
 									act.numberGen, act.dateGen, "servise" + act.numberGen + ", "
-											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript, // назначение
+											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript, // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 
 				}
-				// END************** ІІI ПРОВОДКИ ПО ЕСВ КРАСНЫМ ****/
+				// END************** Р†Р†I РџР РћР’РћР”РљР РџРћ Р•РЎР’ РљР РђРЎРќР«Рњ ****/
 
-				// START************** ІV ПРОВОДКИ ПО ЕСВ ЧЕРНЫМ ****/
+				// START************** Р†V РџР РћР’РћР”РљР РџРћ Р•РЎР’ Р§Р•Р РќР«Рњ ****/
 				fkTrans2axTransList = null;
 				if (act.element.typeRef.code != ENElementType.SERVICES_OBJECT && servicesObjectSupplier == null  ) {
 					fkTrans2axTransList = this.getDataForProvsESVByAct(act.code);
@@ -7104,7 +7104,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				if (fkTrans2axTransList == null || fkTrans2axTransList.list == null || fkTrans2axTransList.list.isEmpty()
 						|| fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("")) {
 					throw new EnergyproSystemException(
-							" \n Для робітників не визначено код цеху !!! Потрібно зробити розрахунок акту !!! ");
+							" \n Р”Р»СЏ СЂРѕР±С–С‚РЅРёРєС–РІ РЅРµ РІРёР·РЅР°С‡РµРЅРѕ РєРѕРґ С†РµС…Сѓ !!! РџРѕС‚СЂС–Р±РЅРѕ Р·СЂРѕР±РёС‚Рё СЂРѕР·СЂР°С…СѓРЅРѕРє Р°РєС‚Сѓ !!! ");
 				}
 				
 				for(FKTrans2AXTransItemShort fkTrans2axTrans : fkTrans2axTransList.list) {
@@ -7128,7 +7128,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript
 									, userName
 								);
-					// проводка -- Закриття  ЄСВ  по акту  
+					// РїСЂРѕРІРѕРґРєР° -- Р—Р°РєСЂРёС‚С‚СЏ  Р„РЎР’  РїРѕ Р°РєС‚Сѓ  
 					if( (a2pList.get(0).actPostingKindRefCode == ENActPostingKind.SERVICES_CONTRACT && isIncomeAct ) 
 							|| a2pList.get(0).actPostingKindRefCode == ENActPostingKind.SERVICES_SUPPLIER_CONTRACT ) {
 						V_Prov_Buffer = (V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
@@ -7148,10 +7148,10 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 									);
 						}
 					}
-				// END************** ІV ПРОВОДКИ ПО ЕСВ ЧЕРНЫМ ****/
+				// END************** Р†V РџР РћР’РћР”РљР РџРћ Р•РЎР’ Р§Р•Р РќР«Рњ ****/
 
-				// START************** V ПРОВОДКИ ПО ЗП в общепроизводственных и ЕСВ в
-				// общепроизводственных ****/
+				// START************** V РџР РћР’РћР”РљР РџРћ Р—Рџ РІ РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… Рё Р•РЎР’ РІ
+				// РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… ****/
 				// if (isPricon == true || tkCalcKindByActCode == TKCalcKind.OLD
 				// ){isWithDelivery =true;}
 
@@ -7165,7 +7165,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				}
 
 				if (fkTrans2axTransList == null || fkTrans2axTransList.list == null || fkTrans2axTransList.list.isEmpty()) {
-					throw new SystemException("\n\nПомилка отримання даних по зарплаті! Перевірте коректність складання акту!");
+					throw new SystemException("\n\nРџРѕРјРёР»РєР° РѕС‚СЂРёРјР°РЅРЅСЏ РґР°РЅРёС… РїРѕ Р·Р°СЂРїР»Р°С‚С–! РџРµСЂРµРІС–СЂС‚Рµ РєРѕСЂРµРєС‚РЅС–СЃС‚СЊ СЃРєР»Р°РґР°РЅРЅСЏ Р°РєС‚Сѓ!");
 				}
 				BigDecimal sumTotalExpenc = fkTrans2axTransList.get(0).amountCur;
 
@@ -7174,7 +7174,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				BigDecimal sumESVInTotalExpenc = sumTotalExpenc.subtract(sumZPInTotalExpenc).setScale(2,
 						BigDecimal.ROUND_HALF_UP);
 
-				// если безоплатная услуга по параметризации то общепроизводственные не считаем
+				// РµСЃР»Рё Р±РµР·РѕРїР»Р°С‚РЅР°СЏ СѓСЃР»СѓРіР° РїРѕ РїР°СЂР°РјРµС‚СЂРёР·Р°С†РёРё С‚Рѕ РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹Рµ РЅРµ СЃС‡РёС‚Р°РµРј
 				boolean isMakeProvsTotalExpenc = true;
 				if (soObj != null) {
 					isMakeProvsTotalExpenc = !(soLogic.checkParameterizationCounterServices(soObj.element.code)
@@ -7185,30 +7185,30 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 					
 					for(FKTrans2AXTransItemShort fkTrans2axTrans : fkTrans2axTransList.list) {
 						
-						// сторно ЗП в общепроизводственных //// для всех проводок одинаковое
+						// СЃС‚РѕСЂРЅРѕ Р—Рџ РІ РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… //// РґР»СЏ РІСЃРµС… РїСЂРѕРІРѕРґРѕРє РѕРґРёРЅР°РєРѕРІРѕРµ
 						V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-										sumZPInTotalExpenc.negate(), // сумма в роводке
-										/* KodPodrSUPP-98754 цеха 000 */ "000", "6610", // балансовый счет
-										"10000000130", // балансовый КАУ
-										KodPodr, // Корр.цех ( код РЕСа или 000 если подразделения АУП )
-										"9100", // Корр счет
-										"10110000001", // Корр.КАУ
+								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+										sumZPInTotalExpenc.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+										/* KodPodrSUPP-98754 С†РµС…Р° 000 */ "000", "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+										"10000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+										KodPodr, // РљРѕСЂСЂ.С†РµС… ( РєРѕРґ Р Р•РЎР° РёР»Рё 000 РµСЃР»Рё РїРѕРґСЂР°Р·РґРµР»РµРЅРёСЏ РђРЈРџ )
+										"9100", // РљРѕСЂСЂ СЃС‡РµС‚
+										"10110000001", // РљРѕСЂСЂ.РљРђРЈ
 										act.numberGen, act.dateGen, "servise" + act.numberGen + ", "
-												+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript, // назначение
+												+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript, // РЅР°Р·РЅР°С‡РµРЅРёРµ
 										userName
 								);
-						// сторно ЕСВ в общепроизводственных //// для всех проводок одинаковое
+						// СЃС‚РѕСЂРЅРѕ Р•РЎР’ РІ РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… //// РґР»СЏ РІСЃРµС… РїСЂРѕРІРѕРґРѕРє РѕРґРёРЅР°РєРѕРІРѕРµ
 						V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-										sumESVInTotalExpenc.negate(), // сумма в роводке
-										/* KodPodrSUPP-98754 цеха 000 */ "000", "6510", // балансовый счет
-										"10000000130", // балансовый КАУ
-										KodPodr, // Корр.цех ( код РЕСа или 000 если подразделения АУП )
-										"9100", // Корр счет
-										"20130000001", // Корр.КАУ
+								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+										sumESVInTotalExpenc.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+										/* KodPodrSUPP-98754 С†РµС…Р° 000 */ "000", "6510", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+										"10000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+										KodPodr, // РљРѕСЂСЂ.С†РµС… ( РєРѕРґ Р Р•РЎР° РёР»Рё 000 РµСЃР»Рё РїРѕРґСЂР°Р·РґРµР»РµРЅРёСЏ РђРЈРџ )
+										"9100", // РљРѕСЂСЂ СЃС‡РµС‚
+										"20130000001", // РљРѕСЂСЂ.РљРђРЈ
 										act.numberGen, act.dateGen, "servise" + act.numberGen + ", "
-												+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript, // назначение
+												+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + infoDescript, // РЅР°Р·РЅР°С‡РµРЅРёРµ
 										userName
 								);
 						
@@ -7269,33 +7269,33 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 									);
 							}
 						}
-					// END************** V ПРОВОДКИ ПО ЗП в общепроизводственных и ЕСВ в
-					// общепроизводственных ****/
+					// END************** V РџР РћР’РћР”РљР РџРћ Р—Рџ РІ РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… Рё Р•РЎР’ РІ
+					// РѕР±С‰РµРїСЂРѕРёР·РІРѕРґСЃС‚РІРµРЅРЅС‹С… ****/
 				}
 
-				//// если не лицензионные работы то формируем проводки по амортизации
+				//// РµСЃР»Рё РЅРµ Р»РёС†РµРЅР·РёРѕРЅРЅС‹Рµ СЂР°Р±РѕС‚С‹ С‚Рѕ С„РѕСЂРјРёСЂСѓРµРј РїСЂРѕРІРѕРґРєРё РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё
 				if (!isLicensedWork) {
 
 					ENAct2TransportFilter a2tFilter = new ENAct2TransportFilter();
 					a2tFilter.actRef.code = act.code;
 					ENAct2TransportShortList a2tList = a2tDAO.getScrollableFilteredList(a2tFilter, 0, -1);
 
-					// строки для проводок по амортизации красным
+					// СЃС‚СЂРѕРєРё РґР»СЏ РїСЂРѕРІРѕРґРѕРє РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё РєСЂР°СЃРЅС‹Рј
 					HashMap<DataForTransAmortizacRed, DataForTransAmortizacRed> transDataAmortizacRed = new HashMap<>();
-					// строки для проводок по амортизации черным
+					// СЃС‚СЂРѕРєРё РґР»СЏ РїСЂРѕРІРѕРґРѕРє РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё С‡РµСЂРЅС‹Рј
 					HashMap<DataForTransAmortizacBlack, DataForTransAmortizacBlack> transDataAmortizacBlack = new HashMap<>();
 
 					for (int tr = 0; tr < a2tList.totalCount; tr++) {
 
 						String cehtransport = fpLogic.getKodPodr(a2tList.get(tr).invNumber);
-						// вытянем код цеха по штатному mdax
-						// 05.08.2021 Согласовали с ЦБ, что проводки передаются с тремя нулями.
+						// РІС‹С‚СЏРЅРµРј РєРѕРґ С†РµС…Р° РїРѕ С€С‚Р°С‚РЅРѕРјСѓ mdax
+						// 05.08.2021 РЎРѕРіР»Р°СЃРѕРІР°Р»Рё СЃ Р¦Р‘, С‡С‚Рѕ РїСЂРѕРІРѕРґРєРё РїРµСЂРµРґР°СЋС‚СЃСЏ СЃ С‚СЂРµРјСЏ РЅСѓР»СЏРјРё.
 						cehtransport = "000";
 						String vidOStransp = fpLogic.getG45(a2tList.get(tr).invNumber);
 						String kodZatrTransp = fpLogic.getNNNN(a2tList.get(tr).invNumber);
 
-						// !!!!!RED набрать строки по транспорту . уник значения по цеху транспорта ,
-						// коду затрат , вид ОС - для проводок красным
+						// !!!!!RED РЅР°Р±СЂР°С‚СЊ СЃС‚СЂРѕРєРё РїРѕ С‚СЂР°РЅСЃРїРѕСЂС‚Сѓ . СѓРЅРёРє Р·РЅР°С‡РµРЅРёСЏ РїРѕ С†РµС…Сѓ С‚СЂР°РЅСЃРїРѕСЂС‚Р° ,
+						// РєРѕРґСѓ Р·Р°С‚СЂР°С‚ , РІРёРґ РћРЎ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє РєСЂР°СЃРЅС‹Рј
 						DataForTransAmortizacRed rKey;
 						rKey = new DataForTransAmortizacRed(cehtransport, kodZatrTransp, vidOStransp, "1315",
 								a2tList.get(tr).paysWork);
@@ -7304,13 +7304,13 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 							DataForTransAmortizacRed dValue = (DataForTransAmortizacRed) transDataAmortizacRed
 									.get(rKey);
 							rKey.summa = rKey.summa.add(dValue.summa);
-							// удалим из списка запись что есть и добавим с увелич суммой
+							// СѓРґР°Р»РёРј РёР· СЃРїРёСЃРєР° Р·Р°РїРёСЃСЊ С‡С‚Рѕ РµСЃС‚СЊ Рё РґРѕР±Р°РІРёРј СЃ СѓРІРµР»РёС‡ СЃСѓРјРјРѕР№
 							transDataAmortizacRed.remove(rKey);
 						}
 						transDataAmortizacRed.put(rKey, rKey);
 
-						// !!!!!BLACK набрать строки по транспорту . уник значения по цеху транспорта ,
-						// вид ОС - для проводок черным
+						// !!!!!BLACK РЅР°Р±СЂР°С‚СЊ СЃС‚СЂРѕРєРё РїРѕ С‚СЂР°РЅСЃРїРѕСЂС‚Сѓ . СѓРЅРёРє Р·РЅР°С‡РµРЅРёСЏ РїРѕ С†РµС…Сѓ С‚СЂР°РЅСЃРїРѕСЂС‚Р° ,
+						// РІРёРґ РћРЎ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє С‡РµСЂРЅС‹Рј
 						DataForTransAmortizacBlack bKey;
 						bKey = new DataForTransAmortizacBlack(cehtransport, vidOStransp, "1315",
 								a2tList.get(tr).paysWork);
@@ -7319,14 +7319,14 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 							DataForTransAmortizacBlack bValue = (DataForTransAmortizacBlack) transDataAmortizacBlack
 									.get(bKey);
 							bKey.summa = bKey.summa.add(bValue.summa);
-							// удалим из списка запись что есть и добавим с увелич суммой
+							// СѓРґР°Р»РёРј РёР· СЃРїРёСЃРєР° Р·Р°РїРёСЃСЊ С‡С‚Рѕ РµСЃС‚СЊ Рё РґРѕР±Р°РІРёРј СЃ СѓРІРµР»РёС‡ СЃСѓРјРјРѕР№
 							transDataAmortizacBlack.remove(bKey);
 						}
 						transDataAmortizacBlack.put(bKey, bKey);
 
 					}
 
-					// формирование шаблонов по амортизации красным
+					// С„РѕСЂРјРёСЂРѕРІР°РЅРёРµ С€Р°Р±Р»РѕРЅРѕРІ РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё РєСЂР°СЃРЅС‹Рј
 
 					DataForTransAmortizacRed rrKey = null;
 					Iterator<DataForTransAmortizacRed> rrIterator = transDataAmortizacRed.keySet().iterator();
@@ -7337,20 +7337,20 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 								+ " // " + rrValue.vidOS + " // " + rrValue.balSch + " // " + rrValue.summa + " // ");
 						if (rrValue.summa.doubleValue() > 0) {
 							V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-									+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-											rrValue.summa.negate(), // сумма в проводке
-											rrValue.ceh, rrValue.balSch, // балансовый счет 131 + ( 3 - й знак счета по
-																			// карточке ОС- транспорта )
-											rrValue.vidOS + "000000000", // балансовый КАУ
-											KodPodr, // Корреспондентский цех
-											rrValue.kodZatrat.substring(0, 4), // Корреспондентский счет шпз
-																				// транспортного идет
-											rrValue.kodZatrat.substring(4, 15), // Корреспондентский КАУ остаток от ШПЗ
-																				// транспортного
+									+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+											rrValue.summa.negate(), // СЃСѓРјРјР° РІ РїСЂРѕРІРѕРґРєРµ
+											rrValue.ceh, rrValue.balSch, // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚ 131 + ( 3 - Р№ Р·РЅР°Рє СЃС‡РµС‚Р° РїРѕ
+																			// РєР°СЂС‚РѕС‡РєРµ РћРЎ- С‚СЂР°РЅСЃРїРѕСЂС‚Р° )
+											rrValue.vidOS + "000000000", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+											KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+											rrValue.kodZatrat.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР·
+																				// С‚СЂР°РЅСЃРїРѕСЂС‚РЅРѕРіРѕ РёРґРµС‚
+											rrValue.kodZatrat.substring(4, 15), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ РѕСЃС‚Р°С‚РѕРє РѕС‚ РЁРџР—
+																				// С‚СЂР°РЅСЃРїРѕСЂС‚РЅРѕРіРѕ
 											act.numberGen, act.dateGen,
 											"servise" + act.numberGen + ", "
 													+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-													+ infoDescript, // назначение
+													+ infoDescript, // РЅР°Р·РЅР°С‡РµРЅРёРµ
 											userName
 									);
 
@@ -7361,7 +7361,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 //		           if ( a2pList.get(0).actPostingKindRefCode == ENActPostingKind.SERVICES_CONTRACT_PROJECT ||
 //     		   (a2pList.get(0).actPostingKindRefCode ==  ENActPostingKind.SERVICES_CONTRACT &&  isIncomeAct )   )
 
-					// формирование шаблонов по амортизации черным
+					// С„РѕСЂРјРёСЂРѕРІР°РЅРёРµ С€Р°Р±Р»РѕРЅРѕРІ РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё С‡РµСЂРЅС‹Рј
 					DataForTransAmortizacBlack bbKey = null;
 					Iterator<DataForTransAmortizacBlack> bbIterator = transDataAmortizacBlack.keySet().iterator();
 					while (bbIterator.hasNext()) {
@@ -7379,7 +7379,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 											, bbValue.vidOS + "000000000"
 											, KodPodr
 											, correspondingAccount
-											// Корреспондентский КАУ
+											// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 											, (a2pList.get(0).actPostingKindRefCode < ENActPostingKind.SERVICES_CONTRACT_INSTALL_COUNTER 
 												? new StringBuilder((a2pList.get(0).actPostingKindRefCode 
 														== ENActPostingKind.SERVICES_CONTRACT && isIncomeAct) 
@@ -7392,32 +7392,32 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 											, act.numberGen, act.dateGen
 											, "servise" + act.numberGen + ", "
 													+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-													+ infoDescript // назначение
+													+ infoDescript // РЅР°Р·РЅР°С‡РµРЅРёРµ
 											, userName
 									);
 
-							// доп проводка по амортизации если есть доходный акт
+							// РґРѕРї РїСЂРѕРІРѕРґРєР° РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё РµСЃР»Рё РµСЃС‚СЊ РґРѕС…РѕРґРЅС‹Р№ Р°РєС‚
 							if ((a2pList.get(0).actPostingKindRefCode == ENActPostingKind.SERVICES_CONTRACT
 									&& isIncomeAct)  
 									||   a2pList.get(0).actPostingKindRefCode == ENActPostingKind.SERVICES_SUPPLIER_CONTRACT ) {
 								V_Prov_Buffer = new String(
 										V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-										+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-												bbValue.summa, // сумма в роводке
-												bbValue.ceh, "9033", // балансовый счет 131 + ( 3 - й знак счета по
-																		// карточке ОС- транспорта )
+										+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+												bbValue.summa, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+												bbValue.ceh, "9033", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚ 131 + ( 3 - Р№ Р·РЅР°Рє СЃС‡РµС‚Р° РїРѕ
+																		// РєР°СЂС‚РѕС‡РєРµ РћРЎ- С‚СЂР°РЅСЃРїРѕСЂС‚Р° )
 												a2pList.get(0).actPostingKindRefCode == ENActPostingKind.SERVICES_SUPPLIER_CONTRACT 
 												? X + "666100001" 
-											    : X + "666100002", // балансовый КАУ
-												KodPodr, // Корреспондентский цех
-												// Корреспондентский счет
+											    : X + "666100002", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+												KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+												// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
 												"7913",
-												// Корреспондентский КАУ
+												// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 												a2pList.get(0).actPostingKindRefCode == ENActPostingKind.SERVICES_SUPPLIER_CONTRACT 
 												? "11000000001" : "11000000002", act.numberGen, act.dateGen,
 												"servise" + act.numberGen + ", "
 														+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-														+ infoDescript, // назначение
+														+ infoDescript, // РЅР°Р·РЅР°С‡РµРЅРёРµ
 												userName
 										);
 							}
@@ -7432,12 +7432,12 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 			if (act.actTypeRef.code == ENPlanWorkState.DESIGNING && isInvest
 					&& (invNumber.equals("000000") || invNumber.equals(""))) {
 
-				String X = isInvest == true ? "0" : "2"; // 0-інвестиційна програма 2-інше
-				/* ААА- Номер карточки об’єкту */
+				String X = isInvest == true ? "0" : "2"; // 0-С–РЅРІРµСЃС‚РёС†С–Р№РЅР° РїСЂРѕРіСЂР°РјР° 2-С–РЅС€Рµ
+				/* РђРђРђ- РќРѕРјРµСЂ РєР°СЂС‚РѕС‡РєРё РѕР±вЂ™С”РєС‚Сѓ */
 				String AAA = "";
 				String B = ""; /*
-								 * елемент витрат 1-будівельно монтажні роботи 3- проектні роботи 4- інші
-								 * витрати
+								 * РµР»РµРјРµРЅС‚ РІРёС‚СЂР°С‚ 1-Р±СѓРґС–РІРµР»СЊРЅРѕ РјРѕРЅС‚Р°Р¶РЅС– СЂРѕР±РѕС‚Рё 3- РїСЂРѕРµРєС‚РЅС– СЂРѕР±РѕС‚Рё 4- С–РЅС€С–
+								 * РІРёС‚СЂР°С‚Рё
 								 */
 
 				ENAct2FinInfoProvDAO a2pInfoDAO = new ENAct2FinInfoProvDAO(connection, userProfile);
@@ -7464,7 +7464,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 				if (a2pInfoArr.length == 0) {
 					throw new SystemException(
-							" Для формування проводок необхідно у вкладці \" Проводки по акту\"  заповнити довідникові дані!!!  ");
+							" Р”Р»СЏ С„РѕСЂРјСѓРІР°РЅРЅСЏ РїСЂРѕРІРѕРґРѕРє РЅРµРѕР±С…С–РґРЅРѕ Сѓ РІРєР»Р°РґС†С– \" РџСЂРѕРІРѕРґРєРё РїРѕ Р°РєС‚Сѓ\"  Р·Р°РїРѕРІРЅРёС‚Рё РґРѕРІС–РґРЅРёРєРѕРІС– РґР°РЅС–!!!  ");
 				}
 
 				AAA = a2pInfoDAO.getObject(a2pInfoArr[0]).kau_card_object_kod;
@@ -7472,26 +7472,26 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				B = a2pInfoDAO.getObject(a2pInfoArr[0]).kau_element_expenses_kod;
 				if (AAA == null) {
 					throw new SystemException(
-							" Для формування проводок необхідно у вкладці \" Проводки по акту\"  заповнити довідникові дані!!!  ");
+							" Р”Р»СЏ С„РѕСЂРјСѓРІР°РЅРЅСЏ РїСЂРѕРІРѕРґРѕРє РЅРµРѕР±С…С–РґРЅРѕ Сѓ РІРєР»Р°РґС†С– \" РџСЂРѕРІРѕРґРєРё РїРѕ Р°РєС‚Сѓ\"  Р·Р°РїРѕРІРЅРёС‚Рё РґРѕРІС–РґРЅРёРєРѕРІС– РґР°РЅС–!!!  ");
 				}
 				if (B == null) {
 					throw new SystemException(
-							" Для формування проводок необхідно у вкладці \" Проводки по акту\"  заповнити довідникові дані!!!  ");
+							" Р”Р»СЏ С„РѕСЂРјСѓРІР°РЅРЅСЏ РїСЂРѕРІРѕРґРѕРє РЅРµРѕР±С…С–РґРЅРѕ Сѓ РІРєР»Р°РґС†С– \" РџСЂРѕРІРѕРґРєРё РїРѕ Р°РєС‚Сѓ\"  Р·Р°РїРѕРІРЅРёС‚Рё РґРѕРІС–РґРЅРёРєРѕРІС– РґР°РЅС–!!!  ");
 				}
 
-				// I ПРОВОДКИ ПО ЗП черным
+				// I РџР РћР’РћР”РљР РџРћ Р—Рџ С‡РµСЂРЅС‹Рј
 				FKTrans2AXTransItemShortList fkTrans2axTransList = this.getDataForProvsSalaryByAct(act.code);
 
 				if (fkTrans2axTransList == null || fkTrans2axTransList.list == null || fkTrans2axTransList.list.isEmpty()
 						|| fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("")) {
-					this.recalcENAct2HumenCehIdbyAct(act.code); // если данных нет перессчитаем и вытянем данные заново
+					this.recalcENAct2HumenCehIdbyAct(act.code); // РµСЃР»Рё РґР°РЅРЅС‹С… РЅРµС‚ РїРµСЂРµСЃСЃС‡РёС‚Р°РµРј Рё РІС‹С‚СЏРЅРµРј РґР°РЅРЅС‹Рµ Р·Р°РЅРѕРІРѕ
 					fkTrans2axTransList = this.getDataForProvsSalaryByAct(act.code);
 				}
-				// если повторно не определили цех - тогда ошибка
+				// РµСЃР»Рё РїРѕРІС‚РѕСЂРЅРѕ РЅРµ РѕРїСЂРµРґРµР»РёР»Рё С†РµС… - С‚РѕРіРґР° РѕС€РёР±РєР°
 				if (fkTrans2axTransList == null || fkTrans2axTransList.list == null || fkTrans2axTransList.list.isEmpty()
 						|| fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("")) {
 					throw new EnergyproSystemException(
-							" \n Для робітників не визначено код цеху !!! Потрібно зробити розрахунок акту !!! ");
+							" \n Р”Р»СЏ СЂРѕР±С–С‚РЅРёРєС–РІ РЅРµ РІРёР·РЅР°С‡РµРЅРѕ РєРѕРґ С†РµС…Сѓ !!! РџРѕС‚СЂС–Р±РЅРѕ Р·СЂРѕР±РёС‚Рё СЂРѕР·СЂР°С…СѓРЅРѕРє Р°РєС‚Сѓ !!! ");
 				}
 
 				// String KodPodr =
@@ -7504,94 +7504,94 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				for (int i = 0; i < fkTrans2axTransList.totalCount; i++) {
 					zpByAct = zpByAct.add(fkTrans2axTransList.get(i).amountCur);
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(i).amountCur, // сумма в роводке
-									fkTrans2axTransList.get(i).balCeh, "6610", // балансовый счет
-									"00000000001", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									isPricon == false ? "1511" : "1513", // Корреспондентский счет
-									// Корреспондентский КАУ
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(i).amountCur, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+									fkTrans2axTransList.get(i).balCeh, "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000001", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									isPricon == false ? "1511" : "1513", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									new String(isPricon == false ? X : connectionKind_KAU) + AAA + B
 											+ new String(isPricon == false ? "000000" : "0" + finDocCode),
 									act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
-											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " Проектування "
-											+ new String(isPricon == true ? "(приєднання)" : ""), // назначение
+									"РђРєС‚ в„– " + act.numberGen + ", "
+											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " РџСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ "
+											+ new String(isPricon == true ? "(РїСЂРёС”РґРЅР°РЅРЅСЏ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
 
-				// I ПРОВОДКИ ПО ЗП красным, выбираем суммы зп с группировкой по шпз сотрудника
-				// и сех
+				// I РџР РћР’РћР”РљР РџРћ Р—Рџ РєСЂР°СЃРЅС‹Рј, РІС‹Р±РёСЂР°РµРј СЃСѓРјРјС‹ Р·Рї СЃ РіСЂСѓРїРїРёСЂРѕРІРєРѕР№ РїРѕ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР°
+				// Рё СЃРµС…
 				fkTrans2axTransList = this.getDataForProvsSalaryByActRed(act.code);
 				for (int ir = 0; ir < fkTrans2axTransList.totalCount; ir++) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(ir).amountCur.negate(), // сумма в роводке
-									fkTrans2axTransList.get(ir).balCeh, "6610", // балансовый счет
-									"00000000001", // балансовый КАУ
-									fkTrans2axTransList.get(ir).balCeh, // Корреспондентский цех
-									fkTrans2axTransList.get(ir).balans.substring(0, 4), // Корреспондентский счет шпз
-																						// сотрудника идет
-									// Корреспондентский КАУ
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(ir).amountCur.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+									fkTrans2axTransList.get(ir).balCeh, "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000001", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									fkTrans2axTransList.get(ir).balCeh, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									fkTrans2axTransList.get(ir).balans.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР·
+																						// СЃРѕС‚СЂСѓРґРЅРёРєР° РёРґРµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									fkTrans2axTransList.get(ir).balans.substring(4, 15), act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
-											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " Проектування "
-											+ new String(isPricon == true ? "(приєднання)" : ""), // назначение
+									"РђРєС‚ в„– " + act.numberGen + ", "
+											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " РџСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ "
+											+ new String(isPricon == true ? "(РїСЂРёС”РґРЅР°РЅРЅСЏ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
 
-				// II пачка проводок Єдиний внесок на загальнообов'язкове державне соціальне
-				// страхування - черным
-				fkTrans2axTransList = this.getDataForBlackProvsСhargesumByAct(act.code);
+				// II РїР°С‡РєР° РїСЂРѕРІРѕРґРѕРє Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ
+				// СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - С‡РµСЂРЅС‹Рј
+				fkTrans2axTransList = this.getDataForBlackProvsРЎhargesumByAct(act.code);
 				for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(c).amountCur, // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(c).amountCur, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									fkTrans2axTransList.get(c).balCeh,
 									fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"
-											: "6512", // балансовый счет
-									"00000000001", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									isPricon == false ? "1511" : "1513", // Корреспондентский счет
-									// Корреспондентский КАУ
+											: "6512", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000001", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									isPricon == false ? "1511" : "1513", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									new String(isPricon == false ? X : connectionKind_KAU) + AAA + B
 											+ new String(isPricon == false ? "000000" : "0" + finDocCode),
 									act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
-											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " Проектування "
-											+ new String(isPricon == true ? "(приєднання)" : ""), // назначение
+									"РђРєС‚ в„– " + act.numberGen + ", "
+											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " РџСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ "
+											+ new String(isPricon == true ? "(РїСЂРёС”РґРЅР°РЅРЅСЏ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
 
-				// Єдиний внесок на загальнообов'язкове державне соціальне страхування - красным
-				// , разбивка по цеху , ШПЗ , виду работника - инвалид / не инвалид
-				fkTrans2axTransList = this.getDataForRedProvsСhargesumByAct(act.code);
+				// Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - РєСЂР°СЃРЅС‹Рј
+				// , СЂР°Р·Р±РёРІРєР° РїРѕ С†РµС…Сѓ , РЁРџР— , РІРёРґСѓ СЂР°Р±РѕС‚РЅРёРєР° - РёРЅРІР°Р»РёРґ / РЅРµ РёРЅРІР°Р»РёРґ
+				fkTrans2axTransList = this.getDataForRedProvsРЎhargesumByAct(act.code);
 				for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(c).amountCur.negate(), // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(c).amountCur.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									fkTrans2axTransList.get(c).balCeh,
 									fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"
-											: "6512", // балансовый счет
-									"00000000001", // балансовый КАУ
-									fkTrans2axTransList.get(c).balCeh, // Корреспондентский цех
-									fkTrans2axTransList.get(c).balans.substring(0, 4), // Корреспондентский счет шпз
-																						// сотрудника идет
-									// Корреспондентский КАУ
+											: "6512", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000001", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									fkTrans2axTransList.get(c).balCeh, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									fkTrans2axTransList.get(c).balans.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР·
+																						// СЃРѕС‚СЂСѓРґРЅРёРєР° РёРґРµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									fkTrans2axTransList.get(c).balans.substring(4, 15), act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
-											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " Проектування "
-											+ new String(isPricon == true ? "(приєднання)" : ""), // назначение
+									"РђРєС‚ в„– " + act.numberGen + ", "
+											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " РџСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ "
+											+ new String(isPricon == true ? "(РїСЂРёС”РґРЅР°РЅРЅСЏ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 				}
 
-				// III проводки если присоед зарплата в общепроизв сторно з-та в общепроизв
-				// (В) вычисляемое от Загальновиробничі витрати по акту (загальновиробничы
-				// витрати * 100/122 ) // черным
+				// III РїСЂРѕРІРѕРґРєРё РµСЃР»Рё РїСЂРёСЃРѕРµРґ Р·Р°СЂРїР»Р°С‚Р° РІ РѕР±С‰РµРїСЂРѕРёР·РІ СЃС‚РѕСЂРЅРѕ Р·-С‚Р° РІ РѕР±С‰РµРїСЂРѕРёР·РІ
+				// (Р’) РІС‹С‡РёСЃР»СЏРµРјРѕРµ РѕС‚ Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё РїРѕ Р°РєС‚Сѓ (Р·Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С‹
+				// РІРёС‚СЂР°С‚Рё * 100/122 ) // С‡РµСЂРЅС‹Рј
 				if (isPricon) {
 
 					BigDecimal amountCur = zpByAct.multiply(productionExpencesPercent);
@@ -7600,102 +7600,102 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 					amountCur = amountCur.divide(new BigDecimal(100).add(chargepercent), 6, BigDecimal.ROUND_HALF_UP)
 							.setScale(2, BigDecimal.ROUND_HALF_UP);
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									// сумма в роводке = ЗП по акту * процент общщепроизв затрат / 100 * 100 /
-									// (100+22 - где 22 это есв по работнику - для проводок берут значение с
-									// обычного работника - не инвалида )
-									amountCur, KodPodr, "6610", // балансовый счет
-									"10000000001", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									"1513", // Корреспондентский счет
-									// Корреспондентский КАУ
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									// СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ = Р—Рџ РїРѕ Р°РєС‚Сѓ * РїСЂРѕС†РµРЅС‚ РѕР±С‰С‰РµРїСЂРѕРёР·РІ Р·Р°С‚СЂР°С‚ / 100 * 100 /
+									// (100+22 - РіРґРµ 22 СЌС‚Рѕ РµСЃРІ РїРѕ СЂР°Р±РѕС‚РЅРёРєСѓ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє Р±РµСЂСѓС‚ Р·РЅР°С‡РµРЅРёРµ СЃ
+									// РѕР±С‹С‡РЅРѕРіРѕ СЂР°Р±РѕС‚РЅРёРєР° - РЅРµ РёРЅРІР°Р»РёРґР° )
+									amountCur, KodPodr, "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"10000000001", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									"1513", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									connectionKind_KAU + AAA + B + "0" + finDocCode, act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
-											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " Проектування "
-											+ new String(isPricon == true ? "(приєднання)" : ""), // назначение
+									"РђРєС‚ в„– " + act.numberGen + ", "
+											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " РџСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ "
+											+ new String(isPricon == true ? "(РїСЂРёС”РґРЅР°РЅРЅСЏ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
-					/*** II (В)_red проводка на вычисляемую сумму красным */
+					/*** II (Р’)_red РїСЂРѕРІРѕРґРєР° РЅР° РІС‹С‡РёСЃР»СЏРµРјСѓСЋ СЃСѓРјРјСѓ РєСЂР°СЃРЅС‹Рј */
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									// сумма в роводке = ЗП по акту * процент общщепроизв затрат / 100 * 100 /
-									// (100+22 - где 22 это есв по работнику - для проводок берут значение с
-									// обычного работника - не инвалида )
-									amountCur.negate(), KodPodr, "6610", // балансовый счет
-									"10000000001", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									"9100", // Корреспондентский счет
-									// Корреспондентский КАУ
-									/* один знак */
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									// СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ = Р—Рџ РїРѕ Р°РєС‚Сѓ * РїСЂРѕС†РµРЅС‚ РѕР±С‰С‰РµРїСЂРѕРёР·РІ Р·Р°С‚СЂР°С‚ / 100 * 100 /
+									// (100+22 - РіРґРµ 22 СЌС‚Рѕ РµСЃРІ РїРѕ СЂР°Р±РѕС‚РЅРёРєСѓ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє Р±РµСЂСѓС‚ Р·РЅР°С‡РµРЅРёРµ СЃ
+									// РѕР±С‹С‡РЅРѕРіРѕ СЂР°Р±РѕС‚РЅРёРєР° - РЅРµ РёРЅРІР°Р»РёРґР° )
+									amountCur.negate(), KodPodr, "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"10000000001", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									"9100", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+									/* РѕРґРёРЅ Р·РЅР°Рє */
 									"00110000001", act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
-											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " Проектування "
-											+ new String(isPricon == true ? "(приєднання)" : ""), // назначение
+									"РђРєС‚ в„– " + act.numberGen + ", "
+											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " РџСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ "
+											+ new String(isPricon == true ? "(РїСЂРёС”РґРЅР°РЅРЅСЏ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 					/*
-					 * II_2+ black вторая часть проводки (Загальновиробничі витрати 50% від суми
-					 * заробітної плати - минус (В) // черное )
+					 * II_2+ black РІС‚РѕСЂР°СЏ С‡Р°СЃС‚СЊ РїСЂРѕРІРѕРґРєРё (Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё 50% РІС–Рґ СЃСѓРјРё
+					 * Р·Р°СЂРѕР±С–С‚РЅРѕС— РїР»Р°С‚Рё - РјРёРЅСѓСЃ (Р’) // С‡РµСЂРЅРѕРµ )
 					 */
 					BigDecimal amountCur_2 = zpByAct.multiply(productionExpencesPercent);
 					amountCur_2 = amountCur_2.divide(new BigDecimal(100), 6, BigDecimal.ROUND_HALF_UP);
 					amountCur_2 = amountCur_2.subtract(amountCur).setScale(2, BigDecimal.ROUND_HALF_UP);
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									amountCur_2, KodPodr, "6510", // балансовый счет
-									"10000000001", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									"1513", // Корреспондентский счет
-									// Корреспондентский КАУ
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									amountCur_2, KodPodr, "6510", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"10000000001", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									"1513", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									connectionKind_KAU + AAA + B + "0" + finDocCode, act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
-											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " Проектування "
-											+ new String(isPricon == true ? "(приєднання)" : ""), // назначение
+									"РђРєС‚ в„– " + act.numberGen + ", "
+											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " РџСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ "
+											+ new String(isPricon == true ? "(РїСЂРёС”РґРЅР°РЅРЅСЏ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 					/*
-					 * II_2+ red вторая часть проводки (Загальновиробничі витрати 50% від суми
-					 * заробітної плати - минус (В) // красное )
+					 * II_2+ red РІС‚РѕСЂР°СЏ С‡Р°СЃС‚СЊ РїСЂРѕРІРѕРґРєРё (Р—Р°РіР°Р»СЊРЅРѕРІРёСЂРѕР±РЅРёС‡С– РІРёС‚СЂР°С‚Рё 50% РІС–Рґ СЃСѓРјРё
+					 * Р·Р°СЂРѕР±С–С‚РЅРѕС— РїР»Р°С‚Рё - РјРёРЅСѓСЃ (Р’) // РєСЂР°СЃРЅРѕРµ )
 					 */
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									amountCur_2.negate(), KodPodr, "6510", // балансовый счет
-									"10000000001", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									"9100", // Корреспондентский счет
-									// Корреспондентский КАУ
-									/* один знак */
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									amountCur_2.negate(), KodPodr, "6510", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"10000000001", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									"9100", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+									/* РѕРґРёРЅ Р·РЅР°Рє */
 									"00130000001", act.numberGen, act.dateGen,
-									"Акт № " + act.numberGen + ", "
-											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " Проектування "
-											+ new String(isPricon == true ? "(приєднання)" : ""), // назначение
+									"РђРєС‚ в„– " + act.numberGen + ", "
+											+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct) + " РџСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ "
+											+ new String(isPricon == true ? "(РїСЂРёС”РґРЅР°РЅРЅСЏ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 									userName
 							);
 
 				}
 
-				// IV пачка проводок амортизация
+				// IV РїР°С‡РєР° РїСЂРѕРІРѕРґРѕРє Р°РјРѕСЂС‚РёР·Р°С†РёСЏ
 
 				ENAct2TransportFilter a2tFilter = new ENAct2TransportFilter();
 				a2tFilter.actRef.code = act.code;
 				ENAct2TransportShortList a2tList = a2tDAO.getScrollableFilteredList(a2tFilter, 0, -1);
 
-				// строки для проводок по амортизации красным
+				// СЃС‚СЂРѕРєРё РґР»СЏ РїСЂРѕРІРѕРґРѕРє РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё РєСЂР°СЃРЅС‹Рј
 				HashMap<DataForTransAmortizacRed, DataForTransAmortizacRed> transDataAmortizacRed = new HashMap<>();
-				// строки для проводок по амортизации черным
+				// СЃС‚СЂРѕРєРё РґР»СЏ РїСЂРѕРІРѕРґРѕРє РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё С‡РµСЂРЅС‹Рј
 				HashMap<DataForTransAmortizacBlack, DataForTransAmortizacBlack> transDataAmortizacBlack = new HashMap<>();
 
 				for (int tr = 0; tr < a2tList.totalCount; tr++) {
 
 					String cehtransport = fpLogic.getKodPodr(a2tList.get(tr).invNumber);
-					// вытянем код цеха по штатному mdax
+					// РІС‹С‚СЏРЅРµРј РєРѕРґ С†РµС…Р° РїРѕ С€С‚Р°С‚РЅРѕРјСѓ mdax
 					cehtransport = mdLogic.getMAINORGANIZATIONIDByHRMORGANIZATIONID(cehtransport, act.dateGen);
 					String kodSubschB = fpLogic.getKodSubschB(a2tList.get(tr).invNumber);
 					String vidOStransp = fpLogic.getG45(a2tList.get(tr).invNumber);
 					String kodZatrTransp = fpLogic.getNNNN(a2tList.get(tr).invNumber);
 
-					// !!!!!RED набрать строки по транспорту . уник значения по цеху транспорта ,
-					// коду затрат , вид ОС - для проводок красным
+					// !!!!!RED РЅР°Р±СЂР°С‚СЊ СЃС‚СЂРѕРєРё РїРѕ С‚СЂР°РЅСЃРїРѕСЂС‚Сѓ . СѓРЅРёРє Р·РЅР°С‡РµРЅРёСЏ РїРѕ С†РµС…Сѓ С‚СЂР°РЅСЃРїРѕСЂС‚Р° ,
+					// РєРѕРґСѓ Р·Р°С‚СЂР°С‚ , РІРёРґ РћРЎ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє РєСЂР°СЃРЅС‹Рј
 					DataForTransAmortizacRed rKey;
 					rKey = new DataForTransAmortizacRed(cehtransport, kodZatrTransp, vidOStransp,
 							"131" + kodSubschB.substring(2, 3), a2tList.get(tr).paysWork);
@@ -7703,13 +7703,13 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 					if (transDataAmortizacRed.containsValue(rKey)) {
 						DataForTransAmortizacRed dValue = (DataForTransAmortizacRed) transDataAmortizacRed.get(rKey);
 						rKey.summa = rKey.summa.add(dValue.summa);
-						// удалим из списка запись что есть и добавим с увелич суммой
+						// СѓРґР°Р»РёРј РёР· СЃРїРёСЃРєР° Р·Р°РїРёСЃСЊ С‡С‚Рѕ РµСЃС‚СЊ Рё РґРѕР±Р°РІРёРј СЃ СѓРІРµР»РёС‡ СЃСѓРјРјРѕР№
 						transDataAmortizacRed.remove(rKey);
 					}
 					transDataAmortizacRed.put(rKey, rKey);
 
-					// !!!!!BLACK набрать строки по транспорту . уник значения по цеху транспорта ,
-					// вид ОС - для проводок черным
+					// !!!!!BLACK РЅР°Р±СЂР°С‚СЊ СЃС‚СЂРѕРєРё РїРѕ С‚СЂР°РЅСЃРїРѕСЂС‚Сѓ . СѓРЅРёРє Р·РЅР°С‡РµРЅРёСЏ РїРѕ С†РµС…Сѓ С‚СЂР°РЅСЃРїРѕСЂС‚Р° ,
+					// РІРёРґ РћРЎ - РґР»СЏ РїСЂРѕРІРѕРґРѕРє С‡РµСЂРЅС‹Рј
 					DataForTransAmortizacBlack bKey;
 					bKey = new DataForTransAmortizacBlack(cehtransport, vidOStransp, "131" + kodSubschB.substring(2, 3),
 							a2tList.get(tr).paysWork);
@@ -7718,14 +7718,14 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 						DataForTransAmortizacBlack bValue = (DataForTransAmortizacBlack) transDataAmortizacBlack
 								.get(bKey);
 						bKey.summa = bKey.summa.add(bValue.summa);
-						// удалим из списка запись что есть и добавим с увелич суммой
+						// СѓРґР°Р»РёРј РёР· СЃРїРёСЃРєР° Р·Р°РїРёСЃСЊ С‡С‚Рѕ РµСЃС‚СЊ Рё РґРѕР±Р°РІРёРј СЃ СѓРІРµР»РёС‡ СЃСѓРјРјРѕР№
 						transDataAmortizacBlack.remove(bKey);
 					}
 					transDataAmortizacBlack.put(bKey, bKey);
 
 				}
 
-				// формирование шаблонов по амортизации красным
+				// С„РѕСЂРјРёСЂРѕРІР°РЅРёРµ С€Р°Р±Р»РѕРЅРѕРІ РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё РєСЂР°СЃРЅС‹Рј
 				DataForTransAmortizacRed rrKey = null;
 				Iterator<DataForTransAmortizacRed> rrIterator = transDataAmortizacRed.keySet().iterator();
 				while (rrIterator.hasNext()) {
@@ -7735,27 +7735,27 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 							+ " // " + rrValue.vidOS + " // " + rrValue.balSch + " // " + rrValue.summa + " // ");
 					if (rrValue.summa.doubleValue() > 0) {
 						V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-										rrValue.summa.negate(), // сумма в роводке
-										rrValue.ceh, rrValue.balSch, // балансовый счет 131 + ( 3 - й знак счета по
-																		// карточке ОС- транспорта )
-										rrValue.vidOS + "000000000", // балансовый КАУ
-										KodPodr, // Корреспондентский цех
-										rrValue.kodZatrat.substring(0, 4), // Корреспондентский счет шпз транспортного
-																			// идет
-										rrValue.kodZatrat.substring(4, 15), // Корреспондентский КАУ остаток от ШПЗ
-																			// транспортного
+								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+										rrValue.summa.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+										rrValue.ceh, rrValue.balSch, // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚ 131 + ( 3 - Р№ Р·РЅР°Рє СЃС‡РµС‚Р° РїРѕ
+																		// РєР°СЂС‚РѕС‡РєРµ РћРЎ- С‚СЂР°РЅСЃРїРѕСЂС‚Р° )
+										rrValue.vidOS + "000000000", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+										KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+										rrValue.kodZatrat.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР· С‚СЂР°РЅСЃРїРѕСЂС‚РЅРѕРіРѕ
+																			// РёРґРµС‚
+										rrValue.kodZatrat.substring(4, 15), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ РѕСЃС‚Р°С‚РѕРє РѕС‚ РЁРџР—
+																			// С‚СЂР°РЅСЃРїРѕСЂС‚РЅРѕРіРѕ
 										act.numberGen, act.dateGen,
-										"Акт № " + act.numberGen + ", "
+										"РђРєС‚ в„– " + act.numberGen + ", "
 												+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-												+ " Проектування " + new String(isPricon == true ? "(приєднання)" : ""), // назначение
+												+ " РџСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ " + new String(isPricon == true ? "(РїСЂРёС”РґРЅР°РЅРЅСЏ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 										userName
 								);
 					}
 
 				}
 
-				// формирование шаблонов по амортизации черным
+				// С„РѕСЂРјРёСЂРѕРІР°РЅРёРµ С€Р°Р±Р»РѕРЅРѕРІ РїРѕ Р°РјРѕСЂС‚РёР·Р°С†РёРё С‡РµСЂРЅС‹Рј
 				DataForTransAmortizacBlack bbKey = null;
 				Iterator<DataForTransAmortizacBlack> bbIterator = transDataAmortizacBlack.keySet().iterator();
 				while (bbIterator.hasNext()) {
@@ -7766,21 +7766,21 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 							+ " // " + bbValue.balSch + " // " + bbValue.summa + " // ");
 					if (bbValue.summa.doubleValue() > 0) {
 						V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-										bbValue.summa, // сумма в роводке
-										bbValue.ceh, bbValue.balSch, // балансовый счет 131 + ( 3 - й знак счета по
-																		// карточке ОС- транспорта )
-										bbValue.vidOS + "000000000", // балансовый КАУ
-										KodPodr, // Корреспондентский цех
-										isPricon == false ? "1511" : "1513", // Корреспондентский счет , //
-																				// Корреспондентский счет
-										// Корреспондентский КАУ
+								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+										bbValue.summa, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+										bbValue.ceh, bbValue.balSch, // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚ 131 + ( 3 - Р№ Р·РЅР°Рє СЃС‡РµС‚Р° РїРѕ
+																		// РєР°СЂС‚РѕС‡РєРµ РћРЎ- С‚СЂР°РЅСЃРїРѕСЂС‚Р° )
+										bbValue.vidOS + "000000000", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+										KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+										isPricon == false ? "1511" : "1513", // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ , //
+																				// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+										// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 										new String(isPricon == false ? X : connectionKind_KAU) + AAA + B
 												+ new String(isPricon == false ? "000000" : "0" + finDocCode),
 										act.numberGen, act.dateGen,
-										"Акт № " + act.numberGen + ", "
+										"РђРєС‚ в„– " + act.numberGen + ", "
 												+ new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-												+ " Проектування " + new String(isPricon == true ? "(приєднання)" : ""), // назначение
+												+ " РџСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ " + new String(isPricon == true ? "(РїСЂРёС”РґРЅР°РЅРЅСЏ)" : ""), // РЅР°Р·РЅР°С‡РµРЅРёРµ
 										userName
 								);
 					}
@@ -7820,15 +7820,15 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				String kauZatr = "000" + E + (act.actTypeRef.code == ENPlanWorkState.CURRENT_REPAIR ? "1" : "2")									
 						+ "000001";
 				
-				String comment = "Акт № " + act.numberGen + ", " + new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
-						+ " " + planWorkState.name + " ОЗ та МНМА";
+				String comment = "РђРєС‚ в„– " + act.numberGen + ", " + new SimpleDateFormat("dd.MM.yyyy").format(act.dateAct)
+						+ " " + planWorkState.name + " РћР— С‚Р° РњРќРњРђ";
 				
-				// I ПРОВОДКИ ПО ЗП черным
+				// I РџР РћР’РћР”РљР РџРћ Р—Рџ С‡РµСЂРЅС‹Рј
 				FKTrans2AXTransItemShortList fkTrans2axTransList = this.getDataForProvsSalaryByAct(act.code);
 
 				if (fkTrans2axTransList == null || fkTrans2axTransList.list == null || fkTrans2axTransList.list.isEmpty()
 						|| fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("")) {
-					this.recalcENAct2HumenCehIdbyAct(act.code); // если данных нет перессчитаем и вытянем данные заново
+					this.recalcENAct2HumenCehIdbyAct(act.code); // РµСЃР»Рё РґР°РЅРЅС‹С… РЅРµС‚ РїРµСЂРµСЃСЃС‡РёС‚Р°РµРј Рё РІС‹С‚СЏРЅРµРј РґР°РЅРЅС‹Рµ Р·Р°РЅРѕРІРѕ
 					fkTrans2axTransList = this.getDataForProvsSalaryByAct(act.code);
 				}
 				
@@ -7837,14 +7837,14 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				for (int i = 0; i < fkTrans2axTransList.totalCount; i++) {
 					//zpByAct = zpByAct.add(fkTrans2axTransList.get(i).amountCur);
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(i).amountCur, // сумма в роводке
-									fkTrans2axTransList.get(i).balCeh, "6610", // балансовый счет
-									"00000000130", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									korSch_black, // Корреспондентский счет
-									// Корреспондентский КАУ
-									/* один знак */
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(i).amountCur, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+									fkTrans2axTransList.get(i).balCeh, "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									korSch_black, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+									/* РѕРґРёРЅ Р·РЅР°Рє */
 									(korSch_black.equals("2361") ? 
 											new StringBuilder(correspondingCaa).replace(5, 6, "2").toString() : correspondingCaa)
 									, act.numberGen, act.dateGen,
@@ -7856,16 +7856,16 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				
 				if(korSch_black.equals("2361")) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									totalSum, // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									totalSum, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									KodPodr,
-									korSch_black, // балансовый счет
+									korSch_black, // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
 									(korSch_black.equals("2361") ? 
-											new StringBuilder(correspondingCaa).replace(5, 6, "2").toString() : correspondingCaa), // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									NNNN, // Корреспондентский счет
-									// Корреспондентский КАУ
-									/* один знак */
+											new StringBuilder(correspondingCaa).replace(5, 6, "2").toString() : correspondingCaa), // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									NNNN, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+									/* РѕРґРёРЅ Р·РЅР°Рє */
 									new StringBuilder(kauZatr).replace(0, 1, "1").replace(5, 6, "2").replace(10, 11, "1").toString(),
 									act.numberGen, act.dateGen,
 									comment,
@@ -7874,23 +7874,23 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				}
 				totalSum = BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP);
 
-				// I ПРОВОДКИ ПО ЗП красным, выбираем суммы зп с группировкой по шпз сотрудника
-				// и сех
+				// I РџР РћР’РћР”РљР РџРћ Р—Рџ РєСЂР°СЃРЅС‹Рј, РІС‹Р±РёСЂР°РµРј СЃСѓРјРјС‹ Р·Рї СЃ РіСЂСѓРїРїРёСЂРѕРІРєРѕР№ РїРѕ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР°
+				// Рё СЃРµС…
 				fkTrans2axTransList = this.getDataForProvsSalaryByActRed(act.code);
 				for (int ir = 0; ir < fkTrans2axTransList.totalCount; ir++) {
 					if (fkTrans2axTransList.get(ir).balans == null || fkTrans2axTransList.get(ir).balans.isEmpty()) {
-						throw new SystemException("\n\nНе задано ШВЗ робітника! Код акта: " + act.code);
+						throw new SystemException("\n\nРќРµ Р·Р°РґР°РЅРѕ РЁР’Р— СЂРѕР±С–С‚РЅРёРєР°! РљРѕРґ Р°РєС‚Р°: " + act.code);
 					}
 
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(ir).amountCur.negate(), // сумма в роводке
-									fkTrans2axTransList.get(ir).balCeh, "6610", // балансовый счет
-									"00000000130", // балансовый КАУ
-									fkTrans2axTransList.get(ir).balCeh, // Корреспондентский цех
-									fkTrans2axTransList.get(ir).balans.substring(0, 4), // Корреспондентский счет шпз
-																						// сотрудника идет
-									// Корреспондентский КАУ
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(ir).amountCur.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+									fkTrans2axTransList.get(ir).balCeh, "6610", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									fkTrans2axTransList.get(ir).balCeh, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									fkTrans2axTransList.get(ir).balans.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР·
+																						// СЃРѕС‚СЂСѓРґРЅРёРєР° РёРґРµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									fkTrans2axTransList.get(ir).balans.substring(4, 15)
 									, act.numberGen, act.dateGen, comment,
 									userName
@@ -7899,22 +7899,22 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 
 
-				// III пачка проводок Єдиний внесок на загальнообов'язкове державне соціальне
-				// страхування - черным
-				fkTrans2axTransList = this.getDataForBlackProvsСhargesumByAct(act.code);
+				// III РїР°С‡РєР° РїСЂРѕРІРѕРґРѕРє Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ
+				// СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - С‡РµСЂРЅС‹Рј
+				fkTrans2axTransList = this.getDataForBlackProvsРЎhargesumByAct(act.code);
 				for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 					totalSum = totalSum.add(fkTrans2axTransList.get(c).amountCur);
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(c).amountCur, // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(c).amountCur, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									fkTrans2axTransList.get(c).balCeh,
 									fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"
-											: "6512", // балансовый счет
-									"00000000130", // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									korSch_black, // Корреспондентский счет
-									// Корреспондентский КАУ
-									/* один знак */
+											: "6512", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									korSch_black, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+									/* РѕРґРёРЅ Р·РЅР°Рє */
 									(korSch_black.equals("2361") ? 
 											new StringBuilder(correspondingCaa).replace(5, 6, "4").toString() 
 											: (korSch_black.equals("2320") ? 
@@ -7928,16 +7928,16 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				
 				if(korSch_black.equals("2361")) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									totalSum, // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									totalSum, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									KodPodr,
-									korSch_black, // балансовый счет
+									korSch_black, // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
 									(korSch_black.equals("2361") ? 
-											new StringBuilder(correspondingCaa).replace(5, 6, "4").toString() : correspondingCaa), // балансовый КАУ
-									KodPodr, // Корреспондентский цех
-									NNNN, // Корреспондентский счет
-									// Корреспондентский КАУ
-									/* один знак */
+											new StringBuilder(correspondingCaa).replace(5, 6, "4").toString() : correspondingCaa), // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									NNNN, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+									/* РѕРґРёРЅ Р·РЅР°Рє */
 									new StringBuilder(kauZatr).replace(0, 1, "2").replace(5, 6, "4").replace(10, 11, "1").toString(),
 									act.numberGen, act.dateGen,
 									comment,
@@ -7947,21 +7947,21 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				
 				totalSum = BigDecimal.ZERO.setScale(2, BigDecimal.ROUND_HALF_UP);
 
-				// Єдиний внесок на загальнообов'язкове державне соціальне страхування - красным
-				// , разбивка по цеху , ШПЗ , виду работника - инвалид / не инвалид
-				fkTrans2axTransList = this.getDataForRedProvsСhargesumByAct(act.code);
+				// Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - РєСЂР°СЃРЅС‹Рј
+				// , СЂР°Р·Р±РёРІРєР° РїРѕ С†РµС…Сѓ , РЁРџР— , РІРёРґСѓ СЂР°Р±РѕС‚РЅРёРєР° - РёРЅРІР°Р»РёРґ / РЅРµ РёРЅРІР°Р»РёРґ
+				fkTrans2axTransList = this.getDataForRedProvsРЎhargesumByAct(act.code);
 				for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									fkTrans2axTransList.get(c).amountCur.negate(), // сумма в роводке
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									fkTrans2axTransList.get(c).amountCur.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 									fkTrans2axTransList.get(c).balCeh,
 									fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"
-											: "6512", // балансовый счет
-									"00000000130", // балансовый КАУ
-									fkTrans2axTransList.get(c).balCeh, // Корреспондентский цех
-									fkTrans2axTransList.get(c).balans.substring(0, 4), // Корреспондентский счет шпз
-																						// сотрудника идет
-									// Корреспондентский КАУ
+											: "6512", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+									"00000000130", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+									fkTrans2axTransList.get(c).balCeh, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									fkTrans2axTransList.get(c).balans.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР·
+																						// СЃРѕС‚СЂСѓРґРЅРёРєР° РёРґРµС‚
+									// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
 									fkTrans2axTransList.get(c).balans.substring(4, 15)
 									, act.numberGen, act.dateGen, comment,
 									userName
@@ -7976,15 +7976,15 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				for(DataForTransAmortizacBlack item : listBlackAmortisation) {
 					if (item.summa.doubleValue() > 0) {
 						V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-										item.summa, // сумма в роводке
-										item.ceh, item.balSch, // балансовый счет 131 + ( 3 - й знак счета по
-																		// карточке ОС- транспорта )
-										item.vidOS + "000000000", // балансовый КАУ
-										KodPodr, // Корреспондентский цех
-										korSch_black, // Корреспондентский счет
-										// Корреспондентский КАУ
-										// один знак
+								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+										item.summa, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+										item.ceh, item.balSch, // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚ 131 + ( 3 - Р№ Р·РЅР°Рє СЃС‡РµС‚Р° РїРѕ
+																		// РєР°СЂС‚РѕС‡РєРµ РћРЎ- С‚СЂР°РЅСЃРїРѕСЂС‚Р° )
+										item.vidOS + "000000000", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+										KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+										korSch_black, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚
+										// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ
+										// РѕРґРёРЅ Р·РЅР°Рє
 										(korSch_black.equals("2361") ? 
 												new StringBuilder(correspondingCaa).replace(5, 6, "5").toString() : correspondingCaa)
 										, act.numberGen, act.dateGen,
@@ -7998,16 +7998,16 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				for(DataForTransAmortizacRed item : listRedAmortisation) {
 					if (item.summa.doubleValue() > 0) {
 						V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-										item.summa.negate(), // сумма в роводке
-										item.ceh, item.balSch, // балансовый счет 131 + ( 3 - й знак счета по
-																		// карточке ОС- транспорта )
-										item.vidOS + "000000000", // балансовый КАУ
-										KodPodr, // Корреспондентский цех
-										item.kodZatrat.substring(0, 4), // Корреспондентский счет шпз транспортного
-																			// идет
-										item.kodZatrat.substring(4, 15), // Корреспондентский КАУ остаток от ШПЗ
-																			// транспортного
+								+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+										item.summa.negate(), // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+										item.ceh, item.balSch, // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚ 131 + ( 3 - Р№ Р·РЅР°Рє СЃС‡РµС‚Р° РїРѕ
+																		// РєР°СЂС‚РѕС‡РєРµ РћРЎ- С‚СЂР°РЅСЃРїРѕСЂС‚Р° )
+										item.vidOS + "000000000", // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ РљРђРЈ
+										KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+										item.kodZatrat.substring(0, 4), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР· С‚СЂР°РЅСЃРїРѕСЂС‚РЅРѕРіРѕ
+																			// РёРґРµС‚
+										item.kodZatrat.substring(4, 15), // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ РљРђРЈ РѕСЃС‚Р°С‚РѕРє РѕС‚ РЁРџР—
+																			// С‚СЂР°РЅСЃРїРѕСЂС‚РЅРѕРіРѕ
 										act.numberGen, act.dateGen,
 										comment,
 										userName
@@ -8017,18 +8017,18 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				
 				if(korSch_black.equals("2361") && totalSum.compareTo(BigDecimal.ZERO) == 1) {
 					V_Prov_Buffer = new String(V_Prov_Buffer.length() > 0 ? V_Prov_Buffer + " UNION ALL " : "")
-							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Дата документа
-									totalSum, // сумма в роводке
-									KodPodr, korSch_black, // балансовый счет 131 + ( 3 - й знак счета по
-																	// карточке ОС- транспорта )
+							+ fpLogic.generateQueryTransSHABLON(act.dateGen, // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+									totalSum, // СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
+									KodPodr, korSch_black, // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚ 131 + ( 3 - Р№ Р·РЅР°Рє СЃС‡РµС‚Р° РїРѕ
+																	// РєР°СЂС‚РѕС‡РєРµ РћРЎ- С‚СЂР°РЅСЃРїРѕСЂС‚Р° )
 									(korSch_black.equals("2361") ? 
 											new StringBuilder(correspondingCaa).replace(5, 6, "5").toString() 
 											: correspondingCaa),
-									KodPodr, // Корреспондентский цех
-									NNNN, // Корреспондентский счет шпз транспортного
-																		// идет
+									KodPodr, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ С†РµС…
+									NNNN, // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№ СЃС‡РµС‚ С€РїР· С‚СЂР°РЅСЃРїРѕСЂС‚РЅРѕРіРѕ
+																		// РёРґРµС‚
 									new StringBuilder(kauZatr).replace(5, 6, "5").replace(10, 11, "2").toString(),
-																		// транспортного
+																		// С‚СЂР°РЅСЃРїРѕСЂС‚РЅРѕРіРѕ
 									act.numberGen, act.dateGen,
 									comment,
 									userName
@@ -8039,11 +8039,11 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 			provResult = fpLogic.createPostings(V_Prov_Buffer);
 			String badprovstring = "";
 			if (provResult.badProvList.totalCount > 0) {
-				badprovstring = "  ошибки ФК :  ";
+				badprovstring = "  РѕС€РёР±РєРё Р¤Рљ :  ";
 				for (int b = 0; b < provResult.badProvList.totalCount; b++) {
 
-					badprovstring = badprovstring + " Текст ошибки = "
-							+ provResult.badProvList.get(b).getDetailedList().get(0).err_mes + "\n Примечание  = "
+					badprovstring = badprovstring + " РўРµРєСЃС‚ РѕС€РёР±РєРё = "
+							+ provResult.badProvList.get(b).getDetailedList().get(0).err_mes + "\n РџСЂРёРјРµС‡Р°РЅРёРµ  = "
 							+ provResult.badProvList.get(b).primechan + "\n  bal_ceh "
 							+ provResult.badProvList.get(b).bal_ceh + "  bal_kau "
 							+ provResult.badProvList.get(b).bal_kau + "  bal_sch "
@@ -8062,7 +8062,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 			return provResult;
 
 		} catch (DatasourceConnectException e) {
-			throw new EnergyproSystemException("Не вдалося передати проводки!", e);
+			throw new EnergyproSystemException("РќРµ РІРґР°Р»РѕСЃСЏ РїРµСЂРµРґР°С‚Рё РїСЂРѕРІРѕРґРєРё!", e);
 		} catch (PersistenceException e) {
 			throw new EnergyproSystemException(e.getMessage(), e);
 		}
@@ -8083,9 +8083,9 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 	/**
 	 *
-	 * Вставка ЗКУ в СканСчетчики по планам для акта
+	 * Р’СЃС‚Р°РІРєР° Р—РљРЈ РІ РЎРєР°РЅРЎС‡РµС‚С‡РёРєРё РїРѕ РїР»Р°РЅР°Рј РґР»СЏ Р°РєС‚Р°
 	 *
-	 * @param act {@link ENAct} акт по которому необходимо вставить ЗКУ
+	 * @param act {@link ENAct} Р°РєС‚ РїРѕ РєРѕС‚РѕСЂРѕРјСѓ РЅРµРѕР±С…РѕРґРёРјРѕ РІСЃС‚Р°РІРёС‚СЊ Р—РљРЈ
 	 */
 	public void insertZKUsByAct(ENAct act) {
 		Connection finConn = null;
@@ -8113,11 +8113,11 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 			ENPlanWorkFilter planFilter = new ENPlanWorkFilter();
 			planFilter.conditionSQL = String.format("%s in (%s)", ENPlanWork.code_QFielld, planCodesStr);
 			int[] planCodes = planDao.getFilteredCodeArray(planFilter, 0, -1);
-			if(planCodes.length == 0) throw new SystemException(String.format("У акті № %s від %s немає планів!"
+			if(planCodes.length == 0) throw new SystemException(String.format("РЈ Р°РєС‚С– в„– %s РІС–Рґ %s РЅРµРјР°С” РїР»Р°РЅС–РІ!"
 					, act.numberGen, new SimpleDateFormat("dd.mm.yyyy").format(act.dateAct)));
 			for(int planCode : planCodes) {
 				ENPlanWork plan = planDao.getObject(planCode);
-				// Если план имеет тип отличный от "Установка ЗКУ", то метод выбрасывает ошибку
+				// Р•СЃР»Рё РїР»Р°РЅ РёРјРµРµС‚ С‚РёРї РѕС‚Р»РёС‡РЅС‹Р№ РѕС‚ "РЈСЃС‚Р°РЅРѕРІРєР° Р—РљРЈ", С‚Рѕ РјРµС‚РѕРґ РІС‹Р±СЂР°СЃС‹РІР°РµС‚ РѕС€РёР±РєСѓ
 				planDao.checkENPlanWorkTypes(plan, true, true, ENPlanWorkType.EZ_SETUP_ZKU);
 				ENWorkOrder workOrder = planWorkLogic.getWorkOrderByPlanCode(plan.code);
 				FINMolData finMolData = finMolLogic.getFINMolDataByWorkOrderCode(workOrder.code, FINMolType.MASTER);
@@ -8135,11 +8135,11 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				                isStandardConnection = false;
 				                break;
 				            default:
-				                throw new SystemException(String.format("Для договора № %s датой %s задан непонятный тип присоединения",
+				                throw new SystemException(String.format("Р”Р»СЏ РґРѕРіРѕРІРѕСЂР° в„– %s РґР°С‚РѕР№ %s Р·Р°РґР°РЅ РЅРµРїРѕРЅСЏС‚РЅС‹Р№ С‚РёРї РїСЂРёСЃРѕРµРґРёРЅРµРЅРёСЏ",
 				                        tcServices.contractNumber, new SimpleDateFormat("dd.MM.yyyy").format(tcServices.contractDate)));
 				            }
 				}
-				if(finMolData == null) throw new SystemException(String.format("Не знайдено даних по МВО для плану з кодом %d", plan.code));
+				if(finMolData == null) throw new SystemException(String.format("РќРµ Р·РЅР°Р№РґРµРЅРѕ РґР°РЅРёС… РїРѕ РњР’Рћ РґР»СЏ РїР»Р°РЅСѓ Р· РєРѕРґРѕРј %d", plan.code));
 
 				String accountNumber = elementLogic.getElementInvNumber(plan.elementRef.code);
 
@@ -8157,8 +8157,8 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 						, counterDao.getAddr(estimateCodes[0])
 						, act.dateAct
 						, accountNumber
-						, "ЗКУ-" + accountNumber
-						, "ЗКУ"
+						, "Р—РљРЈ-" + accountNumber
+						, "Р—РљРЈ"
 						, finMolData.finMolCode
 						, (tcServices == null ? null : tcServices.contractNumber)
 						, (tcServices == null ? null : tcServices.contractDate)
@@ -8166,7 +8166,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 				String invNumberZKU = scDao.getInvNumberZKU(codeZKU);
 
-				// Запись полученного кода и инвентарного в связку с актом
+				// Р—Р°РїРёСЃСЊ РїРѕР»СѓС‡РµРЅРЅРѕРіРѕ РєРѕРґР° Рё РёРЅРІРµРЅС‚Р°СЂРЅРѕРіРѕ РІ СЃРІСЏР·РєСѓ СЃ Р°РєС‚РѕРј
 				ENAct2OSTable act2Ostable = new ENAct2OSTable();
 				act2Ostable.num_un = codeZKU;
 				act2Ostable.invNumber = invNumberZKU;
@@ -8195,9 +8195,9 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 	/**
 	 *
-	 * Удаление вставленных ЗКУ из акта
+	 * РЈРґР°Р»РµРЅРёРµ РІСЃС‚Р°РІР»РµРЅРЅС‹С… Р—РљРЈ РёР· Р°РєС‚Р°
 	 *
-	 * @param act {@link ENAct} Акт по которому необходимо удалить ЗКУ
+	 * @param act {@link ENAct} РђРєС‚ РїРѕ РєРѕС‚РѕСЂРѕРјСѓ РЅРµРѕР±С…РѕРґРёРјРѕ СѓРґР°Р»РёС‚СЊ Р—РљРЈ
 	 */
 	public void removeZKUsInsertedByAct(ENAct act) {
 		this.workWithZKUsInsertedByAct(act, ENActStatus.SIGNATURE, ZKUS_INSERTED_BY_ACT_REMOVAL);
@@ -8205,9 +8205,9 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 	/**
 	 *
-	 * Провести вставленные ЗКУ из акта
+	 * РџСЂРѕРІРµСЃС‚Рё РІСЃС‚Р°РІР»РµРЅРЅС‹Рµ Р—РљРЈ РёР· Р°РєС‚Р°
 	 *
-	 * @param act {@link ENAct} Акт по которому необходимо провести ЗКУ
+	 * @param act {@link ENAct} РђРєС‚ РїРѕ РєРѕС‚РѕСЂРѕРјСѓ РЅРµРѕР±С…РѕРґРёРјРѕ РїСЂРѕРІРµСЃС‚Рё Р—РљРЈ
 	 */
 	public void moveZKUsInsertedByAct(ENAct act) {
 		this.workWithZKUsInsertedByAct(act, ENActStatus.SIGNATURE, ZKUS_INSERTED_BY_ACT_MOVE);
@@ -8215,9 +8215,9 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 	/**
 	 *
-	 * Отмена проведения ЗКУ по акту
+	 * РћС‚РјРµРЅР° РїСЂРѕРІРµРґРµРЅРёСЏ Р—РљРЈ РїРѕ Р°РєС‚Сѓ
 	 *
-	 * @param act {@link ENAct} Акт по которому необходимо отменить проведение ЗКУ
+	 * @param act {@link ENAct} РђРєС‚ РїРѕ РєРѕС‚РѕСЂРѕРјСѓ РЅРµРѕР±С…РѕРґРёРјРѕ РѕС‚РјРµРЅРёС‚СЊ РїСЂРѕРІРµРґРµРЅРёРµ Р—РљРЈ
 	 */
 	public void unMoveZKUsInsertedByAct(ENAct act) {
 		this.workWithZKUsInsertedByAct(act, ENActStatus.CLOSED, ZKUS_INSERTED_BY_ACT_UNMOVE);
@@ -8225,14 +8225,14 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 
 	/**
 	 *
-	 * Метод, который, в зависимости от посланного в него параметра {@code action}
-	 * осуществляет определенную операцию с ЗКУ связанными с актами
+	 * РњРµС‚РѕРґ, РєРѕС‚РѕСЂС‹Р№, РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ РїРѕСЃР»Р°РЅРЅРѕРіРѕ РІ РЅРµРіРѕ РїР°СЂР°РјРµС‚СЂР° {@code action}
+	 * РѕСЃСѓС‰РµСЃС‚РІР»СЏРµС‚ РѕРїСЂРµРґРµР»РµРЅРЅСѓСЋ РѕРїРµСЂР°С†РёСЋ СЃ Р—РљРЈ СЃРІСЏР·Р°РЅРЅС‹РјРё СЃ Р°РєС‚Р°РјРё
 	 *
-	 * @param act объект акта
-	 * @param actStatusCode статус, в котором должен быть акт
-	 * (если акт не будет в этом статусе, то метод сгенерирует исключение)
-	 * @param action целое число, с одним из заданных значений (0 - удаление ЗКУ;
-	 * 1 - проведение ЗКУ; 2 - отмена проведения ЗКУ)
+	 * @param act РѕР±СЉРµРєС‚ Р°РєС‚Р°
+	 * @param actStatusCode СЃС‚Р°С‚СѓСЃ, РІ РєРѕС‚РѕСЂРѕРј РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ Р°РєС‚
+	 * (РµСЃР»Рё Р°РєС‚ РЅРµ Р±СѓРґРµС‚ РІ СЌС‚РѕРј СЃС‚Р°С‚СѓСЃРµ, С‚Рѕ РјРµС‚РѕРґ СЃРіРµРЅРµСЂРёСЂСѓРµС‚ РёСЃРєР»СЋС‡РµРЅРёРµ)
+	 * @param action С†РµР»РѕРµ С‡РёСЃР»Рѕ, СЃ РѕРґРЅРёРј РёР· Р·Р°РґР°РЅРЅС‹С… Р·РЅР°С‡РµРЅРёР№ (0 - СѓРґР°Р»РµРЅРёРµ Р—РљРЈ;
+	 * 1 - РїСЂРѕРІРµРґРµРЅРёРµ Р—РљРЈ; 2 - РѕС‚РјРµРЅР° РїСЂРѕРІРµРґРµРЅРёСЏ Р—РљРЈ)
 	 */
 	private void workWithZKUsInsertedByAct(ENAct act, int actStatusCode, int action) {
 		Connection finConn = null;
@@ -8252,11 +8252,11 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 			ENPlanWorkFilter planFilter = new ENPlanWorkFilter();
 			planFilter.conditionSQL = String.format("%s in (%s)", ENPlanWork.code_QFielld, planCodesStr);
 			int[] planCodes = planDao.getFilteredCodeArray(planFilter, 0, -1);
-			if(planCodes.length == 0) throw new SystemException(String.format("У акті № %s від %s немає планів!"
+			if(planCodes.length == 0) throw new SystemException(String.format("РЈ Р°РєС‚С– в„– %s РІС–Рґ %s РЅРµРјР°С” РїР»Р°РЅС–РІ!"
 					, act.numberGen, new SimpleDateFormat("dd.mm.yyyy").format(act.dateAct)));
 			for(int planCode : planCodes) {
 				ENPlanWork plan = planDao.getObject(planCode);
-				// Если план имеет тип отличный от "Установка ЗКУ", то метод выбрасывает ошибку
+				// Р•СЃР»Рё РїР»Р°РЅ РёРјРµРµС‚ С‚РёРї РѕС‚Р»РёС‡РЅС‹Р№ РѕС‚ "РЈСЃС‚Р°РЅРѕРІРєР° Р—РљРЈ", С‚Рѕ РјРµС‚РѕРґ РІС‹Р±СЂР°СЃС‹РІР°РµС‚ РѕС€РёР±РєСѓ
 				planDao.checkENPlanWorkTypes(plan, true, true, ENPlanWorkType.EZ_SETUP_ZKU);
 			}
 
@@ -8307,7 +8307,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 				case ZKUS_INSERTED_BY_ACT_UNMOVE:
 					scDao.unprovCounterMountInSCZKU(act2Ostable.num_un);
 					break;
-				default: throw new java.lang.IllegalArgumentException("Неправильное значение для параметра action");
+				default: throw new java.lang.IllegalArgumentException("РќРµРїСЂР°РІРёР»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ РґР»СЏ РїР°СЂР°РјРµС‚СЂР° action");
 				}
 			}
 
@@ -8329,7 +8329,7 @@ public BigDecimal getProductionExpencesPercentByAct(int codeAct) {
 	}
 
 
-//NET-2335 Передача проводок по акту затратная часть FK & AX
+//NET-2335 РџРµСЂРµРґР°С‡Р° РїСЂРѕРІРѕРґРѕРє РїРѕ Р°РєС‚Сѓ Р·Р°С‚СЂР°С‚РЅР°СЏ С‡Р°СЃС‚СЊ FK & AX
 public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 	    Connection finConn = null;
 		//Connection enConn = null;
@@ -8354,10 +8354,10 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
      		+ " where ii.code = oz.usageinputitemrefcode and oz.code = " + oz.code +" )";
      SCUsageInputItemShortList usiList = usiDAO.getScrollableFilteredList(usiFilter, 0, -1);
      SCUsageInputItem usiObject = usiDAO.getObject(usiList.get(0).code);
-     // SUPP-67738 Определение ОЗ для счетчиков абонентов
+     // SUPP-67738 РћРїСЂРµРґРµР»РµРЅРёРµ РћР— РґР»СЏ СЃС‡РµС‚С‡РёРєРѕРІ Р°Р±РѕРЅРµРЅС‚РѕРІ
      boolean isAbonCounter = (oz.account == null || oz.account.trim().length() == 0);
 
-     /*по правельному берем с акта*/
+     /*РїРѕ РїСЂР°РІРµР»СЊРЅРѕРјСѓ Р±РµСЂРµРј СЃ Р°РєС‚Р°*/
      /*ENAct2HumenFilter a2hFilter = new ENAct2HumenFilter();
      a2hFilter.chargeRef.code = FINChargeType.IS_NOT_INVALID;
      a2hFilter.actRef.code = act.code;
@@ -8366,14 +8366,14 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
      	chargepercent = a2hList.get(0).chargePercent;
      }*/
 
-      /*!!!! Если тип акта = Техническое обслуживание и подвид работ в планах в этом акте один из перечня ()
-       * ( 100	ЕЗ - Планова заміна лічильника
-       *   102	ЕЗ - Непланова заміна лічильника
-       *   103	ЕЗ - Непланове встановлення лічильника
-       *   106	ЕЗ - Установка ЗКУ
-       *   111	ЕЗ - Установка ЗКУ с заменой(переносом) счетчика
-       *   112	ЕЗ - Замена счетчика в составе ЗКУ )
-      !!!!! то ПРОДОЛЖАЕМ , иначе выход ...т.к метод для передачи проводок по ОЗ*/
+      /*!!!! Р•СЃР»Рё С‚РёРї Р°РєС‚Р° = РўРµС…РЅРёС‡РµСЃРєРѕРµ РѕР±СЃР»СѓР¶РёРІР°РЅРёРµ Рё РїРѕРґРІРёРґ СЂР°Р±РѕС‚ РІ РїР»Р°РЅР°С… РІ СЌС‚РѕРј Р°РєС‚Рµ РѕРґРёРЅ РёР· РїРµСЂРµС‡РЅСЏ ()
+       * ( 100	Р•Р— - РџР»Р°РЅРѕРІР° Р·Р°РјС–РЅР° Р»С–С‡РёР»СЊРЅРёРєР°
+       *   102	Р•Р— - РќРµРїР»Р°РЅРѕРІР° Р·Р°РјС–РЅР° Р»С–С‡РёР»СЊРЅРёРєР°
+       *   103	Р•Р— - РќРµРїР»Р°РЅРѕРІРµ РІСЃС‚Р°РЅРѕРІР»РµРЅРЅСЏ Р»С–С‡РёР»СЊРЅРёРєР°
+       *   106	Р•Р— - РЈСЃС‚Р°РЅРѕРІРєР° Р—РљРЈ
+       *   111	Р•Р— - РЈСЃС‚Р°РЅРѕРІРєР° Р—РљРЈ СЃ Р·Р°РјРµРЅРѕР№(РїРµСЂРµРЅРѕСЃРѕРј) СЃС‡РµС‚С‡РёРєР°
+       *   112	Р•Р— - Р—Р°РјРµРЅР° СЃС‡РµС‚С‡РёРєР° РІ СЃРѕСЃС‚Р°РІРµ Р—РљРЈ )
+      !!!!! С‚Рѕ РџР РћР”РћР›Р–РђР•Рњ , РёРЅР°С‡Рµ РІС‹С…РѕРґ ...С‚.Рє РјРµС‚РѕРґ РґР»СЏ РїРµСЂРµРґР°С‡Рё РїСЂРѕРІРѕРґРѕРє РїРѕ РћР—*/
 
      ENPlanWorkFilter plFil = new ENPlanWorkFilter();
      plFil.conditionSQL = "  enplanwork.code in ( select p.code from enplanwork p  , enact2enplanwork a2p \n"+
@@ -8387,8 +8387,8 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
                          +ENPlanWorkType.EZ_SETUP_ZKU  +" , "
                          +ENPlanWorkType.EZ_CHANGE_ZKU  +" , "
                          +ENPlanWorkType.EZ_CHANGE_COUNTER_IN_ZKU +" ) "
-                         		+ " union \n" + // монтаж ЗКУ не связаны акты и scusage
-                         		"  /* монтажу ЗКО*/ \n" +
+                         		+ " union \n" + // РјРѕРЅС‚Р°Р¶ Р—РљРЈ РЅРµ СЃРІСЏР·Р°РЅС‹ Р°РєС‚С‹ Рё scusage
+                         		"  /* РјРѕРЅС‚Р°Р¶Сѓ Р—РљРћ*/ \n" +
                          		"  select enp.code  From \n" +
                          		"  scusageinputtmz2sccntr sci2scc , \n" +
                          		"  sccounter sc , \n" +
@@ -8397,11 +8397,11 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
                          		"  enelement el, \n" +
                          		"  finmoldata  md, \n" +
                          		"  enworkorder2enplanwork  wp \n" +
-                         		"  where sci2scc.ozrefcode = " + oz.code  + "  /*параметр кода ОЗ*/ \n" +
-                         		"    and sc.statusrefcode = 2 /*в Акті (ОЗ-1 і інш.)*/ \n" +
+                         		"  where sci2scc.ozrefcode = " + oz.code  + "  /*РїР°СЂР°РјРµС‚СЂ РєРѕРґР° РћР—*/ \n" +
+                         		"    and sc.statusrefcode = 2 /*РІ РђРєС‚С– (РћР—-1 С– С–РЅС€.)*/ \n" +
                          		"    and sc.code = sci2scc.sccounterrefcode \n" +
                          		"    and sc.estimateitemrefcode = eni.code \n" +
-                         		"    and eni.accountingtyperefcode = 2 /*Счетчики */ \n" +
+                         		"    and eni.accountingtyperefcode = 2 /*РЎС‡РµС‚С‡РёРєРё */ \n" +
                          		"    and enp.code = eni.planrefcode \n" +
                          		"    and enp.elementrefcode = el.code \n" +
                          		"    and md.workordercode=wp.workordercode \n" +
@@ -8410,10 +8410,10 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
                          		"    and sc.code = sci2scc.sccounterrefcode \n" +
                          		") "   ;
      int[] plFilArr = plDao.getFilteredCodeArrayNOSEGR(plFil, 0, -1);
-     // не передаем проводки под такие Вид документу (типи ОЗ)
-     // - Виведення з Експлуатації
-     // - Прихід б/в в СК
-     // - ввеждення в експлуатацыю в склади зку . //
+     // РЅРµ РїРµСЂРµРґР°РµРј РїСЂРѕРІРѕРґРєРё РїРѕРґ С‚Р°РєРёРµ Р’РёРґ РґРѕРєСѓРјРµРЅС‚Сѓ (С‚РёРїРё РћР—)
+     // - Р’РёРІРµРґРµРЅРЅСЏ Р· Р•РєСЃРїР»СѓР°С‚Р°С†С–С—
+     // - РџСЂРёС…С–Рґ Р±/РІ РІ РЎРљ
+     // - РІРІРµР¶РґРµРЅРЅСЏ РІ РµРєСЃРїР»СѓР°С‚Р°С†С‹СЋ РІ СЃРєР»Р°РґРё Р·РєСѓ . //
      if (plFilArr.length == 0 || usiObject.kindRef.code == SCUsageInputItemKind.UsageOut
     		                  || usiObject.kindRef.code == SCUsageInputItemKind.InputUsing
     		                  || usiObject.kindRef.code == SCUsageInputItemKind.UsageInputInZKU  ){
@@ -8436,10 +8436,10 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
      int[] aArr = aDAO.getFilteredCodeArray(aFil, 0, -1);
 
      if (aArr.length == 0 ){
-    	 throw new EnergyproSystemException(" \n Для передачі проводок не визначено перелік актів виконаних робіт ");
+    	 throw new EnergyproSystemException(" \n Р”Р»СЏ РїРµСЂРµРґР°С‡С– РїСЂРѕРІРѕРґРѕРє РЅРµ РІРёР·РЅР°С‡РµРЅРѕ РїРµСЂРµР»С–Рє Р°РєС‚С–РІ РІРёРєРѕРЅР°РЅРёС… СЂРѕР±С–С‚ ");
      }
 
-     // Если документ проводится с применением ЭЦП, будем проводить под юзером energynet
+     // Р•СЃР»Рё РґРѕРєСѓРјРµРЅС‚ РїСЂРѕРІРѕРґРёС‚СЃСЏ СЃ РїСЂРёРјРµРЅРµРЅРёРµРј Р­Р¦Рџ, Р±СѓРґРµРј РїСЂРѕРІРѕРґРёС‚СЊ РїРѕРґ СЋР·РµСЂРѕРј energynet
      SCUsageInputLogic scUsageInputLogic = new SCUsageInputLogic(connection, userProfile);
      String userName = scUsageInputLogic.getUserNameForFKBySCUsageInput(ui.code);
 
@@ -8451,36 +8451,36 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
      String BBBBBBBBBBB = this.getCorrespondingCAAForOZ(oz, isPricon);
 
 		String V_Prov_Buffer = "";
-		// установка счетчика без зку
+		// СѓСЃС‚Р°РЅРѕРІРєР° СЃС‡РµС‚С‡РёРєР° Р±РµР· Р·РєСѓ
 		if ( ui.iszku == Integer.MIN_VALUE || ui.iszku == 0 ){
 			/*SUPP-103845,SUPP-104514 */  String  kodPodr = ((isAbonCounter) ? "000" : "0" + usiObject.molCode.substring(0, 2));
 
 			if(kodPodr.equals("") ){
-				throw new EnergyproSystemException(" \n Для передачі проводок не визначено код цеху по ОЗ !!! \n ui.department.hrmorganizationid = " + ui.department.hrmorganizationid  );
+				throw new EnergyproSystemException(" \n Р”Р»СЏ РїРµСЂРµРґР°С‡С– РїСЂРѕРІРѕРґРѕРє РЅРµ РІРёР·РЅР°С‡РµРЅРѕ РєРѕРґ С†РµС…Сѓ РїРѕ РћР— !!! \n ui.department.hrmorganizationid = " + ui.department.hrmorganizationid  );
 			}
 
 
 
-	         // -- если ОЗ по вводу в эксплуатацию счетчика то кор счет берется по счетчику который вводится  ,, 1-й знак КАУ =1 , 2-й знак КАУ = (если присоед то = 5 иначем 4)
-	         // -- если ОЗ по вводу в эксплуатацию зку то кор счет = 1531 ,, 1-й знак КАУ = 2 , 2 знак КАУ = (если присоед то = 5 иначем 4)
+	         // -- РµСЃР»Рё РћР— РїРѕ РІРІРѕРґСѓ РІ СЌРєСЃРїР»СѓР°С‚Р°С†РёСЋ СЃС‡РµС‚С‡РёРєР° С‚Рѕ РєРѕСЂ СЃС‡РµС‚ Р±РµСЂРµС‚СЃСЏ РїРѕ СЃС‡РµС‚С‡РёРєСѓ РєРѕС‚РѕСЂС‹Р№ РІРІРѕРґРёС‚СЃСЏ  ,, 1-Р№ Р·РЅР°Рє РљРђРЈ =1 , 2-Р№ Р·РЅР°Рє РљРђРЈ = (РµСЃР»Рё РїСЂРёСЃРѕРµРґ С‚Рѕ = 5 РёРЅР°С‡РµРј 4)
+	         // -- РµСЃР»Рё РћР— РїРѕ РІРІРѕРґСѓ РІ СЌРєСЃРїР»СѓР°С‚Р°С†РёСЋ Р·РєСѓ С‚Рѕ РєРѕСЂ СЃС‡РµС‚ = 1531 ,, 1-Р№ Р·РЅР°Рє РљРђРЈ = 2 , 2 Р·РЅР°Рє РљРђРЈ = (РµСЃР»Рё РїСЂРёСЃРѕРµРґ С‚Рѕ = 5 РёРЅР°С‡РµРј 4)
 
-		     //~!!!!!!!! 14.09.2017  --- переделка по определению кор счета если счетчик взяли с 15 счета то счет 4 знака оставляем неизменным 15..
-		     ///!!!!!!!!!!!!!!!  а если взяли с 11 счета то кор счет = 1532 четко , это условие работает и для ввода счетч и воода счетчиков в составе ЗКУ
+		     //~!!!!!!!! 14.09.2017  --- РїРµСЂРµРґРµР»РєР° РїРѕ РѕРїСЂРµРґРµР»РµРЅРёСЋ РєРѕСЂ СЃС‡РµС‚Р° РµСЃР»Рё СЃС‡РµС‚С‡РёРє РІР·СЏР»Рё СЃ 15 СЃС‡РµС‚Р° С‚Рѕ СЃС‡РµС‚ 4 Р·РЅР°РєР° РѕСЃС‚Р°РІР»СЏРµРј РЅРµРёР·РјРµРЅРЅС‹Рј 15..
+		     ///!!!!!!!!!!!!!!!  Р° РµСЃР»Рё РІР·СЏР»Рё СЃ 11 СЃС‡РµС‚Р° С‚Рѕ РєРѕСЂ СЃС‡РµС‚ = 1532 С‡РµС‚РєРѕ , СЌС‚Рѕ СѓСЃР»РѕРІРёРµ СЂР°Р±РѕС‚Р°РµС‚ Рё РґР»СЏ РІРІРѕРґР° СЃС‡РµС‚С‡ Рё РІРѕРѕРґР° СЃС‡РµС‚С‡РёРєРѕРІ РІ СЃРѕСЃС‚Р°РІРµ Р—РљРЈ
 			 ///String BBBBBBBBBBB_otchisl="";
-		     String infoDescript = " Монтаж лічильника ";
+		     String infoDescript = " РњРѕРЅС‚Р°Р¶ Р»С–С‡РёР»СЊРЅРёРєР° ";
 
 		     if( usiObject.kindRef.code == SCUsageInputItemKind.UsageInput ||
 		         usiObject.kindRef.code == SCUsageInputItemKind.UsageInputInZKU	 ){
-		    	 infoDescript = " Монтаж лічильника ";
+		    	 infoDescript = " РњРѕРЅС‚Р°Р¶ Р»С–С‡РёР»СЊРЅРёРєР° ";
 
 		     } else {
-		    	 infoDescript = " Монтаж ЗКО  ";
+		    	 infoDescript = " РњРѕРЅС‚Р°Р¶ Р—РљРћ  ";
 		     }
 
 
 
 
-  	         // I ПРОВОДКИ ПО ЗП черным
+  	         // I РџР РћР’РћР”РљР РџРћ Р—Рџ С‡РµСЂРЅС‹Рј
 		    FKTrans2AXTransItemShortList fkTrans2axTransList = this.getDataForProvsSalaryByOZ(oz.code, ui.iszku , usiObject.kindRef.code);
 
 	        if(fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("") ){
@@ -8495,74 +8495,74 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 						"  and ei.planrefcode = a2p.plancode )       ";
 	        	SCUsageInputItemOZ2ENActShortList oz2actList = oz2actDAO.getScrollableFilteredList(oz2actFilter, 0, -1);
 	        	for (int a = 0; a < oz2actList.totalCount ; a++) {
-	        		this.recalcENAct2HumenCehIdbyAct(oz2actList.get(a).enActRefCode); // если данных нет перессчитаем и вытянем данные заново
+	        		this.recalcENAct2HumenCehIdbyAct(oz2actList.get(a).enActRefCode); // РµСЃР»Рё РґР°РЅРЅС‹С… РЅРµС‚ РїРµСЂРµСЃСЃС‡РёС‚Р°РµРј Рё РІС‹С‚СЏРЅРµРј РґР°РЅРЅС‹Рµ Р·Р°РЅРѕРІРѕ
 				}
 
 	        	  fkTrans2axTransList = this.getDataForProvsSalaryByOZ(oz.code, ui.iszku , usiObject.kindRef.code);
 	         }
-	          // если повторно не определили цех - тогда ошибка
+	          // РµСЃР»Рё РїРѕРІС‚РѕСЂРЅРѕ РЅРµ РѕРїСЂРµРґРµР»РёР»Рё С†РµС… - С‚РѕРіРґР° РѕС€РёР±РєР°
 	          if(fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("") ){
-	        	  throw new EnergyproSystemException(" \n Для робітників не визначено код цеху !!! Потрібно зробити розрахунок акту !!! ");
+	        	  throw new EnergyproSystemException(" \n Р”Р»СЏ СЂРѕР±С–С‚РЅРёРєС–РІ РЅРµ РІРёР·РЅР°С‡РµРЅРѕ РєРѕРґ С†РµС…Сѓ !!! РџРѕС‚СЂС–Р±РЅРѕ Р·СЂРѕР±РёС‚Рё СЂРѕР·СЂР°С…СѓРЅРѕРє Р°РєС‚Сѓ !!! ");
 	          }
 
 	          BigDecimal zpByAct = new BigDecimal(0);
 	          for (int i = 0; i < fkTrans2axTransList.totalCount; i++) {
 
-	        	  if(usiObject.kindRef.code == SCUsageInputItemKind.UsageInputZKU ){ // !!!!!!!!  если установка зку то кор цех тот чей зку
+	        	  if(usiObject.kindRef.code == SCUsageInputItemKind.UsageInputZKU ){ // !!!!!!!!  РµСЃР»Рё СѓСЃС‚Р°РЅРѕРІРєР° Р·РєСѓ С‚Рѕ РєРѕСЂ С†РµС… С‚РѕС‚ С‡РµР№ Р·РєСѓ
 	        		  kodPodr = fkTrans2axTransList.get(i).korCeh;
 	        	  }
 
 
 	        	  zpByAct = zpByAct.add(fkTrans2axTransList.get(i).amountCur);
 	        	  V_Prov_Buffer = new String(V_Prov_Buffer.length()>0 ? V_Prov_Buffer + " UNION ALL " : "")  +	fpLogic.generateQueryTransSHABLON(
-	        		ui.dateGen,              // Дата документа (Дата бух документов на клиенте значится так )
-	        		fkTrans2axTransList.get(i).amountCur ,          //сумма в роводке
+	        		ui.dateGen,              // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р° (Р”Р°С‚Р° Р±СѓС… РґРѕРєСѓРјРµРЅС‚РѕРІ РЅР° РєР»РёРµРЅС‚Рµ Р·РЅР°С‡РёС‚СЃСЏ С‚Р°Рє )
+	        		fkTrans2axTransList.get(i).amountCur ,          //СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 	        		fkTrans2axTransList.get(i).balCeh ,
-	          		"6610" ,           // балансовый счет
-	          		"00000000130",     // балансовый  КАУ
-	          		kodPodr,           // Корр.цех ( код РЕСа или 000 если подразделения АУП )
-	          		IIII ,             // Корр.счет
-	             	// Корр.КАУ
+	          		"6610" ,           // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+	          		"00000000130",     // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№  РљРђРЈ
+	          		kodPodr,           // РљРѕСЂСЂ.С†РµС… ( РєРѕРґ Р Р•РЎР° РёР»Рё 000 РµСЃР»Рё РїРѕРґСЂР°Р·РґРµР»РµРЅРёСЏ РђРЈРџ )
+	          		IIII ,             // РљРѕСЂСЂ.СЃС‡РµС‚
+	             	// РљРѕСЂСЂ.РљРђРЈ
 	          		BBBBBBBBBBB	,
 	        		oz.numberDoc  ,
 	          		ui.dateGen ,
-	          		"to_net_oz Акт № "+oz.numberDoc+", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
+	          		"to_net_oz РђРєС‚ в„– "+oz.numberDoc+", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
 	          		userName
 			            );
 				}
-	       // I ПРОВОДКИ ПО ЗП красным, выбираем суммы зп с группировкой по шпз сотрудника   и сех
+	       // I РџР РћР’РћР”РљР РџРћ Р—Рџ РєСЂР°СЃРЅС‹Рј, РІС‹Р±РёСЂР°РµРј СЃСѓРјРјС‹ Р·Рї СЃ РіСЂСѓРїРїРёСЂРѕРІРєРѕР№ РїРѕ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР°   Рё СЃРµС…
 	           fkTrans2axTransList = this.getDataForProvsSalaryByOZRed(oz.code, ui.iszku , usiObject.kindRef.code );
 	           for (int ir = 0; ir < fkTrans2axTransList.totalCount; ir++) {
 		        	  V_Prov_Buffer = new String(V_Prov_Buffer.length()>0 ? V_Prov_Buffer + " UNION ALL " : "")  +	fpLogic.generateQueryTransSHABLON(
-		        		ui.dateGen,              // Дата документа
-		        		fkTrans2axTransList.get(ir).amountCur.negate() ,          //сумма в роводке
+		        		ui.dateGen,              // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+		        		fkTrans2axTransList.get(ir).amountCur.negate() ,          //СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 		        		fkTrans2axTransList.get(ir).balCeh ,
-		          		"6610" ,           // балансовый счет
-		          		"00000000130",             // балансовый  КАУ
-		          		fkTrans2axTransList.get(ir).balCeh,                    // Корреспондентский  цех
-		          		fkTrans2axTransList.get(ir).balans.substring(0, 4) ,            // Корреспондентский  счет шпз сотрудника идет
-		             	// Корреспондентский  КАУ
+		          		"6610" ,           // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+		          		"00000000130",             // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№  РљРђРЈ
+		          		fkTrans2axTransList.get(ir).balCeh,                    // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  С†РµС…
+		          		fkTrans2axTransList.get(ir).balans.substring(0, 4) ,            // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  СЃС‡РµС‚ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР° РёРґРµС‚
+		             	// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  РљРђРЈ
 		          		fkTrans2axTransList.get(ir).balans.substring(4, 15)
 		        		,
 		        		oz.numberDoc  ,
 		          		ui.dateGen ,
-		          		"to_net_oz Акт № "+oz.numberDoc +", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
+		          		"to_net_oz РђРєС‚ в„– "+oz.numberDoc +", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
 		          		userName
 				            );
 					}
 
-	            // II пачка проводок Єдиний внесок на загальнообов'язкове державне соціальне страхування - черным
-	            fkTrans2axTransList = this.getDataForBlackProvsСhargesumByOZ(oz.code, ui.iszku , usiObject.kindRef.code );
+	            // II РїР°С‡РєР° РїСЂРѕРІРѕРґРѕРє Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - С‡РµСЂРЅС‹Рј
+	            fkTrans2axTransList = this.getDataForBlackProvsРЎhargesumByOZ(oz.code, ui.iszku , usiObject.kindRef.code );
 		           for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 		        	   V_Prov_Buffer = new String(V_Prov_Buffer.length()>0 ? V_Prov_Buffer + " UNION ALL " : "")  +	fpLogic.generateQueryTransSHABLON(
-		   	        		ui.dateGen,              // Дата документа
-		   	        		fkTrans2axTransList.get(c).amountCur ,          //сумма в роводке
+		   	        		ui.dateGen,              // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+		   	        		fkTrans2axTransList.get(c).amountCur ,          //СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 		   	        		fkTrans2axTransList.get(c).balCeh ,
-		   	        		fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"  : "6512",           // балансовый счет
-		   	          		"00000000130",             // балансовый  КАУ
-		   	          		kodPodr,                   // Корреспондентский  цех
-		   	             	IIII ,             // Корреспондентский  счет
-		   	          // Корреспондентский  КАУ  09.04.2021 для  65 счета первый знак кау 2
+		   	        		fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"  : "6512",           // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+		   	          		"00000000130",             // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№  РљРђРЈ
+		   	          		kodPodr,                   // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  С†РµС…
+		   	             	IIII ,             // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  СЃС‡РµС‚
+		   	          // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  РљРђРЈ  09.04.2021 РґР»СЏ  65 СЃС‡РµС‚Р° РїРµСЂРІС‹Р№ Р·РЅР°Рє РєР°Сѓ 2
 		   	             new String((IIII.substring(0, 4).substring(0, 3).equals("232") || 
 		   	            		IIII.substring(0, 4).equals("9100") ||
 		   	            		IIII.substring(0, 4).equals("9200") ) 
@@ -8570,24 +8570,24 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 			      	          	 : BBBBBBBBBBB ) , 
 		   	        		oz.numberDoc ,
 		   	          		ui.dateGen ,
-		   	          		"to_net_oz Акт № "+ oz.numberDoc+", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
+		   	          		"to_net_oz РђРєС‚ в„– "+ oz.numberDoc+", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
 		   	          		userName
 		   			            );
 		           }
 
-		        // Єдиний внесок на загальнообов'язкове державне соціальне страхування - красным  , разбивка по цеху  , ШПЗ , виду работника - инвалид / не инвалид
-		            fkTrans2axTransList = this.getDataForRedProvsСhargesumByOZ(oz.code, ui.iszku , usiObject.kindRef.code );
+		        // Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - РєСЂР°СЃРЅС‹Рј  , СЂР°Р·Р±РёРІРєР° РїРѕ С†РµС…Сѓ  , РЁРџР— , РІРёРґСѓ СЂР°Р±РѕС‚РЅРёРєР° - РёРЅРІР°Р»РёРґ / РЅРµ РёРЅРІР°Р»РёРґ
+		            fkTrans2axTransList = this.getDataForRedProvsРЎhargesumByOZ(oz.code, ui.iszku , usiObject.kindRef.code );
 			           for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 			        	  if (fkTrans2axTransList.get(c).amountCur.doubleValue() > 0 ){
 			        		  V_Prov_Buffer = new String(V_Prov_Buffer.length()>0 ? V_Prov_Buffer + " UNION ALL " : "")  +	fpLogic.generateQueryTransSHABLON(
-					   	        		ui.dateGen,              // Дата документа
-					   	        		fkTrans2axTransList.get(c).amountCur.negate() ,          //сумма в роводке
+					   	        		ui.dateGen,              // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+					   	        		fkTrans2axTransList.get(c).amountCur.negate() ,          //СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 					   	        		fkTrans2axTransList.get(c).balCeh ,
-					   	        		fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"  : "6512",           // балансовый счет
-					   	          		"00000000130",                                                 // балансовый  КАУ
-					   	          	    fkTrans2axTransList.get(c).balCeh,                             // Корреспондентский  цех
-					   	             	fkTrans2axTransList.get(c).balans.substring(0, 4) ,            // Корреспондентский  счет шпз сотрудника идет
-					             	  // Корреспондентский  КАУ
+					   	        		fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"  : "6512",           // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+					   	          		"00000000130",                                                 // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№  РљРђРЈ
+					   	          	    fkTrans2axTransList.get(c).balCeh,                             // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  С†РµС…
+					   	             	fkTrans2axTransList.get(c).balans.substring(0, 4) ,            // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  СЃС‡РµС‚ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР° РёРґРµС‚
+					             	  // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  РљРђРЈ
 					          	    	 
 					   	             new String((fkTrans2axTransList.get(c).balans.substring(0, 4).substring(0, 3).equals("232") || 
 						      	          		fkTrans2axTransList.get(c).balans.substring(0, 4).equals("9100") ||
@@ -8598,7 +8598,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 					   	        		,
 					   	        		oz.numberDoc  ,
 					   	          		ui.dateGen ,
-					   	          		"to_net_oz Акт № "+oz.numberDoc+", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
+					   	          		"to_net_oz РђРєС‚ в„– "+oz.numberDoc+", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
 					   	          		userName
 					   			            );
 			        	      }
@@ -8606,12 +8606,12 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 			           }
 
 			}
-		// установка счетчика dв оставе зку !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		// СѓСЃС‚Р°РЅРѕРІРєР° СЃС‡РµС‚С‡РёРєР° dРІ РѕСЃС‚Р°РІРµ Р·РєСѓ !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 				if ( ui.iszku == 1 ){
 					String  kodPodr = "";
-					// определим код цеха по штатному mdax
+					// РѕРїСЂРµРґРµР»РёРј РєРѕРґ С†РµС…Р° РїРѕ С€С‚Р°С‚РЅРѕРјСѓ mdax
 					if( usiObject.kindRef.code == SCUsageInputItemKind.UsageInput){
-					 // код подразделения в котором значится ЗКУ
+					 // РєРѕРґ РїРѕРґСЂР°Р·РґРµР»РµРЅРёСЏ РІ РєРѕС‚РѕСЂРѕРј Р·РЅР°С‡РёС‚СЃСЏ Р—РљРЈ
 						SCCounterFilter cFil = new SCCounterFilter();
                         cFil.conditionSQL = " sccounter.invnumber is not null and sccounter.code in ( select qq.sccounterrefcode from scusageinputtmz2sccntr qq where qq.ozrefcode = "+ oz.code +" )";
 						int[] cArr = cDAO.getFilteredCodeArray(cFil, 0, -1);
@@ -8625,7 +8625,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 							kodPodr = mdLogic.getMAINORGANIZATIONIDByHRMORGANIZATIONID(cObj.departmetFKCode, ui.dateGen);
 						}
 					} else if (	usiObject.kindRef.code == SCUsageInputItemKind.UsageInputZKU  ){
-						// подразделение определяется по тому чей ЗКУ
+						// РїРѕРґСЂР°Р·РґРµР»РµРЅРёРµ РѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ РїРѕ С‚РѕРјСѓ С‡РµР№ Р—РљРЈ
 						kodPodr = "0"+usiObject.molCode.substring(0, 2);
 					} else {
 						kodPodr = mdLogic.getMAINORGANIZATIONIDByHRMORGANIZATIONID(ui.department.hrmorganizationid, ui.dateGen);
@@ -8634,28 +8634,28 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 
 					if(kodPodr.equals("") ){
-						throw new EnergyproSystemException(" \n Для передачі проводок не визначено код цеху по ОЗ !!! \n ui.department.hrmorganizationid = " + ui.department.hrmorganizationid  );
+						throw new EnergyproSystemException(" \n Р”Р»СЏ РїРµСЂРµРґР°С‡С– РїСЂРѕРІРѕРґРѕРє РЅРµ РІРёР·РЅР°С‡РµРЅРѕ РєРѕРґ С†РµС…Сѓ РїРѕ РћР— !!! \n ui.department.hrmorganizationid = " + ui.department.hrmorganizationid  );
 					}
 
-				  // -- если ОЗ по вводу в эксплуатацию счетчика то кор счет берется по счетчику который вводится  ,, 1-й знак КАУ =1 , 2-й знак КАУ = (если присоед то = 5 иначем 4)
-			         // -- если ОЗ по вводу в эксплуатацию зку то кор счет = 1531 ,, 1-й знак КАУ = 2 , 2 знак КАУ = (если присоед то = 5 иначем 4)
+				  // -- РµСЃР»Рё РћР— РїРѕ РІРІРѕРґСѓ РІ СЌРєСЃРїР»СѓР°С‚Р°С†РёСЋ СЃС‡РµС‚С‡РёРєР° С‚Рѕ РєРѕСЂ СЃС‡РµС‚ Р±РµСЂРµС‚СЃСЏ РїРѕ СЃС‡РµС‚С‡РёРєСѓ РєРѕС‚РѕСЂС‹Р№ РІРІРѕРґРёС‚СЃСЏ  ,, 1-Р№ Р·РЅР°Рє РљРђРЈ =1 , 2-Р№ Р·РЅР°Рє РљРђРЈ = (РµСЃР»Рё РїСЂРёСЃРѕРµРґ С‚Рѕ = 5 РёРЅР°С‡РµРј 4)
+			         // -- РµСЃР»Рё РћР— РїРѕ РІРІРѕРґСѓ РІ СЌРєСЃРїР»СѓР°С‚Р°С†РёСЋ Р·РєСѓ С‚Рѕ РєРѕСЂ СЃС‡РµС‚ = 1531 ,, 1-Р№ Р·РЅР°Рє РљРђРЈ = 2 , 2 Р·РЅР°Рє РљРђРЈ = (РµСЃР»Рё РїСЂРёСЃРѕРµРґ С‚Рѕ = 5 РёРЅР°С‡РµРј 4)
 				     String infoDescript;
 
 				     if( usiObject.kindRef.code == SCUsageInputItemKind.UsageInput ||
 				         usiObject.kindRef.code == SCUsageInputItemKind.UsageInputInZKU	 ){
-				    	 infoDescript = " Монтаж лічильника ";
+				    	 infoDescript = " РњРѕРЅС‚Р°Р¶ Р»С–С‡РёР»СЊРЅРёРєР° ";
 
 				     } else {
-				    	 infoDescript = " Монтаж ЗКО ";
+				    	 infoDescript = " РњРѕРЅС‚Р°Р¶ Р—РљРћ ";
 				     }
 
 
 
 
-		  	         // I ПРОВОДКИ ПО ЗП черным
+		  	         // I РџР РћР’РћР”РљР РџРћ Р—Рџ С‡РµСЂРЅС‹Рј
 				    FKTrans2AXTransItemShortList fkTrans2axTransList = this.getDataForProvsSalaryByOZ(oz.code , ui.iszku , usiObject.kindRef.code);
 				    if(fkTrans2axTransList.totalCount == 0) {
-			        	  throw new EnergyproSystemException(" \n Нет данных по ЗП для формирования проводок  getDataForProvsSalaryByOZ for oz code =  " + oz.code
+			        	  throw new EnergyproSystemException(" \n РќРµС‚ РґР°РЅРЅС‹С… РїРѕ Р—Рџ РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїСЂРѕРІРѕРґРѕРє  getDataForProvsSalaryByOZ for oz code =  " + oz.code
 			        			   + " ui.iszku =  " + ui.iszku  
 			        			   + " usiObject.kindRef.code = " + usiObject.kindRef.code );
 			          }
@@ -8670,80 +8670,80 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 						"  and ei.planrefcode = a2p.plancode )       ";
 			        	SCUsageInputItemOZ2ENActShortList oz2actList = oz2actDAO.getScrollableFilteredList(oz2actFilter, 0, -1);
 			        	for (int a = 0; a < oz2actList.totalCount ; a++) {
-			        		this.recalcENAct2HumenCehIdbyAct(oz2actList.get(a).enActRefCode); // если данных нет перессчитаем и вытянем данные заново
+			        		this.recalcENAct2HumenCehIdbyAct(oz2actList.get(a).enActRefCode); // РµСЃР»Рё РґР°РЅРЅС‹С… РЅРµС‚ РїРµСЂРµСЃСЃС‡РёС‚Р°РµРј Рё РІС‹С‚СЏРЅРµРј РґР°РЅРЅС‹Рµ Р·Р°РЅРѕРІРѕ
 						}
 
 			        	  fkTrans2axTransList = this.getDataForProvsSalaryByOZ(oz.code , ui.iszku , usiObject.kindRef.code );
 			         }
-			          // если повторно не определили цех - тогда ошибка
+			          // РµСЃР»Рё РїРѕРІС‚РѕСЂРЅРѕ РЅРµ РѕРїСЂРµРґРµР»РёР»Рё С†РµС… - С‚РѕРіРґР° РѕС€РёР±РєР°
 			          if(fkTrans2axTransList.get(0).balCeh == null || fkTrans2axTransList.get(0).balCeh.equals("") ){
-			        	  throw new EnergyproSystemException(" \n Для робітників не визначено код цеху !!! Потрібно зробити розрахунок акту !!! ");
+			        	  throw new EnergyproSystemException(" \n Р”Р»СЏ СЂРѕР±С–С‚РЅРёРєС–РІ РЅРµ РІРёР·РЅР°С‡РµРЅРѕ РєРѕРґ С†РµС…Сѓ !!! РџРѕС‚СЂС–Р±РЅРѕ Р·СЂРѕР±РёС‚Рё СЂРѕР·СЂР°С…СѓРЅРѕРє Р°РєС‚Сѓ !!! ");
 			          }
 
 			          BigDecimal zpByAct = new BigDecimal(0);
 			          for (int i = 0; i < fkTrans2axTransList.totalCount; i++) {
 
-			        	  if(usiObject.kindRef.code == SCUsageInputItemKind.UsageInputZKU ){ // !!!!!!!!  если установка зку то кор цех тот чей зку
+			        	  if(usiObject.kindRef.code == SCUsageInputItemKind.UsageInputZKU ){ // !!!!!!!!  РµСЃР»Рё СѓСЃС‚Р°РЅРѕРІРєР° Р·РєСѓ С‚Рѕ РєРѕСЂ С†РµС… С‚РѕС‚ С‡РµР№ Р·РєСѓ
 			        		  kodPodr = fkTrans2axTransList.get(i).korCeh;
 			        		  kodPodr = mdLogic.getMAINORGANIZATIONIDByHRMORGANIZATIONID(kodPodr, ui.dateGen);
 			        	  }
 
 			        	  zpByAct = zpByAct.add(fkTrans2axTransList.get(i).amountCur);
 			        	  V_Prov_Buffer = new String(V_Prov_Buffer.length()>0 ? V_Prov_Buffer + " UNION ALL " : "")  +	fpLogic.generateQueryTransSHABLON(
-			        		ui.dateGen,              // Дата документа
-			        		fkTrans2axTransList.get(i).amountCur ,          //сумма в роводке
+			        		ui.dateGen,              // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+			        		fkTrans2axTransList.get(i).amountCur ,          //СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 			        		fkTrans2axTransList.get(i).balCeh ,
-			          		"6610" ,           // балансовый счет
-			          		"00000000130",     // балансовый  КАУ
-			          		kodPodr,           // Корр.цех ( код РЕСа или 000 если подразделения АУП )
-			          		IIII ,             // Корр.счет
-			             	// Корр.КАУ
+			          		"6610" ,           // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+			          		"00000000130",     // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№  РљРђРЈ
+			          		kodPodr,           // РљРѕСЂСЂ.С†РµС… ( РєРѕРґ Р Р•РЎР° РёР»Рё 000 РµСЃР»Рё РїРѕРґСЂР°Р·РґРµР»РµРЅРёСЏ РђРЈРџ )
+			          		IIII ,             // РљРѕСЂСЂ.СЃС‡РµС‚
+			             	// РљРѕСЂСЂ.РљРђРЈ
 			          		BBBBBBBBBBB	,
 			        		oz.numberDoc  ,
 			          		ui.dateGen ,
-			          		"to_net_oz Акт № "+oz.numberDoc+", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
+			          		"to_net_oz РђРєС‚ в„– "+oz.numberDoc+", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
 			          		userName
 					            );
 						}
-			       // I ПРОВОДКИ ПО ЗП красным, выбираем суммы зп с группировкой по шпз сотрудника   и сех
+			       // I РџР РћР’РћР”РљР РџРћ Р—Рџ РєСЂР°СЃРЅС‹Рј, РІС‹Р±РёСЂР°РµРј СЃСѓРјРјС‹ Р·Рї СЃ РіСЂСѓРїРїРёСЂРѕРІРєРѕР№ РїРѕ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР°   Рё СЃРµС…
 			           fkTrans2axTransList = this.getDataForProvsSalaryByOZRed(oz.code , ui.iszku , usiObject.kindRef.code );
 			           for (int ir = 0; ir < fkTrans2axTransList.totalCount; ir++) {
 				        	  V_Prov_Buffer = new String(V_Prov_Buffer.length()>0 ? V_Prov_Buffer + " UNION ALL " : "")  +	fpLogic.generateQueryTransSHABLON(
-				        		ui.dateGen,              // Дата документа
-				        		fkTrans2axTransList.get(ir).amountCur.negate() ,          //сумма в роводке
+				        		ui.dateGen,              // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+				        		fkTrans2axTransList.get(ir).amountCur.negate() ,          //СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 				        		fkTrans2axTransList.get(ir).balCeh ,
-				          		"6610" ,           // балансовый счет
-				          		"00000000130",             // балансовый  КАУ
-				          		fkTrans2axTransList.get(ir).balCeh,                    // Корреспондентский  цех
-				          		fkTrans2axTransList.get(ir).balans.substring(0, 4) ,            // Корреспондентский  счет шпз сотрудника идет
-				             	// Корреспондентский  КАУ
+				          		"6610" ,           // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+				          		"00000000130",             // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№  РљРђРЈ
+				          		fkTrans2axTransList.get(ir).balCeh,                    // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  С†РµС…
+				          		fkTrans2axTransList.get(ir).balans.substring(0, 4) ,            // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  СЃС‡РµС‚ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР° РёРґРµС‚
+				             	// РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  РљРђРЈ
 				          		fkTrans2axTransList.get(ir).balans.substring(4, 15)
 				        		,
 				        		oz.numberDoc  ,
 				          		ui.dateGen ,
-				          		"to_net_oz Акт № "+oz.numberDoc +", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
+				          		"to_net_oz РђРєС‚ в„– "+oz.numberDoc +", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
 				          		userName
 						            );
 							}
 
-			            // II пачка проводок Єдиний внесок на загальнообов'язкове державне соціальне страхування - черным
-			         fkTrans2axTransList = this.getDataForBlackProvsСhargesumByOZ(oz.code, ui.iszku , usiObject.kindRef.code );
+			            // II РїР°С‡РєР° РїСЂРѕРІРѕРґРѕРє Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - С‡РµСЂРЅС‹Рј
+			         fkTrans2axTransList = this.getDataForBlackProvsРЎhargesumByOZ(oz.code, ui.iszku , usiObject.kindRef.code );
 				           for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 
-				        	   if(usiObject.kindRef.code == SCUsageInputItemKind.UsageInputZKU ){ // !!!!!!!!  если установка зку то кор цех тот чей зку
+				        	   if(usiObject.kindRef.code == SCUsageInputItemKind.UsageInputZKU ){ // !!!!!!!!  РµСЃР»Рё СѓСЃС‚Р°РЅРѕРІРєР° Р·РєСѓ С‚Рѕ РєРѕСЂ С†РµС… С‚РѕС‚ С‡РµР№ Р·РєСѓ
 					        		  kodPodr = fkTrans2axTransList.get(c).korCeh;
 					        		  kodPodr = mdLogic.getMAINORGANIZATIONIDByHRMORGANIZATIONID(kodPodr, ui.dateGen);
 					        	  }
 
 				        	   V_Prov_Buffer = new String(V_Prov_Buffer.length()>0 ? V_Prov_Buffer + " UNION ALL " : "")  +	fpLogic.generateQueryTransSHABLON(
-				   	        		ui.dateGen,              // Дата документа
-				   	        		fkTrans2axTransList.get(c).amountCur ,          //сумма в роводке
+				   	        		ui.dateGen,              // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+				   	        		fkTrans2axTransList.get(c).amountCur ,          //СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 				   	        		fkTrans2axTransList.get(c).balCeh ,
-				   	        		fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"  : "6512",           // балансовый счет
-				   	          		"00000000130",             // балансовый  КАУ
-				   	          		kodPodr,                   // Корреспондентский  цех
-				   	             	IIII ,             // Корреспондентский  счет
-				   	             // Корреспондентский  КАУ  09.04.2021 для  65 счета первый знак кау 2
+				   	        		fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"  : "6512",           // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+				   	          		"00000000130",             // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№  РљРђРЈ
+				   	          		kodPodr,                   // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  С†РµС…
+				   	             	IIII ,             // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  СЃС‡РµС‚
+				   	             // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  РљРђРЈ  09.04.2021 РґР»СЏ  65 СЃС‡РµС‚Р° РїРµСЂРІС‹Р№ Р·РЅР°Рє РєР°Сѓ 2
 					   	             new String((IIII.substring(0, 4).substring(0, 3).equals("232") || 
 					   	            		IIII.substring(0, 4).equals("9100") ||
 					   	            		IIII.substring(0, 4).equals("9200") ) 
@@ -8751,23 +8751,23 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 						      	          	 : BBBBBBBBBBB ) , 
 				   	        		oz.numberDoc ,
 				   	          		ui.dateGen ,
-				   	          		"to_net_oz Акт № "+ oz.numberDoc+", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
+				   	          		"to_net_oz РђРєС‚ в„– "+ oz.numberDoc+", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
 				   	          		userName
 				   			            );
 				           }
 
-				        // Єдиний внесок на загальнообов'язкове державне соціальне страхування - красным  , разбивка по цеху  , ШПЗ , виду работника - инвалид / не инвалид
-				            fkTrans2axTransList = this.getDataForRedProvsСhargesumByOZ(oz.code, ui.iszku , usiObject.kindRef.code );
+				        // Р„РґРёРЅРёР№ РІРЅРµСЃРѕРє РЅР° Р·Р°РіР°Р»СЊРЅРѕРѕР±РѕРІ'СЏР·РєРѕРІРµ РґРµСЂР¶Р°РІРЅРµ СЃРѕС†С–Р°Р»СЊРЅРµ СЃС‚СЂР°С…СѓРІР°РЅРЅСЏ - РєСЂР°СЃРЅС‹Рј  , СЂР°Р·Р±РёРІРєР° РїРѕ С†РµС…Сѓ  , РЁРџР— , РІРёРґСѓ СЂР°Р±РѕС‚РЅРёРєР° - РёРЅРІР°Р»РёРґ / РЅРµ РёРЅРІР°Р»РёРґ
+				            fkTrans2axTransList = this.getDataForRedProvsРЎhargesumByOZ(oz.code, ui.iszku , usiObject.kindRef.code );
 					           for (int c = 0; c < fkTrans2axTransList.totalCount; c++) {
 					        	   V_Prov_Buffer = new String(V_Prov_Buffer.length()>0 ? V_Prov_Buffer + " UNION ALL " : "")  +	fpLogic.generateQueryTransSHABLON(
-					   	        		ui.dateGen,              // Дата документа
-					   	        		fkTrans2axTransList.get(c).amountCur.negate() ,          //сумма в роводке
+					   	        		ui.dateGen,              // Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
+					   	        		fkTrans2axTransList.get(c).amountCur.negate() ,          //СЃСѓРјРјР° РІ СЂРѕРІРѕРґРєРµ
 					   	        		fkTrans2axTransList.get(c).balCeh ,
-					   	        		fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"  : "6512",           // балансовый счет
-					   	          		"00000000130",                                                 // балансовый  КАУ
-					   	          	    fkTrans2axTransList.get(c).balCeh,                             // Корреспондентский  цех
-					   	             	fkTrans2axTransList.get(c).balans.substring(0, 4) ,            // Корреспондентский  счет шпз сотрудника идет
-					             	  // Корреспондентский  КАУ
+					   	        		fkTrans2axTransList.get(c).chargerefcode == FINChargeType.IS_NOT_INVALID ? "6510"  : "6512",           // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№ СЃС‡РµС‚
+					   	          		"00000000130",                                                 // Р±Р°Р»Р°РЅСЃРѕРІС‹Р№  РљРђРЈ
+					   	          	    fkTrans2axTransList.get(c).balCeh,                             // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  С†РµС…
+					   	             	fkTrans2axTransList.get(c).balans.substring(0, 4) ,            // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  СЃС‡РµС‚ С€РїР· СЃРѕС‚СЂСѓРґРЅРёРєР° РёРґРµС‚
+					             	  // РљРѕСЂСЂРµСЃРїРѕРЅРґРµРЅС‚СЃРєРёР№  РљРђРЈ
 					   	             new String((fkTrans2axTransList.get(c).balans.substring(0, 4).substring(0, 3).equals("232") || 
 						      	          		fkTrans2axTransList.get(c).balans.substring(0, 4).equals("9100") ||
 						      	          		fkTrans2axTransList.get(c).balans.substring(0, 4).equals("9200") ) 
@@ -8776,7 +8776,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 					   	        		,
 					   	        		oz.numberDoc  ,
 					   	          		ui.dateGen ,
-					   	          		"to_net_oz Акт № "+oz.numberDoc+", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
+					   	          		"to_net_oz РђРєС‚ в„– "+oz.numberDoc+", "+ new SimpleDateFormat("dd.MM.yyyy").format(ui.dateGen) + infoDescript,
 					   	          		userName
 					   			            );
 					           }
@@ -8787,12 +8787,12 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 			provResult =  fpLogic.createPostings(V_Prov_Buffer);
 			String badprovstring = "";
 			if (provResult.badProvList.totalCount > 0 ) {
-         	badprovstring="  ошибки ФК :  ";
+         	badprovstring="  РѕС€РёР±РєРё Р¤Рљ :  ";
          	for (int b = 0; b < provResult.badProvList.totalCount; b++) {
 
          		badprovstring = badprovstring
-         				+  " Текст ошибки = " + provResult.badProvList.get(b).getDetailedList().get(0).err_mes
-         				+  " \n Примечание  = " + provResult.badProvList.get(b).primechan
+         				+  " РўРµРєСЃС‚ РѕС€РёР±РєРё = " + provResult.badProvList.get(b).getDetailedList().get(0).err_mes
+         				+  " \n РџСЂРёРјРµС‡Р°РЅРёРµ  = " + provResult.badProvList.get(b).primechan
          				+    " \n  bal_ceh " + provResult.badProvList.get(b).bal_ceh
          				+    "  bal_kau " + provResult.badProvList.get(b).bal_kau
          				+    "  bal_sch " + provResult.badProvList.get(b).bal_sch
@@ -8809,7 +8809,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 		    return provResult;
    }
-   catch (DatasourceConnectException e) {throw new EnergyproSystemException("Не вдалося передати проводки!",e);}
+   catch (DatasourceConnectException e) {throw new EnergyproSystemException("РќРµ РІРґР°Р»РѕСЃСЏ РїРµСЂРµРґР°С‚Рё РїСЂРѕРІРѕРґРєРё!",e);}
    catch (PersistenceException e)       {throw new EnergyproSystemException(e.getMessage(),e);}
 	 // catch (ParseException e)             {throw new EnergyproSystemException(e.getMessage(),e);}
 
@@ -9038,18 +9038,18 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
     public void generateCountersStateVerification(int actCode, int fkOrderCode) {
 
     	if (actCode == Integer.MIN_VALUE) {
-    		throw new SystemException("\n\nNET-4559 Не заданий код видаткового акту!");
+    		throw new SystemException("\n\nNET-4559 РќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ РІРёРґР°С‚РєРѕРІРѕРіРѕ Р°РєС‚Сѓ!");
     	}
 
     	if (fkOrderCode == Integer.MIN_VALUE) {
-    		throw new SystemException("\n\nNET-4559 Не заданий код акту з послуг зі сторони!");
+    		throw new SystemException("\n\nNET-4559 РќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ Р°РєС‚Сѓ Р· РїРѕСЃР»СѓРі Р·С– СЃС‚РѕСЂРѕРЅРё!");
     	}
 
     	AuthLogic authLogic = new AuthLogic(connection, userProfile);
 
     	if (! authLogic.checkPermissionSilent("ksoe/energynet/ENCountersStateVerificationController", "add"))
     	{
-    		throw new SystemException("\n\nNET-4559 У Вас немає прав на цю операцію!");
+    		throw new SystemException("\n\nNET-4559 РЈ Р’Р°СЃ РЅРµРјР°С” РїСЂР°РІ РЅР° С†СЋ РѕРїРµСЂР°С†С–СЋ!");
     	}
 
     	try {
@@ -9071,29 +9071,29 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 	    	int[] planArr = planDAO.getFilteredCodeArrayNOSEGR(planFilter, 0, -1);
 
 	    	if (planArr.length == 0) {
-	    		throw new SystemException("\n\nNET-4559 У видатковий акт з кодом " + actCode + " не включено жодного Завдання-Факту!");
+	    		throw new SystemException("\n\nNET-4559 РЈ РІРёРґР°С‚РєРѕРІРёР№ Р°РєС‚ Р· РєРѕРґРѕРј " + actCode + " РЅРµ РІРєР»СЋС‡РµРЅРѕ Р¶РѕРґРЅРѕРіРѕ Р—Р°РІРґР°РЅРЅСЏ-Р¤Р°РєС‚Сѓ!");
 	    	}
 
 	    	RQFKOrder fkOrder = fkOrderDAO.getObjectNOSEGR(fkOrderCode);
 
 	    	if (fkOrder == null) {
-	    		throw new SystemException("\n\nNET-4559 Не знайдено акт з послуг зі сторони з кодом " + fkOrderCode + " !");
+	    		throw new SystemException("\n\nNET-4559 РќРµ Р·РЅР°Р№РґРµРЅРѕ Р°РєС‚ Р· РїРѕСЃР»СѓРі Р·С– СЃС‚РѕСЂРѕРЅРё Р· РєРѕРґРѕРј " + fkOrderCode + " !");
 	    	}
 
 	    	if (fkOrder.kind.code != RQFKOrderKind.SERVICES_FROM_SIDE) {
-	    		throw new SystemException("\n\nNET-4559 Документ (ордер) з кодом " + fkOrderCode + " не є актом з послуг зі сторони!");
+	    		throw new SystemException("\n\nNET-4559 Р”РѕРєСѓРјРµРЅС‚ (РѕСЂРґРµСЂ) Р· РєРѕРґРѕРј " + fkOrderCode + " РЅРµ С” Р°РєС‚РѕРј Р· РїРѕСЃР»СѓРі Р·С– СЃС‚РѕСЂРѕРЅРё!");
 	    	}
 
 	    	if (fkOrder.status.code != RQFKOrderStatus.CREATED) {
-	    		throw new SystemException("\n\nNET-4559 Акт з послуг зі сторони повинен бути в статусі \"Складений\"! Код акта: " +
+	    		throw new SystemException("\n\nNET-4559 РђРєС‚ Р· РїРѕСЃР»СѓРі Р·С– СЃС‚РѕСЂРѕРЅРё РїРѕРІРёРЅРµРЅ Р±СѓС‚Рё РІ СЃС‚Р°С‚СѓСЃС– \"РЎРєР»Р°РґРµРЅРёР№\"! РљРѕРґ Р°РєС‚Р°: " +
 	    				fkOrderCode);
 	    	}
 
 	    	if (fkOrder.sumWithoutNds == null) {
-	    		throw new SystemException("\n\nNET-4559 В акті з послуг зі сторони з кодом " + fkOrderCode + " не вказано суму без ПДВ!");
+	    		throw new SystemException("\n\nNET-4559 Р’ Р°РєС‚С– Р· РїРѕСЃР»СѓРі Р·С– СЃС‚РѕСЂРѕРЅРё Р· РєРѕРґРѕРј " + fkOrderCode + " РЅРµ РІРєР°Р·Р°РЅРѕ СЃСѓРјСѓ Р±РµР· РџР”Р’!");
 	    	}
 
-	    	// Цену за один счетчик рассчитаем, разделив общую сумму по акту на услуги со стороны на кол-во счетчиков (планов)
+	    	// Р¦РµРЅСѓ Р·Р° РѕРґРёРЅ СЃС‡РµС‚С‡РёРє СЂР°СЃСЃС‡РёС‚Р°РµРј, СЂР°Р·РґРµР»РёРІ РѕР±С‰СѓСЋ СЃСѓРјРјСѓ РїРѕ Р°РєС‚Сѓ РЅР° СѓСЃР»СѓРіРё СЃРѕ СЃС‚РѕСЂРѕРЅС‹ РЅР° РєРѕР»-РІРѕ СЃС‡РµС‚С‡РёРєРѕРІ (РїР»Р°РЅРѕРІ)
 	    	BigDecimal counterPrice = fkOrder.sumWithoutNds.divide(new BigDecimal(planArr.length), 2, BigDecimal.ROUND_HALF_UP);
 
 	    	for (int i = 0; i < planArr.length; i++) {
@@ -9105,13 +9105,13 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 	    		int[] counterArr = counterDAO.getFilteredCodeArray(counterFilter, 0, -1);
 
 		    	if (counterArr.length == 0) {
-		    		throw new SystemException("\n\nNET-4559 Помилка пошуку лічильника для плану з кодом " + planArr[i] + " !");
+		    		throw new SystemException("\n\nNET-4559 РџРѕРјРёР»РєР° РїРѕС€СѓРєСѓ Р»С–С‡РёР»СЊРЅРёРєР° РґР»СЏ РїР»Р°РЅСѓ Р· РєРѕРґРѕРј " + planArr[i] + " !");
 		    	}
 
 	    		ENMetrologyCounter counter = counterDAO.getObject(counterArr[0]);
 
 		    	if (counter == null) {
-		    		throw new SystemException("\n\nNET-4559 Помилка пошуку лічильника для плану з кодом " + planArr[i] + " !");
+		    		throw new SystemException("\n\nNET-4559 РџРѕРјРёР»РєР° РїРѕС€СѓРєСѓ Р»С–С‡РёР»СЊРЅРёРєР° РґР»СЏ РїР»Р°РЅСѓ Р· РєРѕРґРѕРј " + planArr[i] + " !");
 		    	}
 
 	    		ENCountersStateVerification stateVerification = new ENCountersStateVerification();
@@ -9200,7 +9200,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
     	try {
 
 			if ( act.molCodeObject == null || act.molCodeObject == "" ){
-				throw new EnergyproSystemException("\n\nНа акті(вкладка Основне) необхідно вказати МОЛ об'єкта МНМА !!! ");
+				throw new EnergyproSystemException("\n\nРќР° Р°РєС‚С–(РІРєР»Р°РґРєР° РћСЃРЅРѕРІРЅРµ) РЅРµРѕР±С…С–РґРЅРѕ РІРєР°Р·Р°С‚Рё РњРћР› РѕР±'С”РєС‚Р° РњРќРњРђ !!! ");
 			}
 
 			ENMolDAO molDAO = new ENMolDAO(connection, userProfile);
@@ -9210,31 +9210,31 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 			molFil.statusRef.code = ENMolStatus.VALID;
 			int[] enmolArr = molDAO.getFilteredCodeArray(molFil, 0, -1);
 			if (enmolArr.length == 0 ){
-				throw new EnergyproSystemException("\n\nНеобхідно додати інформацію по МОЛу " + act.molCodeObject + " у довідник (Довідники-Структурні-Довідник МВО(МОЛы))!!! ");
+				throw new EnergyproSystemException("\n\nРќРµРѕР±С…С–РґРЅРѕ РґРѕРґР°С‚Рё С–РЅС„РѕСЂРјР°С†С–СЋ РїРѕ РњРћР›Сѓ " + act.molCodeObject + " Сѓ РґРѕРІС–РґРЅРёРє (Р”РѕРІС–РґРЅРёРєРё-РЎС‚СЂСѓРєС‚СѓСЂРЅС–-Р”РѕРІС–РґРЅРёРє РњР’Рћ(РњРћР›С‹))!!! ");
 			}
 
 			ENMol molObj = molDAO.getObject(enmolArr[0]);
 
 			if (molObj.tabNumber == null || molObj.tabNumber.equals("")){
-				throw new EnergyproSystemException("\n\nУ довіднику (Довідники-Структурні-Довідник МВО(МОЛы)) для МОЛа " + act.molCodeObject + " необхідно вказати табельний номер співробітника !!! ");
+				throw new EnergyproSystemException("\n\nРЈ РґРѕРІС–РґРЅРёРєСѓ (Р”РѕРІС–РґРЅРёРєРё-РЎС‚СЂСѓРєС‚СѓСЂРЅС–-Р”РѕРІС–РґРЅРёРє РњР’Рћ(РњРћР›С‹)) РґР»СЏ РњРћР›Р° " + act.molCodeObject + " РЅРµРѕР±С…С–РґРЅРѕ РІРєР°Р·Р°С‚Рё С‚Р°Р±РµР»СЊРЅРёР№ РЅРѕРјРµСЂ СЃРїС–РІСЂРѕР±С–С‚РЅРёРєР° !!! ");
 			}
 
 			FINLogic finLogic = new FINLogic(finConn, userProfile);
 
-			// выберем шпз и подразделение по табельному
+			// РІС‹Р±РµСЂРµРј С€РїР· Рё РїРѕРґСЂР°Р·РґРµР»РµРЅРёРµ РїРѕ С‚Р°Р±РµР»СЊРЅРѕРјСѓ
 			ENAct2Humen a2hObj = finLogic.getBalansWithMainCeh(molObj.tabNumber, act.dateGen,
-					"\nОберіть коректний МОЛ об'єкта МНМА на акті № " + act.numberGen + " від " +
+					"\nРћР±РµСЂС–С‚СЊ РєРѕСЂРµРєС‚РЅРёР№ РњРћР› РѕР±'С”РєС‚Р° РњРќРњРђ РЅР° Р°РєС‚С– в„– " + act.numberGen + " РІС–Рґ " +
 					new SimpleDateFormat("dd.MM.yyyy").format(act.dateGen) + " !");
 
 			String balans = a2hObj.balans;
 			String cehId = a2hObj.cehId;
 
 			if (balans == null || balans.equals("")){
-				throw new EnergyproSystemException("\n\nПомилка при визначенні ШПЗ МОЛа об`єкта !!!");
+				throw new EnergyproSystemException("\n\nРџРѕРјРёР»РєР° РїСЂРё РІРёР·РЅР°С‡РµРЅРЅС– РЁРџР— РњРћР›Р° РѕР±`С”РєС‚Р° !!!");
 			}
 
 			if (cehId == null || cehId.equals("")){
-				throw new EnergyproSystemException("\n\nПомилка при визначенні підрозділу МОЛа об`єкта !!!");
+				throw new EnergyproSystemException("\n\nРџРѕРјРёР»РєР° РїСЂРё РІРёР·РЅР°С‡РµРЅРЅС– РїС–РґСЂРѕР·РґС–Р»Сѓ РњРћР›Р° РѕР±`С”РєС‚Р° !!!");
 			}
 
 			return a2hObj;
@@ -9246,8 +9246,8 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 
     /**
-     *	проверка наличия доходного акта
-     *	@param actCode - код акта
+     *	РїСЂРѕРІРµСЂРєР° РЅР°Р»РёС‡РёСЏ РґРѕС…РѕРґРЅРѕРіРѕ Р°РєС‚Р°
+     *	@param actCode - РєРѕРґ Р°РєС‚Р°
      */
 	public void checkActIncomeServices(int actCode) {
 		try {
@@ -9264,9 +9264,9 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 				ENActIncomeServices actIncomeServices = actIncomeServicesDao.getObject(actIncomServ2ENAct.actIncomeRef.code);
 
 				throw new SystemException("\n\n"
-						+ "Скасування підписання неможливе!\n"
-						+ "Акт належить до прибуткового акту № = " + actIncomeServices.numberGen
-						+ " від " + new SimpleDateFormat("dd.MM.yyyy").format(actIncomeServices.dateGen) + ".");
+						+ "РЎРєР°СЃСѓРІР°РЅРЅСЏ РїС–РґРїРёСЃР°РЅРЅСЏ РЅРµРјРѕР¶Р»РёРІРµ!\n"
+						+ "РђРєС‚ РЅР°Р»РµР¶РёС‚СЊ РґРѕ РїСЂРёР±СѓС‚РєРѕРІРѕРіРѕ Р°РєС‚Сѓ в„– = " + actIncomeServices.numberGen
+						+ " РІС–Рґ " + new SimpleDateFormat("dd.MM.yyyy").format(actIncomeServices.dateGen) + ".");
 			}
 
 		} catch (PersistenceException e) {
@@ -9275,7 +9275,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 	}
 
 /* 
- * Определение шаблонов для актов 
+ * РћРїСЂРµРґРµР»РµРЅРёРµ С€Р°Р±Р»РѕРЅРѕРІ РґР»СЏ Р°РєС‚РѕРІ 
  * */
 	public void setPostingTemplateAndFinKodIstByAct(ENAct actObj , boolean finKodIst ) /*SUPP-102789*/
 	{
@@ -9290,15 +9290,15 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         ENAct2FinKodIstDAO istDAO = new ENAct2FinKodIstDAO(connection, userProfile);
         SCSealDAO sDAO = new SCSealDAO(connection, userProfile);
 
-        String sql = "      /*определение шаблона проводок*/ \n" +
+        String sql = "      /*РѕРїСЂРµРґРµР»РµРЅРёРµ С€Р°Р±Р»РѕРЅР° РїСЂРѕРІРѕРґРѕРє*/ \n" +
         		"      select coalesce( postingtemplatecode ,-1) as postingtemplatecode ,finkodist \n" +
         		"      from (   \n" +
-        		"       /*шаблон 'акты проектування'  */  \n" +
+        		"       /*С€Р°Р±Р»РѕРЅ 'Р°РєС‚С‹ РїСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ'  */  \n" +
         		"       select 1 as postingtemplatecode  , -1 as finkodist   \n" +
         		"       from  enservicesobject so , enact a   \n" +
         		"       where so.elementcode = a.elementcode    \n" +
         		"       and a.code = "+ actObj.code +"  \n" +
-        		"       AND so.CONTRACTTYPEREFCODE = 8/*вкладка послуги на сторону*/   \n" +
+        		"       AND so.CONTRACTTYPEREFCODE = 8/*РІРєР»Р°РґРєР° РїРѕСЃР»СѓРіРё РЅР° СЃС‚РѕСЂРѕРЅСѓ*/   \n" +
         		"       AND coalesce(so.contracttyperefcode, -1) <> 5    \n" +
         		"       UNION ALL      \n" +
         		"      Select 1 as postingtemplatecode  , -1 as finkodist   \n" +
@@ -9311,10 +9311,10 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         		"      and a2p.actrefcode=act.code   \n" +
         		"      and act.acttyperefcode in (  29 )        \n" +
         		"       UNION ALL           \n" +
-        		"       /*шаблон 'Послуги на сторону' и 'договора аренды' */  \n" +
+        		"       /*С€Р°Р±Р»РѕРЅ 'РџРѕСЃР»СѓРіРё РЅР° СЃС‚РѕСЂРѕРЅСѓ' Рё 'РґРѕРіРѕРІРѕСЂР° Р°СЂРµРЅРґС‹' */  \n" +
         		"      select 2 as postingtemplatecode , 4 as finkodist   \n" +
         		"      from tkclassificationtype tct , tktechcard tk , enplanworkitem pi , enplanwork pp , enact a  , enservicesobject so    \n" +
-        		"      where tct.finworktypecode <> 25 /*25    Е0    Установка многофункционального счетчика*/  \n" +
+        		"      where tct.finworktypecode <> 25 /*25    Р•0    РЈСЃС‚Р°РЅРѕРІРєР° РјРЅРѕРіРѕС„СѓРЅРєС†РёРѕРЅР°Р»СЊРЅРѕРіРѕ СЃС‡РµС‚С‡РёРєР°*/  \n" +
         		"      and tct.code = tk.classificationtypecode  \n" +
         		"      and pi.kartarefcode=tk.code  \n" +
         		"      and pi.planrefcode=pp.code   \n" +
@@ -9323,14 +9323,14 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         		"      and so.elementcode=a.elementcode  \n" +
         		"      and so.elementcode=pp.elementrefcode  \n" +
         		"      and coalesce(so.contracttyperefcode, -1) <> 5  \n" +
-        		"      and (so.CONTRACTKINDREFCODE = 1/*вкладка послуги на сторону*/  or so.CONTRACTTYPEREFCODE = 7  /*вкладка договора аренды*/ )  \n" +
+        		"      and (so.CONTRACTKINDREFCODE = 1/*РІРєР»Р°РґРєР° РїРѕСЃР»СѓРіРё РЅР° СЃС‚РѕСЂРѕРЅСѓ*/  or so.CONTRACTTYPEREFCODE = 7  /*РІРєР»Р°РґРєР° РґРѕРіРѕРІРѕСЂР° Р°СЂРµРЅРґС‹*/ )  \n" +
         		"      and a.code = "+ actObj.code +"   \n" +
         		"      and not ( tct.kod  like '2.2.04%' and coalesce(so.isnopay,0) <> 0 )  \n" +
         		"      and not ( tct.kod like '2.1.07%' and coalesce(so.isnopay,0) <> 0 )  \n" +
         		"        \n" +                                                 
         		"       UNION ALL   \n" +
         		"         \n" +
-        		"       (/*шаблон для (Роботи на сторону або  Проектування) по приєднанню*/  \n" +
+        		"       (/*С€Р°Р±Р»РѕРЅ РґР»СЏ (Р РѕР±РѕС‚Рё РЅР° СЃС‚РѕСЂРѕРЅСѓ Р°Р±Рѕ  РџСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ) РїРѕ РїСЂРёС”РґРЅР°РЅРЅСЋ*/  \n" +
         		"       select 3 as postingtemplatecode , 3 as finkodist  \n" +
         		"       from enact2enplanwork a2p , entechcond2planwork tc2p , enservicesobject2techcondtnsservices s2tc ,  entechconditionsservcs ts, enconnectionkind k , enact act     \n" +
         		"       where a2p.actrefcode =  "+ actObj.code +"    \n" +
@@ -9341,7 +9341,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         		"       and a2p.actrefcode=act.code   \n" +
         		"       and act.acttyperefcode in (  7 )  \n" +
         		"       union all  \n" +
-        		"       /*шаблон для (Роботи на сторону або  Проектування) по приєднанню*/  \n" +
+        		"       /*С€Р°Р±Р»РѕРЅ РґР»СЏ (Р РѕР±РѕС‚Рё РЅР° СЃС‚РѕСЂРѕРЅСѓ Р°Р±Рѕ  РџСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ) РїРѕ РїСЂРёС”РґРЅР°РЅРЅСЋ*/  \n" +
         		"       select 3 as postingtemplatecode  , 3 as finkodist  \n" +
         		"        from enservicesobject so , enact act  ,  enservicesobject2techcondtnsservices so2pric ,    \n" +
         		"        entechconditionsservcs ts, enconnectionkind k      \n" +
@@ -9355,7 +9355,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         		"        and act.acttyperefcode in (  7 ) \n" +
         		"        and so.contractdateservices < '01.06.2021' \n" +
         		"       union all  \n" +
-        		"       /*шаблон для (Роботи на сторону або  Проектування) по приєднанню*/  \n" +
+        		"       /*С€Р°Р±Р»РѕРЅ РґР»СЏ (Р РѕР±РѕС‚Рё РЅР° СЃС‚РѕСЂРѕРЅСѓ Р°Р±Рѕ  РџСЂРѕРµРєС‚СѓРІР°РЅРЅСЏ) РїРѕ РїСЂРёС”РґРЅР°РЅРЅСЋ*/  \n" +
         		"       select 3 as postingtemplatecode   , 3 as finkodist   \n" +
         		"       from  ENSOProj2SOConn pfj2so , enservicesobject so , enact act , enservicesobject2techcondtnsservices so2pric , entechconditionsservcs ts, enconnectionkind k    \n" +
         		"       where pfj2so.soprojrefcode = so.code    \n" +
@@ -9372,10 +9372,10 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         		"          \n" +
         		"       UNION ALL  \n" +
         		"         \n" +
-        		"       /*шаблон 'Послуги на сторону(Установка многофункционального счетчика) Вид робіт з послуг = 0E' */  \n" +
+        		"       /*С€Р°Р±Р»РѕРЅ 'РџРѕСЃР»СѓРіРё РЅР° СЃС‚РѕСЂРѕРЅСѓ(РЈСЃС‚Р°РЅРѕРІРєР° РјРЅРѕРіРѕС„СѓРЅРєС†РёРѕРЅР°Р»СЊРЅРѕРіРѕ СЃС‡РµС‚С‡РёРєР°) Р’РёРґ СЂРѕР±С–С‚ Р· РїРѕСЃР»СѓРі = 0E' */  \n" +
         		"      select 4 as postingtemplatecode , 7 as finkodist  \n" +
         		"      from tkclassificationtype tct , tktechcard tk , enplanworkitem pi , enplanwork pp , enact a  , enservicesobject so    \n" +
-        		"      where tct.finworktypecode = 25 /*25    Е0    Установка многофункционального счетчика*/  \n" +
+        		"      where tct.finworktypecode = 25 /*25    Р•0    РЈСЃС‚Р°РЅРѕРІРєР° РјРЅРѕРіРѕС„СѓРЅРєС†РёРѕРЅР°Р»СЊРЅРѕРіРѕ СЃС‡РµС‚С‡РёРєР°*/  \n" +
         		"      and tct.code = tk.classificationtypecode  \n" +
         		"      and pi.kartarefcode=tk.code  \n" +
         		"      and pi.planrefcode=pp.code   \n" +
@@ -9384,15 +9384,15 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         		"      and so.elementcode=a.elementcode  \n" +
         		"      and so.elementcode=pp.elementrefcode  \n" +
         		"      and coalesce(so.contracttyperefcode, -1) <> 5  \n" +
-        		"      and (so.CONTRACTKINDREFCODE = 1/*вкладка послуги на сторону*/  or so.CONTRACTTYPEREFCODE = 7  /*вкладка договора аренды*/ )  \n" +
+        		"      and (so.CONTRACTKINDREFCODE = 1/*РІРєР»Р°РґРєР° РїРѕСЃР»СѓРіРё РЅР° СЃС‚РѕСЂРѕРЅСѓ*/  or so.CONTRACTTYPEREFCODE = 7  /*РІРєР»Р°РґРєР° РґРѕРіРѕРІРѕСЂР° Р°СЂРµРЅРґС‹*/ )  \n" +
         		"      and a.code = "+ actObj.code +"   \n" +
         		"        \n" +
         		"         UNION ALL  \n" +
         		"         \n" +
-        		"       /*шаблон Тип акта «Роботи на сторону (безоплатні) калькуляция 2.2.04…..(параметризация) */  \n" +
+        		"       /*С€Р°Р±Р»РѕРЅ РўРёРї Р°РєС‚Р° В«Р РѕР±РѕС‚Рё РЅР° СЃС‚РѕСЂРѕРЅСѓ (Р±РµР·РѕРїР»Р°С‚РЅС–) РєР°Р»СЊРєСѓР»СЏС†РёСЏ 2.2.04вЂ¦..(РїР°СЂР°РјРµС‚СЂРёР·Р°С†РёСЏ) */  \n" +
         		"      select 5 as postingtemplatecode , -1 as finkodist  \n" +
         		"      from tkclassificationtype tct , tktechcard tk , enplanworkitem pi , enplanwork pp , enact a  , enservicesobject so    \n" +
-        		"      where tct.finworktypecode <> 25 /*25    Е0    Установка многофункционального счетчика*/  \n" +
+        		"      where tct.finworktypecode <> 25 /*25    Р•0    РЈСЃС‚Р°РЅРѕРІРєР° РјРЅРѕРіРѕС„СѓРЅРєС†РёРѕРЅР°Р»СЊРЅРѕРіРѕ СЃС‡РµС‚С‡РёРєР°*/  \n" +
         		"      and tct.code = tk.classificationtypecode  \n" +
         		"      and pi.kartarefcode=tk.code  \n" +
         		"      and pi.planrefcode=pp.code   \n" +
@@ -9401,17 +9401,17 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         		"      and so.elementcode=a.elementcode  \n" +
         		"      and so.elementcode=pp.elementrefcode  \n" +
         		"      and coalesce(so.contracttyperefcode, -1) <> 5  \n" +
-        		"      and (so.CONTRACTKINDREFCODE = 1/*вкладка послуги на сторону*/  or so.CONTRACTTYPEREFCODE = 7  /*вкладка договора аренды*/ )  \n" +
+        		"      and (so.CONTRACTKINDREFCODE = 1/*РІРєР»Р°РґРєР° РїРѕСЃР»СѓРіРё РЅР° СЃС‚РѕСЂРѕРЅСѓ*/  or so.CONTRACTTYPEREFCODE = 7  /*РІРєР»Р°РґРєР° РґРѕРіРѕРІРѕСЂР° Р°СЂРµРЅРґС‹*/ )  \n" +
         		"      and tct.kod like '2.2.04%'  \n" +
         		"      and coalesce(so.isnopay,0) <> 0  \n" +
         		"      and a.code = "+ actObj.code +"  \n" +
         		"      \n" +
         		"      UNION ALL  \n" +
         		"        \n" +
-        		"      /*шаблон Тип акта «Роботи на сторону (безоплатні) калькуляция 2.1.07…..(програмування) */  \n" +
+        		"      /*С€Р°Р±Р»РѕРЅ РўРёРї Р°РєС‚Р° В«Р РѕР±РѕС‚Рё РЅР° СЃС‚РѕСЂРѕРЅСѓ (Р±РµР·РѕРїР»Р°С‚РЅС–) РєР°Р»СЊРєСѓР»СЏС†РёСЏ 2.1.07вЂ¦..(РїСЂРѕРіСЂР°РјСѓРІР°РЅРЅСЏ) */  \n" +
         		"      select 6 as postingtemplatecode , -1 as finkodist  \n" +
         		"      from tkclassificationtype tct , tktechcard tk , enplanworkitem pi , enplanwork pp , enact a  , enservicesobject so    \n" +
-        		"      where tct.finworktypecode <> 25 /*25    Е0    Установка многофункционального счетчика*/  \n" +
+        		"      where tct.finworktypecode <> 25 /*25    Р•0    РЈСЃС‚Р°РЅРѕРІРєР° РјРЅРѕРіРѕС„СѓРЅРєС†РёРѕРЅР°Р»СЊРЅРѕРіРѕ СЃС‡РµС‚С‡РёРєР°*/  \n" +
         		"      and tct.code = tk.classificationtypecode  \n" +
         		"      and pi.kartarefcode=tk.code  \n" +
         		"      and pi.planrefcode=pp.code   \n" +
@@ -9420,13 +9420,13 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         		"      and so.elementcode=a.elementcode  \n" +
         		"      and so.elementcode=pp.elementrefcode  \n" +
         		"      and coalesce(so.contracttyperefcode, -1) <> 5  \n" +
-        		"      and (so.CONTRACTKINDREFCODE = 1/*вкладка послуги на сторону*/  or so.CONTRACTTYPEREFCODE = 7  /*вкладка договора аренды*/ )  \n" +
+        		"      and (so.CONTRACTKINDREFCODE = 1/*РІРєР»Р°РґРєР° РїРѕСЃР»СѓРіРё РЅР° СЃС‚РѕСЂРѕРЅСѓ*/  or so.CONTRACTTYPEREFCODE = 7  /*РІРєР»Р°РґРєР° РґРѕРіРѕРІРѕСЂР° Р°СЂРµРЅРґС‹*/ )  \n" +
         		"      and tct.kod like '2.1.07%'  \n" +
         		"      and coalesce(so.isnopay,0) <> 0  \n" +
         		"      and a.code = "+ actObj.code +"  \n" +
         		"       \n" +
         		"      UNION ALL   \n" +
-        		"          (/*Послуги з  приєднання (починаючи з 01.06.2021)*/  \n" +
+        		"          (/*РџРѕСЃР»СѓРіРё Р·  РїСЂРёС”РґРЅР°РЅРЅСЏ (РїРѕС‡РёРЅР°СЋС‡Рё Р· 01.06.2021)*/  \n" +
         		"          select 7 as postingtemplatecode  , 3 as finkodist  \n" +
         		"          from enact2enplanwork a2p , entechcond2planwork tc2p , enservicesobject2techcondtnsservices s2tc ,  entechconditionsservcs ts, enconnectionkind k , enact act  \n" +
         		"          where a2p.actrefcode =  "+ actObj.code +"   \n" +
@@ -9438,7 +9438,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         		"          and act.acttyperefcode in (   7 )  \n" +
         		"           and ts.contractdate  >= '01.06.2021' \n" +
         		"          union all  \n" +
-        		"          /*Послуги з  приєднання (починаючи з 01.06.2021)*/  \n" +
+        		"          /*РџРѕСЃР»СѓРіРё Р·  РїСЂРёС”РґРЅР°РЅРЅСЏ (РїРѕС‡РёРЅР°СЋС‡Рё Р· 01.06.2021)*/  \n" +
         		"          select 7 as postingtemplatecode  , 3 as finkodist  \n" +
         		"       from enservicesobject so , enact act  ,  enservicesobject2techcondtnsservices so2pric ,   \n" +
         		"       entechconditionsservcs ts, enconnectionkind k   \n" +
@@ -9452,7 +9452,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         		"       and act.acttyperefcode in (   7 )  \n" +
         		"      and so.contractdateservices >= '01.06.2021'  \n" +
         		"      union all  \n" +
-        		"      /*Послуги з  приєднання (починаючи з 01.06.2021)*/  \n" +
+        		"      /*РџРѕСЃР»СѓРіРё Р·  РїСЂРёС”РґРЅР°РЅРЅСЏ (РїРѕС‡РёРЅР°СЋС‡Рё Р· 01.06.2021)*/  \n" +
         		"      select 7 as postingtemplatecode   , 3 as finkodist \n" +
         		"      from  ENSOProj2SOConn pfj2so , enservicesobject so , enact act , enservicesobject2techcondtnsservices so2pric , entechconditionsservcs ts, enconnectionkind k  \n" +
         		"      where pfj2so.soprojrefcode = so.code   \n" +
@@ -9466,15 +9466,15 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         		"      and act.acttyperefcode in (  7 )  \n" +
         		"      and so.contractdateservices >= '01.06.2021'  \n" +
         		"      )  \n" +
-        		" UNION/*послуги за договорами на ТО та ремонт */ \n" + 
+        		" UNION/*РїРѕСЃР»СѓРіРё Р·Р° РґРѕРіРѕРІРѕСЂР°РјРё РЅР° РўРћ С‚Р° СЂРµРјРѕРЅС‚ */ \n" + 
         	    "  select 9 as postingtemplatecode   , -1 as finkodist \n" + 
         	    "  from enact act , enactincome2enact ee where act.code = ee.actrefcode and act.code =  "+ actObj.code +"     \n" +
         	    "  UNION \n" +
-        	    "   select 10 as postingtemplatecode , 4 /*УСЛУГИ НА СТОРОНУ, СВЯЗАННЫЕ С ОСНОВНОЙ (ЛИЦЕНЗИОННОЙ) ДЕЯТЕЛЬНОСТЬЮ в/о 90 */ as finkodist  \n" +
+        	    "   select 10 as postingtemplatecode , 4 /*РЈРЎР›РЈР“Р РќРђ РЎРўРћР РћРќРЈ, РЎР’РЇР—РђРќРќР«Р• РЎ РћРЎРќРћР’РќРћР™ (Р›РР¦Р•РќР—РРћРќРќРћР™) Р”Р•РЇРўР•Р›Р¬РќРћРЎРўР¬Р® РІ/Рѕ 90 */ as finkodist  \n" +
         	    "   from enact act where act.code in ( select acpw1.actrefcode from enact2enplanwork as acpw1  \n" +
         	    "   inner join enservices2plan as sopl1 on acpw1.plancode = sopl1.planrefcode  \n" +
         	    "   inner join enservicesobject so on sopl1.servicesobjectrefcode = so.code   \n" +
-        	    "   where so.contractkindrefcode = " + ENServicesContractKind.SUPPLIER_CONTRACT +" 	/*14 Договори з постачальниками е/е*/ \n" +
+        	    "   where so.contractkindrefcode = " + ENServicesContractKind.SUPPLIER_CONTRACT +" 	/*14 Р”РѕРіРѕРІРѕСЂРё Р· РїРѕСЃС‚Р°С‡Р°Р»СЊРЅРёРєР°РјРё Рµ/Рµ*/ \n" +
         	    "   and acpw1.actrefcode = "+ actObj.code +"  \n" +
         	    "   union  \n" +
         	    "   select elac1.actrefcode from enelement2act as elac1 where elac1.actrefcode =  "+ actObj.code + "  ) \n" +
@@ -9494,7 +9494,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         	ENAct2ProvFilter a2pFilter = new ENAct2ProvFilter();
         	a2pFilter.actRef.code = actObj.code;
         	
-        	// для шаблона Послуги на сторону і договора оренди автоматом проставлять наличие доходного акта (Лена с бух Федорчак согласовали 01.10.2021)
+        	// РґР»СЏ С€Р°Р±Р»РѕРЅР° РџРѕСЃР»СѓРіРё РЅР° СЃС‚РѕСЂРѕРЅСѓ С– РґРѕРіРѕРІРѕСЂР° РѕСЂРµРЅРґРё Р°РІС‚РѕРјР°С‚РѕРј РїСЂРѕСЃС‚Р°РІР»СЏС‚СЊ РЅР°Р»РёС‡РёРµ РґРѕС…РѕРґРЅРѕРіРѕ Р°РєС‚Р° (Р›РµРЅР° СЃ Р±СѓС… Р¤РµРґРѕСЂС‡Р°Рє СЃРѕРіР»Р°СЃРѕРІР°Р»Рё 01.10.2021)
         	int isIncomeAct = 0;
         	if (resultSet.getInt(1) == ENActPostingKind.SERVICES_CONTRACT ) {
         		isIncomeAct = 1;
@@ -9522,7 +9522,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
         	
         	
         	
-        	 //источники при необходимости 
+        	 //РёСЃС‚РѕС‡РЅРёРєРё РїСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё 
         	SCSealFilter sFil = new SCSealFilter();
         	sFil.conditionSQL = " scseal.estimateitemrefcode in ( " + 
         			" select ei.code from enplanwork p, enestimateitem ei, " +
@@ -9566,10 +9566,10 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 	public void addENAct2DFDoc(ENAct act, DFDoc doc) {
 		if (act == null || act.code <= 0) {
-			throw new IllegalArgumentException("\n\nNET-4596 Не заданий об'єкт акта!");
+			throw new IllegalArgumentException("\n\nNET-4596 РќРµ Р·Р°РґР°РЅРёР№ РѕР±'С”РєС‚ Р°РєС‚Р°!");
 		}
 		if (doc == null || doc.code <= 0) {
-			throw new IllegalArgumentException("\n\nNET-4596 Не заданий об'єкт документу!");
+			throw new IllegalArgumentException("\n\nNET-4596 РќРµ Р·Р°РґР°РЅРёР№ РѕР±'С”РєС‚ РґРѕРєСѓРјРµРЅС‚Сѓ!");
 		}
 
 		try {
@@ -9590,7 +9590,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 	public int getDFDocCodeForENAct(int actCode) {
 		if (actCode <= 0) {
-			throw new IllegalArgumentException("\n\nNET-4596 Не заданий код акта!");
+			throw new IllegalArgumentException("\n\nNET-4596 РќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ Р°РєС‚Р°!");
 		}
 
 		Connection dfConnection = null;
@@ -9632,7 +9632,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 	public ENAct getENActByDFDocCode(int dfDocCode) {
 		if (dfDocCode <= 0) {
-			throw new IllegalArgumentException("\n\nNET-4596 Не заданий код документу!");
+			throw new IllegalArgumentException("\n\nNET-4596 РќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ РґРѕРєСѓРјРµРЅС‚Сѓ!");
 		}
 
 		try {
@@ -9655,7 +9655,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 	public String getActTypeShortName(int actTypeCode) {
 		if (actTypeCode <= 0) {
-			throw new IllegalArgumentException("\n\nНе заданий код типу акта!");
+			throw new IllegalArgumentException("\n\nРќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ С‚РёРїСѓ Р°РєС‚Р°!");
 		}
 
 		try {
@@ -9669,7 +9669,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 	public void cancelDFDoc(int actCode) {
 		if (actCode <= 0) {
-			throw new IllegalArgumentException("\n\nNET-4596 Не заданий код акта!");
+			throw new IllegalArgumentException("\n\nNET-4596 РќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ Р°РєС‚Р°!");
 		}
 
 		int docCode = getDFDocCodeForENAct(actCode);
@@ -9702,10 +9702,10 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 	public void removeENAct2DFDoc(int actCode, int docCode, boolean removeAll) {
 		if (actCode <= 0) {
-			throw new IllegalArgumentException("\n\nNET-4596 Не заданий код акта!");
+			throw new IllegalArgumentException("\n\nNET-4596 РќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ Р°РєС‚Р°!");
 		}
 		if (docCode <= 0 && !removeAll) {
-			throw new IllegalArgumentException("\n\nNET-4596 Не заданий код документа!");
+			throw new IllegalArgumentException("\n\nNET-4596 РќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ РґРѕРєСѓРјРµРЅС‚Р°!");
 		}
 
 		try {
@@ -9719,7 +9719,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 				ENActDAO actDao = new ENActDAO(connection, userProfile);
 				ENAct act = actDao.getObjectNOSEGR(actCode);
 				if (act.statusRef.code != ENActStatus.GOOD) {
-					throw new SystemException("\n\nNET-4596 Акт повинен бути чорновим! Акт з кодом " + act.code + " не є чорновим!");
+					throw new SystemException("\n\nNET-4596 РђРєС‚ РїРѕРІРёРЅРµРЅ Р±СѓС‚Рё С‡РѕСЂРЅРѕРІРёРј! РђРєС‚ Р· РєРѕРґРѕРј " + act.code + " РЅРµ С” С‡РѕСЂРЅРѕРІРёРј!");
 				}
 			}
 
@@ -9733,18 +9733,18 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
     public String getUserNameForFK(int actCode) {
 		if (actCode <= 0) {
-			throw new IllegalArgumentException("\n\nНе заданий код акта!");
+			throw new IllegalArgumentException("\n\nРќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ Р°РєС‚Р°!");
 		}
 
 		String userName = userProfile.userName;
 
 		int dfDocCode = getDFDocCodeForENAct(actCode);
-		// При подписании актов с помощью ЭЦП будем проводить документ в ФК под юзером "energynet"
+		// РџСЂРё РїРѕРґРїРёСЃР°РЅРёРё Р°РєС‚РѕРІ СЃ РїРѕРјРѕС‰СЊСЋ Р­Р¦Рџ Р±СѓРґРµРј РїСЂРѕРІРѕРґРёС‚СЊ РґРѕРєСѓРјРµРЅС‚ РІ Р¤Рљ РїРѕРґ СЋР·РµСЂРѕРј "energynet"
 		if (dfDocCode > 0) {
 			userName = "energynet";
 		} else {
-			// Если акт проводится при подписании ЭЦП документа на ввод счетчиков в эксплуатацию,
-			// тоже проводим под "energynet"
+			// Р•СЃР»Рё Р°РєС‚ РїСЂРѕРІРѕРґРёС‚СЃСЏ РїСЂРё РїРѕРґРїРёСЃР°РЅРёРё Р­Р¦Рџ РґРѕРєСѓРјРµРЅС‚Р° РЅР° РІРІРѕРґ СЃС‡РµС‚С‡РёРєРѕРІ РІ СЌРєСЃРїР»СѓР°С‚Р°С†РёСЋ,
+			// С‚РѕР¶Рµ РїСЂРѕРІРѕРґРёРј РїРѕРґ "energynet"
 			SCUsageInputLogic scUsageInputLogic = new SCUsageInputLogic(connection, userProfile);
 			int scUsageInputCode = scUsageInputLogic.getSCUsageInputCodeByActCode(actCode);
 			if (scUsageInputCode > 0) {
@@ -9790,7 +9790,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 	public void checkDatePostings(ENAct act) {
 		if (act == null) {
-			throw new IllegalArgumentException("\n\nНе заданий об'єкт акту!");
+			throw new IllegalArgumentException("\n\nРќРµ Р·Р°РґР°РЅРёР№ РѕР±'С”РєС‚ Р°РєС‚Сѓ!");
 		}
 	
 		Date dateAct = Tools.clearTimeOfDate(act.dateAct);
@@ -9802,22 +9802,22 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 		AuthLogic authLogic = new AuthLogic(connection, userProfile);
 
 		if (! authLogic.isUserBuh()) {
-			throw new SystemException("\n\nSUPP-103456 Дата проведення акту повинна співпадати з датою акту!\n" +
-					"Якщо Вам потрібно змінити дату проведення акту, переведіть акт \"на підписання\"" +
-					" та зверніться до Центральної Бухгалтерії!");
+			throw new SystemException("\n\nSUPP-103456 Р”Р°С‚Р° РїСЂРѕРІРµРґРµРЅРЅСЏ Р°РєС‚Сѓ РїРѕРІРёРЅРЅР° СЃРїС–РІРїР°РґР°С‚Рё Р· РґР°С‚РѕСЋ Р°РєС‚Сѓ!\n" +
+					"РЇРєС‰Рѕ Р’Р°Рј РїРѕС‚СЂС–Р±РЅРѕ Р·РјС–РЅРёС‚Рё РґР°С‚Сѓ РїСЂРѕРІРµРґРµРЅРЅСЏ Р°РєС‚Сѓ, РїРµСЂРµРІРµРґС–С‚СЊ Р°РєС‚ \"РЅР° РїС–РґРїРёСЃР°РЅРЅСЏ\"" +
+					" С‚Р° Р·РІРµСЂРЅС–С‚СЊСЃСЏ РґРѕ Р¦РµРЅС‚СЂР°Р»СЊРЅРѕС— Р‘СѓС…РіР°Р»С‚РµСЂС–С—!");
 		}
 	}
 
 	/**
-	 * Получение массива подписантов для акта 
+	 * РџРѕР»СѓС‡РµРЅРёРµ РјР°СЃСЃРёРІР° РїРѕРґРїРёСЃР°РЅС‚РѕРІ РґР»СЏ Р°РєС‚Р° 
 	 *
-	 * @param act - объект акта ({@link com.ksoe.energynet.valueobject.ENAct})
+	 * @param act - РѕР±СЉРµРєС‚ Р°РєС‚Р° ({@link com.ksoe.energynet.valueobject.ENAct})
 	 *
-	 * @return массив подписантов (объектов {@link com.ksoe.docflow.valueobject.DFDocSigner})
+	 * @return РјР°СЃСЃРёРІ РїРѕРґРїРёСЃР°РЅС‚РѕРІ (РѕР±СЉРµРєС‚РѕРІ {@link com.ksoe.docflow.valueobject.DFDocSigner})
 	 */
 	public DFDocSigner[] getDFDocSigners(ENAct act) {
 		if (act == null) {
-			throw new IllegalArgumentException("\n\nNET-4596 Не заданий об'єкт акта!");
+			throw new IllegalArgumentException("\n\nNET-4596 РќРµ Р·Р°РґР°РЅРёР№ РѕР±'С”РєС‚ Р°РєС‚Р°!");
 		}
 
 		Connection dfConnection = null;
@@ -9849,7 +9849,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 	public void removeENAct2RQFKOrder(int actCode) {
 		if (actCode <= 0) {
-			throw new IllegalArgumentException("\n\nНе заданий код акта!");
+			throw new IllegalArgumentException("\n\nРќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ Р°РєС‚Р°!");
 		}
 
 		try {
@@ -9883,7 +9883,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 	public int[] getSCUsageInputCodesForENAct(int actCode) {
 		if (actCode <= 0) {
-			throw new IllegalArgumentException("\n\nНе заданий код акта!");
+			throw new IllegalArgumentException("\n\nРќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ Р°РєС‚Р°!");
 		}
 
 		try {
@@ -9901,10 +9901,10 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 	public boolean actMustHaveSentAndReceivedSigners(ENAct act) {
 		if (act == null) {
-			throw new IllegalArgumentException("\n\nNET-4596 Не заданий об'єкт акту!");
+			throw new IllegalArgumentException("\n\nNET-4596 РќРµ Р·Р°РґР°РЅРёР№ РѕР±'С”РєС‚ Р°РєС‚Сѓ!");
 		}
 		if (act.dateAct == null) {
-			throw new IllegalArgumentException("\n\nNET-4596 Не задано дату акта! Код акта: " + act.code);
+			throw new IllegalArgumentException("\n\nNET-4596 РќРµ Р·Р°РґР°РЅРѕ РґР°С‚Сѓ Р°РєС‚Р°! РљРѕРґ Р°РєС‚Р°: " + act.code);
 		}
 
 		try {
@@ -9918,11 +9918,11 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 	}
 
 	/**
-	 * Есть ли в акте НАШИ счетчики (не абонентские)
+	 * Р•СЃС‚СЊ Р»Рё РІ Р°РєС‚Рµ РќРђРЁР СЃС‡РµС‚С‡РёРєРё (РЅРµ Р°Р±РѕРЅРµРЅС‚СЃРєРёРµ)
 	 *
-	 * @param actCode - код акта
+	 * @param actCode - РєРѕРґ Р°РєС‚Р°
 	 *
-	 * @return {@code true} - если в акте есть наши счетчики, иначе {@code false}
+	 * @return {@code true} - РµСЃР»Рё РІ Р°РєС‚Рµ РµСЃС‚СЊ РЅР°С€Рё СЃС‡РµС‚С‡РёРєРё, РёРЅР°С‡Рµ {@code false}
 	 *
 	 * @throws PersistenceException
 	 */
@@ -9933,7 +9933,7 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 		cFilter.conditionSQL =  "code in (select cc.code from " +
 		" sccounter cc, enestimateitem e, enact2enplanwork a2p, enplanwork p " +
 		" where " +
-		" cc.invnumber is not null " + // Нас не интересуют АБОНЕНТСКИЕ СЧЕТЧИКИ!!!
+		" cc.invnumber is not null " + // РќР°СЃ РЅРµ РёРЅС‚РµСЂРµСЃСѓСЋС‚ РђР‘РћРќР•РќРўРЎРљРР• РЎР§Р•РўР§РРљР!!!
 		" and cc.estimateitemrefcode = e.code " +
 		" and e.planrefcode = a2p.plancode " +
 		" and a2p.plancode = p.code "+
@@ -9949,16 +9949,16 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 	}
 
 	/**
-	 * Есть ли в акте единичные ОЗ-шки, в которых есть наши счетчики (НЕ абонентские) -
-	 * в этом случае необходимо формировать и подписывать ЭЦП ОЗ на ввод в эксплуатацию
+	 * Р•СЃС‚СЊ Р»Рё РІ Р°РєС‚Рµ РµРґРёРЅРёС‡РЅС‹Рµ РћР—-С€РєРё, РІ РєРѕС‚РѕСЂС‹С… РµСЃС‚СЊ РЅР°С€Рё СЃС‡РµС‚С‡РёРєРё (РќР• Р°Р±РѕРЅРµРЅС‚СЃРєРёРµ) -
+	 * РІ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ РЅРµРѕР±С…РѕРґРёРјРѕ С„РѕСЂРјРёСЂРѕРІР°С‚СЊ Рё РїРѕРґРїРёСЃС‹РІР°С‚СЊ Р­Р¦Рџ РћР— РЅР° РІРІРѕРґ РІ СЌРєСЃРїР»СѓР°С‚Р°С†РёСЋ
 	 *
-	 * @param actCode - код акта
+	 * @param actCode - РєРѕРґ Р°РєС‚Р°
 	 *
-	 * @return {@code true} - если есть ОЗ-шки с нашими счетчиками, иначе {@code false}
+	 * @return {@code true} - РµСЃР»Рё РµСЃС‚СЊ РћР—-С€РєРё СЃ РЅР°С€РёРјРё СЃС‡РµС‚С‡РёРєР°РјРё, РёРЅР°С‡Рµ {@code false}
 	 */
 	private boolean containsOzForSigning(int actCode) {
 		if (actCode <= 0) {
-			throw new IllegalArgumentException("\n\nНе заданий код акта!");
+			throw new IllegalArgumentException("\n\nРќРµ Р·Р°РґР°РЅРёР№ РєРѕРґ Р°РєС‚Р°!");
 		}
 
 		int[] scUsageInputCodes = getSCUsageInputCodesForENAct(actCode);
@@ -9993,23 +9993,23 @@ public FKProvResult movePostingByOZ(SCUsageInputItemOZ oz , SCUsageInput ui ){
 
 				for (int scUsageInputItemOZCode : scUsageInputItemOZCodes) {
 					switch (scUsageInputItem.kindRef.code) {
-						// ПРИ ВВОДЕ В ЭКСПЛ ФОРМИРУЕМ ОЗ-1 РЕЕСТР И АКТ
+						// РџР Р Р’Р’РћР”Р• Р’ Р­РљРЎРџР› Р¤РћР РњРР РЈР•Рњ РћР—-1 Р Р•Р•РЎРўР  Р РђРљРў
 						case SCUsageInputItemKind.UsageInput:
 							SCUsageInputItemOZ oz = scUsageInputItemOZDao.getObject(scUsageInputItemOZCode);
-							// SUPP-67738 если нет счета, значит, это счетчик абонента, и не надо печатать реестры
+							// SUPP-67738 РµСЃР»Рё РЅРµС‚ СЃС‡РµС‚Р°, Р·РЅР°С‡РёС‚, СЌС‚Рѕ СЃС‡РµС‚С‡РёРє Р°Р±РѕРЅРµРЅС‚Р°, Рё РЅРµ РЅР°РґРѕ РїРµС‡Р°С‚Р°С‚СЊ СЂРµРµСЃС‚СЂС‹
 							if (oz.account != null && oz.account.trim().length() > 0) {
 								return true;
 							}
 							break;
 
-						// ПРИ ВЫВОДЕ ИЗ ЭКСПЛ ФОРМИРУЕМ ОЗ-1 по выводу
+						// РџР Р Р’Р«Р’РћР”Р• РР— Р­РљРЎРџР› Р¤РћР РњРР РЈР•Рњ РћР—-1 РїРѕ РІС‹РІРѕРґСѓ
 						case SCUsageInputItemKind.UsageOut:
 							return true;
 
-						// при приеме от абонентов формируем факт безоп
+						// РїСЂРё РїСЂРёРµРјРµ РѕС‚ Р°Р±РѕРЅРµРЅС‚РѕРІ С„РѕСЂРјРёСЂСѓРµРј С„Р°РєС‚ Р±РµР·РѕРї
 						case SCUsageInputItemKind.InputUsing:
 							if (! scUsageInputLogic.isForExpertise(scUsageInputItemOZCode)) {
-								// ПРИХОДНЫЙ ОРДЕР
+								// РџР РРҐРћР”РќР«Р™ РћР Р”Р•Р 
 								return true;
 							}
 							break;
