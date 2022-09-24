@@ -244,12 +244,16 @@ import com.ksoe.techcard.valueobject.lists.TKTransportRealShortList;
 public class ActLogic extends LogicModule{
 
 	/**
+	 * 
+	 * 
 	 *
 	 */
 	private static final long serialVersionUID = 1L;
 
 
 	/**
+	 *
+	 *
 	 *
 	 * Возвращает есть ли счетчик для акта (только ввод, не демонтаж)
 	 *
@@ -261,6 +265,8 @@ public class ActLogic extends LogicModule{
 	 * @param isException необходимо ли генерировать исключение
 	 * @return 0 - нет, 1 - есть
 	 * @throws PersistenceException
+	 * 
+	 * 
 	 */
 	public int checkInSCCounterByActCode(int actCode, boolean isException) throws PersistenceException {
 		return this.checkInSCCounterByActCode(actCode, isException, true);
