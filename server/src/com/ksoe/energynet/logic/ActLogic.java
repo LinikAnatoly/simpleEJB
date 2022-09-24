@@ -277,6 +277,8 @@ public class ActLogic extends LogicModule{
 	}
 
 	/**
+	 * 
+	 * 
 	 *
 	 * Возвращает есть ли счетчик для акта (ввод и вывод)
 	 *
@@ -292,6 +294,8 @@ public class ActLogic extends LogicModule{
 	 * будет произведена полная проверка и возвращен результат или сгенерирована оошибка
 	 * @return 0 - нет, 1 - есть
 	 * @throws PersistenceException
+	 * 
+	 * 
 	 */
     public int checkInSCCounterByActCode(int actCode, boolean isException, Boolean isMount, boolean doNotCheckProm) throws PersistenceException
     {
